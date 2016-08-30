@@ -48,4 +48,11 @@ func startListener() {
 }
 
 func handle(conn net.Conn) {
+	buf := make([]byte, 1024)
+	_, err := conn.Read(buf)
+	if err != nil {
+		fmt.Println("Error reading: ", err.Error())
+	}
+	conn.Write([]byte("Hello"))
+	conn.Close()
 }
