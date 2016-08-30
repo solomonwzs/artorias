@@ -2,6 +2,7 @@ package socketframe
 
 import (
 	"fmt"
+	"logger"
 	"net"
 	"os"
 	"time"
@@ -13,14 +14,15 @@ const (
 	CONN_TYPE = "tcp"
 )
 
-func startListener() {
+func StartListener() {
 	listener, err := net.Listen(CONN_TYPE,
 		fmt.Sprintf("%s:%s", CONN_HOST, CONN_PORT))
 	if err != nil {
-		fmt.Println(err)
+		logger.Log(logger.ERROR, err)
 		os.Exit(1)
 	}
 	defer listener.Close()
+	logger.Log(logger.DEBUG, "Start Listen")
 
 	var tempDelay time.Duration = 0
 	for {
@@ -36,7 +38,7 @@ func startListener() {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				fmt.Printf("Accept error: %v; retrying in %v\n", err, tempDelay)
+				logger.Logf(logger.ERROR, "Accept error: %v; retrying in %v\n", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -49,9 +51,12 @@ func startListener() {
 
 func handle(conn net.Conn) {
 	buf := make([]byte, 1024)
-	_, err := conn.Read(buf)
+	n, err := conn.Read(buf)
+	logger.Log(logger.DEBUG, n, string(buf[0:n]))
+	n, err = conn.Read(buf)
+	logger.Log(logger.DEBUG, n)
 	if err != nil {
-		fmt.Println("Error reading: ", err.Error())
+		logger.Log(logger.ERROR, "Error reading: ", err.Error())
 	}
 	conn.Write([]byte("Hello"))
 	conn.Close()

@@ -57,34 +57,42 @@ func Init() {
 }
 
 func Log(level int, message ...interface{}) {
-	msg := &ctrlMessage{
-		Message: _CTRL_WRITE_LOG,
-		LR:      newLogRecord(2, fmt.Sprintln(message...), level),
+	if ctrlChannel != nil {
+		msg := &ctrlMessage{
+			Message: _CTRL_WRITE_LOG,
+			LR:      newLogRecord(2, fmt.Sprintln(message...), level),
+		}
+		ctrlChannel <- msg
 	}
-	ctrlChannel <- msg
 }
 
 func Logf(level int, format string, message ...interface{}) {
-	msg := &ctrlMessage{
-		Message: _CTRL_WRITE_LOG,
-		LR:      newLogRecord(2, fmt.Sprintf(format, message...), level),
+	if ctrlChannel != nil {
+		msg := &ctrlMessage{
+			Message: _CTRL_WRITE_LOG,
+			LR:      newLogRecord(2, fmt.Sprintf(format, message...), level),
+		}
+		ctrlChannel <- msg
 	}
-	ctrlChannel <- msg
 }
 
 func AddLogger(id string, f func(*LogRecord)) {
-	msg := &ctrlMessage{
-		Message:      _CTRL_ADD_LOGGER,
-		LogChannelID: id,
-		LogerFunc:    f,
+	if ctrlChannel != nil {
+		msg := &ctrlMessage{
+			Message:      _CTRL_ADD_LOGGER,
+			LogChannelID: id,
+			LogerFunc:    f,
+		}
+		ctrlChannel <- msg
 	}
-	ctrlChannel <- msg
 }
 
 func DelLogger(id string) {
-	msg := &ctrlMessage{
-		Message:      _CTRL_DEL_LOGGER,
-		LogChannelID: id,
+	if ctrlChannel != nil {
+		msg := &ctrlMessage{
+			Message:      _CTRL_DEL_LOGGER,
+			LogChannelID: id,
+		}
+		ctrlChannel <- msg
 	}
-	ctrlChannel <- msg
 }

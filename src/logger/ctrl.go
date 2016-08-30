@@ -147,6 +147,7 @@ func consoleOutput(l *LogRecord) {
 		color = _COLOR_PURPLE
 		level = "C"
 	}
+
 	file := l.File()
 	short := file
 	for i := len(file) - 1; i > 0; i-- {
@@ -155,7 +156,8 @@ func consoleOutput(l *LogRecord) {
 			break
 		}
 	}
-	fmt.Printf("%s%s [%s:%d] [%s] \033[0m%s",
+
+	fmt.Printf("%s%s [%s %s:%d] \033[0m%s",
 		color, l.Created().Format("2006-01-02 15:04:05"),
-		short, l.Line(), level, l.Message())
+		level, short, l.Line(), l.Message())
 }
