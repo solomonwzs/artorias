@@ -158,6 +158,6 @@ func consoleOutput(l *LogRecord) {
 	}
 
 	fmt.Printf("%s%s [%s %s:%d] \033[0m%s",
-		color, l.Created().Format("2006-01-02 15:04:05"),
+		color, l.Created().Format("15:04:05"),
 		level, short, l.Line(), l.Message())
 }

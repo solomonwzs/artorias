@@ -1,27 +1,25 @@
 package socketframe
 
 import (
-	"fmt"
+	"io"
 	"logger"
 	"net"
 	"os"
 	"time"
 )
 
-const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "3333"
-	CONN_TYPE = "tcp"
-)
+type ProtocolReplay struct {
+	Replay   bool
+	Result   []byte
+	NewState interface{}
+}
 
-func StartListener() {
-	listener, err := net.Listen(CONN_TYPE,
-		fmt.Sprintf("%s:%s", CONN_HOST, CONN_PORT))
-	if err != nil {
-		logger.Log(logger.ERROR, err)
-		os.Exit(1)
-	}
-	defer listener.Close()
+type Protocol interface {
+	Init() (state interface{})
+	Handle(buf []byte, state interface{}) *ProtocolReplay
+}
+
+func StartListener(listener net.Listener, protocol Protocol) {
 	logger.Log(logger.DEBUG, "Start Listen")
 
 	var tempDelay time.Duration = 0
@@ -45,19 +43,29 @@ func StartListener() {
 			os.Exit(1)
 		}
 		tempDelay = 0
-		go handle(conn)
+		go handle(conn, protocol)
 	}
 }
 
-func handle(conn net.Conn) {
+func handle(conn net.Conn, protocol Protocol) {
 	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	logger.Log(logger.DEBUG, n, string(buf[0:n]))
-	n, err = conn.Read(buf)
-	logger.Log(logger.DEBUG, n)
-	if err != nil {
-		logger.Log(logger.ERROR, "Error reading: ", err.Error())
+	logger.Log(logger.DEBUG, "connect")
+	state := protocol.Init()
+	for {
+		n, err := conn.Read(buf)
+
+		if err == io.EOF {
+			logger.Log(logger.DEBUG, "exit")
+			break
+		} else if err != nil {
+			logger.Log(logger.ERROR, "Error reading: ", err.Error())
+			continue
+		}
+		replay := protocol.Handle(buf[:n], state)
+		state = replay.NewState
+		if replay.Replay {
+			conn.Write(replay.Result)
+		}
 	}
-	conn.Write([]byte("Hello"))
 	conn.Close()
 }
