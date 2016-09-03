@@ -27,5 +27,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	socketframe.StartListener(listener, &redis.Redis{})
+	socketframe.NewSocketServer(listener, &redis.Redis{})
+	for {
+	}
 }

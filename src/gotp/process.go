@@ -8,8 +8,18 @@ type Pid struct {
 	acceptor chan Message
 }
 
-func (pid *Pid) Recv(message Message) {
-	pid.acceptor <- message
+func PackMessage(i interface{}) Message {
+	return Message{
+		content: i,
+	}
+}
+
+func (msg Message) UnPackMessage() interface{} {
+	return msg.content
+}
+
+func (msg Message) SendTo(pid *Pid) {
+	pid.acceptor <- msg
 }
 
 func Run(do func(Message)) *Pid {
