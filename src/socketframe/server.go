@@ -5,7 +5,6 @@ import (
 	"logger"
 	"net"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -13,11 +12,6 @@ const (
 	_EVENT_READ_BYTE_FROM_CONN = iota
 	_EVENT_CONN_CLOSE
 	_EVENT_CUSTOM_INFO
-)
-
-const (
-	TERMINAL_CONN_CLOSE = iota
-	TERMINAL_NORMAL
 )
 
 type event struct {
@@ -32,89 +26,73 @@ func newEvent(flag int, content interface{}) *event {
 	}
 }
 
-type ProtocolReplay struct {
-	Replay   bool
-	Result   []byte
-	NewState interface{}
-}
-
-type Protocol interface {
-	Init() (state interface{})
-	HandleBytes(buf []byte, state interface{}) *ProtocolReplay
-	HandleInfo(info interface{}, state interface{}) *ProtocolReplay
-	Terminal(reason int, err error, state interface{})
-}
-
-type SocketServer struct {
+type Worker struct {
 	eventChannel chan *event
-	wg           sync.WaitGroup
 }
 
-func NewSocketServer(listener net.Listener, protocol Protocol) *SocketServer {
+func NewWorker(eventChannel chan *event) *Worker {
+	return &Worker{
+		eventChannel: eventChannel,
+	}
+}
+
+func NewSocketServer(listener net.Listener, protocol Protocol) {
 	logger.Log(logger.DEBUG, "Start Listen")
 
-	server := &SocketServer{
-		eventChannel: make(chan *event, 16),
-	}
-
 	var tempDelay time.Duration = 0
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				if ne, ok := err.(net.Error); ok && ne.Temporary() {
-					if tempDelay == 0 {
-						tempDelay = 2 * time.Millisecond
-					} else {
-						tempDelay *= 2
-					}
-
-					if max := 1 * time.Second; tempDelay > max {
-						tempDelay = max
-					}
-					logger.Logf(logger.ERROR,
-						"Accept error: %v; retrying in %v\n", err, tempDelay)
-					time.Sleep(tempDelay)
-					continue
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 2 * time.Millisecond
+				} else {
+					tempDelay *= 2
 				}
-				os.Exit(1)
-			}
-			tempDelay = 0
-			server.wg.Add(1)
-			go server.handle(conn, protocol)
-		}
-		server.wg.Wait()
-	}()
 
-	return server
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				logger.Logf(logger.ERROR,
+					"Accept error: %v; retrying in %v\n", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
+			os.Exit(1)
+		}
+		tempDelay = 0
+
+		eventChannel := make(chan *event, 16)
+		go handle(conn, eventChannel, protocol)
+	}
 }
 
-func (server *SocketServer) readFromConn(conn net.Conn) {
+func readFromConn(conn net.Conn, eventChannel chan *event) {
 	for {
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 
 		if err == io.EOF {
 			logger.Log(logger.DEBUG, "exit")
-			server.eventChannel <- newEvent(_EVENT_CONN_CLOSE, nil)
+			eventChannel <- newEvent(_EVENT_CONN_CLOSE, nil)
 			break
 		} else if err != nil {
-			logger.Log(logger.ERROR, "Error reading: ", err.Error())
+			logger.Log(logger.ERROR, "Error reading: ", err)
 			continue
 		}
-		server.eventChannel <- newEvent(_EVENT_READ_BYTE_FROM_CONN, buf[:n])
+		logger.Log(logger.DEBUG, buf[:n])
+		eventChannel <- newEvent(_EVENT_READ_BYTE_FROM_CONN, buf[:n])
 	}
 }
 
-func (server *SocketServer) handle(conn net.Conn, protocol Protocol) {
-	defer server.wg.Done()
+func handle(conn net.Conn, eventChannel chan *event, protocol Protocol) {
+	state := protocol.Init()
 
 	go func() {
-		server.readFromConn(conn)
+		readFromConn(conn, eventChannel)
 	}()
 
-	state := protocol.Init()
-	for event := range server.eventChannel {
+	for event := range eventChannel {
 		var replay *ProtocolReplay
 
 		switch event.flag {
@@ -133,5 +111,11 @@ func (server *SocketServer) handle(conn net.Conn, protocol Protocol) {
 		if replay.Replay {
 			conn.Write(replay.Result)
 		}
+	}
+}
+
+func handleDefer(state interface{}, conn net.Conn, protocol Protocol) {
+	if err := recover(); err != nil {
+		protocol.Terminal(TERMINAL_PANIC, err, state)
 	}
 }

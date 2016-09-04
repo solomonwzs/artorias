@@ -12,6 +12,9 @@ func (*Redis) Init() interface{} {
 }
 
 func (*Redis) HandleBytes(buf []byte, state0 interface{}) *socketframe.ProtocolReplay {
+	zero := 0
+	logger.Log(logger.DEBUG, 1/zero)
+
 	logger.Logf(logger.DEBUG, "%#v\n", string(buf))
 	state := state0.(*connState)
 	state.buf = append(state.buf, buf...)
@@ -45,5 +48,6 @@ func (*Redis) HandleInfo(info interface{}, state0 interface{}) *socketframe.Prot
 	}
 }
 
-func (*Redis) Terminal(reason int, err error, state0 interface{}) {
+func (*Redis) Terminal(reason int, err interface{}, state0 interface{}) {
+	logger.Log(logger.DEBUG, reason, err)
 }

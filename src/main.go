@@ -28,6 +28,4 @@ func main() {
 	defer listener.Close()
 
 	socketframe.NewSocketServer(listener, &redis.Redis{})
-	for {
-	}
 }
