@@ -6,15 +6,21 @@ const (
 	TERMINAL_PANIC
 )
 
-type ProtocolReplay struct {
-	Replay   bool
-	Result   []byte
-	NewState interface{}
+const (
+	R_REPLY = iota
+	R_NOREPLY
+	R_TERMINAL
+)
+
+type ProtocolReply struct {
+	reply       int
+	resultBytes []byte
+	newState    interface{}
 }
 
 type Protocol interface {
-	Init() (state interface{})
-	HandleBytes(buf []byte, state interface{}) *ProtocolReplay
-	HandleInfo(info interface{}, state interface{}) *ProtocolReplay
+	Init(worker *Worker) (state interface{})
+	HandleBytes(buf []byte, state interface{}) *ProtocolReply
+	HandleInfo(info interface{}, state interface{}) *ProtocolReply
 	Terminal(reason int, err interface{}, state interface{})
 }

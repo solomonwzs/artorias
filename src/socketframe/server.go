@@ -27,11 +27,13 @@ func newEvent(flag int, content interface{}) *event {
 }
 
 type Worker struct {
+	conn         net.Conn
 	eventChannel chan *event
 }
 
-func NewWorker(eventChannel chan *event) *Worker {
+func newWorker(conn net.Conn, eventChannel chan *event) *Worker {
 	return &Worker{
+		conn:         conn,
 		eventChannel: eventChannel,
 	}
 }
@@ -62,37 +64,37 @@ func NewSocketServer(listener net.Listener, protocol Protocol) {
 		}
 		tempDelay = 0
 
-		eventChannel := make(chan *event, 16)
-		go handle(conn, eventChannel, protocol)
+		worker := newWorker(conn, make(chan *event, 16))
+		go handle(worker, protocol)
 	}
 }
 
-func readFromConn(conn net.Conn, eventChannel chan *event) {
+func readFromConn(worker *Worker) {
 	for {
 		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
+		n, err := worker.conn.Read(buf)
 
 		if err == io.EOF {
 			logger.Log(logger.DEBUG, "exit")
-			eventChannel <- newEvent(_EVENT_CONN_CLOSE, nil)
+			worker.eventChannel <- newEvent(_EVENT_CONN_CLOSE, nil)
 			break
 		} else if err != nil {
 			logger.Log(logger.ERROR, "Error reading: ", err)
 			continue
 		}
 		logger.Log(logger.DEBUG, buf[:n])
-		eventChannel <- newEvent(_EVENT_READ_BYTE_FROM_CONN, buf[:n])
+		worker.eventChannel <- newEvent(_EVENT_READ_BYTE_FROM_CONN, buf[:n])
 	}
 }
 
-func handle(conn net.Conn, eventChannel chan *event, protocol Protocol) {
-	state := protocol.Init()
+func handle(worker *Worker, protocol Protocol) {
+	state := protocol.Init(worker)
 
 	go func() {
-		readFromConn(conn, eventChannel)
+		readFromConn(worker)
 	}()
 
-	for event := range eventChannel {
+	for event := range worker.eventChannel {
 		var replay *ProtocolReplay
 
 		switch event.flag {
@@ -109,7 +111,7 @@ func handle(conn net.Conn, eventChannel chan *event, protocol Protocol) {
 
 		state = replay.NewState
 		if replay.Replay {
-			conn.Write(replay.Result)
+			worker.conn.Write(replay.Result)
 		}
 	}
 }

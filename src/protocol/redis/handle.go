@@ -7,7 +7,7 @@ import (
 
 type Redis struct{}
 
-func (*Redis) Init() interface{} {
+func (*Redis) Init(worker *socketframe.Worker) interface{} {
 	return newConnState()
 }
 
