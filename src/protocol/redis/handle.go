@@ -45,5 +45,5 @@ func (*Redis) HandleInfo(info interface{}, state0 interface{}) *socketframe.Prot
 	}
 }
 
-func (*Redis) Terminal(reason int, state0 interface{}) {
+func (*Redis) Terminal(reason int, err error, state0 interface{}) {
 }
