@@ -11,10 +11,7 @@ func (*Redis) Init(worker *socketframe.Worker) interface{} {
 	return newConnState()
 }
 
-func (*Redis) HandleBytes(buf []byte, state0 interface{}) *socketframe.ProtocolReplay {
-	zero := 0
-	logger.Log(logger.DEBUG, 1/zero)
-
+func (*Redis) HandleBytes(buf []byte, state0 interface{}) *socketframe.ProtocolReply {
 	logger.Logf(logger.DEBUG, "%#v\n", string(buf))
 	state := state0.(*connState)
 	state.buf = append(state.buf, buf...)
@@ -25,27 +22,16 @@ func (*Redis) HandleBytes(buf []byte, state0 interface{}) *socketframe.ProtocolR
 	logger.Logf(logger.DEBUG, "%+v\n", state.cmd)
 	if state.cmd.stateMachine == _SM_END || state.cmd.stateMachine == _SM_ERROR {
 		state.cmd = newCommand()
-		return &socketframe.ProtocolReplay{
-			Replay:   true,
-			Result:   []byte("hello"),
-			NewState: state,
-		}
+		return socketframe.ReplyClient([]byte("hello"), state)
 	}
-
-	return &socketframe.ProtocolReplay{
-		Replay:   false,
-		NewState: state,
-	}
+	return socketframe.ReplyNoReply(state)
 }
 
-func (*Redis) HandleInfo(info interface{}, state0 interface{}) *socketframe.ProtocolReplay {
+func (*Redis) HandleInfo(info interface{}, state0 interface{}) *socketframe.ProtocolReply {
 	logger.Log(logger.DEBUG, info)
 	state := state0.(*connState)
 
-	return &socketframe.ProtocolReplay{
-		Replay:   false,
-		NewState: state,
-	}
+	return socketframe.ReplyNoReply(state)
 }
 
 func (*Redis) Terminal(reason int, err interface{}, state0 interface{}) {
