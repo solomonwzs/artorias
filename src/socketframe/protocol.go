@@ -4,6 +4,7 @@ const (
 	TERMINAL_UNKNOWN = iota
 	TERMINAL_CONN_CLOSE
 	TERMINAL_NORMAL
+	TERMINAL_INIT
 	TERMINAL_PANIC
 )
 
@@ -12,6 +13,29 @@ const (
 	_R_NOREPLY
 	_R_TERMINAL
 )
+
+const (
+	_I_OK = iota
+	_I_TERMINAL
+)
+
+type ProtocolInitState struct {
+	flag  int
+	state interface{}
+}
+
+func InitStateOK(state interface{}) *ProtocolInitState {
+	return &ProtocolInitState{
+		flag:  _I_OK,
+		state: state,
+	}
+}
+
+func InitStateTerminal() *ProtocolInitState {
+	return &ProtocolInitState{
+		flag: _I_TERMINAL,
+	}
+}
 
 type ProtocolReply struct {
 	reply      int
@@ -42,7 +66,7 @@ func ReplyTerminal(newState interface{}) *ProtocolReply {
 }
 
 type Protocol interface {
-	Init(worker *Worker) (state interface{})
+	Init(worker *Worker) *ProtocolInitState
 	HandleBytes(buf []byte, state interface{}) *ProtocolReply
 	HandleInfo(info interface{}, state interface{}) *ProtocolReply
 	Terminal(reason int, err interface{}, state interface{})

@@ -52,7 +52,13 @@ func handle(worker *Worker, protocol Protocol) {
 		logger.Log(logger.DEBUG, "connect close")
 	}()
 
-	state = protocol.Init(worker)
+	initState := protocol.Init(worker)
+	if initState.flag == _I_TERMINAL {
+		terminalRea, terminalErr = TERMINAL_INIT, nil
+		return
+	}
+	state = initState.state
+
 	go func() {
 		readBytes(worker)
 	}()

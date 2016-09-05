@@ -7,8 +7,8 @@ import (
 
 type Redis struct{}
 
-func (*Redis) Init(worker *socketframe.Worker) interface{} {
-	return newConnState()
+func (*Redis) Init(worker *socketframe.Worker) *socketframe.ProtocolInitState {
+	return socketframe.InitStateOK(newConnState())
 }
 
 func (*Redis) HandleBytes(buf []byte, state0 interface{}) *socketframe.ProtocolReply {
@@ -20,11 +20,17 @@ func (*Redis) HandleBytes(buf []byte, state0 interface{}) *socketframe.ProtocolR
 	state.buf = state.buf[i+1:]
 
 	logger.Logf(logger.DEBUG, "%+v\n", state.cmd)
-	if state.cmd.stateMachine == _SM_END || state.cmd.stateMachine == _SM_ERROR {
+	switch state.cmd.stateMachine {
+	case _SM_END:
+		replyBytes := processCommand(state.cmd)
 		state.cmd = newCommand()
-		return socketframe.ReplyClient([]byte("hello"), state)
+		return socketframe.ReplyClient(replyBytes, state)
+	case _SM_ERROR:
+		state.cmd = newCommand()
+		return socketframe.ReplyNoReply(state)
+	default:
+		return socketframe.ReplyNoReply(state)
 	}
-	return socketframe.ReplyNoReply(state)
 }
 
 func (*Redis) HandleInfo(info interface{}, state0 interface{}) *socketframe.ProtocolReply {
@@ -36,4 +42,8 @@ func (*Redis) HandleInfo(info interface{}, state0 interface{}) *socketframe.Prot
 
 func (*Redis) Terminal(reason int, err interface{}, state0 interface{}) {
 	logger.Log(logger.DEBUG, reason, err)
+}
+
+func processCommand(cmd *command) []byte {
+	return []byte("+\r\n")
 }
