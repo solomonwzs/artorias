@@ -1,6 +1,8 @@
 package main
 
 import (
+	dialRedis "dial/redis"
+
 	"fmt"
 	"logger"
 	"net"
@@ -40,7 +42,8 @@ func serverTest() {
 }
 
 func clientTest() {
-	pool := client.NewPool(&tcpConnDialer{}, 1)
+	rd := dialRedis.NewRedisDialer("127.0.0.1:6379")
+	pool := client.NewPool(rd, 1)
 
 	conn0, err := pool.GetConn()
 	logger.Log(logger.DEBUG, conn0, err)
