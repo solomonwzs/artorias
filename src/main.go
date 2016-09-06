@@ -6,7 +6,8 @@ import (
 	"net"
 	"os"
 	"protocol/redis"
-	"socketframe"
+	"socketframe/client"
+	"socketframe/server"
 )
 
 const (
@@ -15,10 +16,18 @@ const (
 	CONN_TYPE = "tcp"
 )
 
-func main() {
-	logger.Init()
-	logger.AddLogger("default", nil)
+type tcpConnDialer struct{}
 
+func (d *tcpConnDialer) NewConn() (net.Conn, error) {
+	conn, err := net.Dial("tcp", "localhost:6379")
+	return conn, err
+}
+
+func (d *tcpConnDialer) DelConn(conn net.Conn) {
+	conn.Close()
+}
+
+func serverTest() {
 	listener, err := net.Listen(CONN_TYPE,
 		fmt.Sprintf("%s:%s", CONN_HOST, CONN_PORT))
 	if err != nil {
@@ -27,5 +36,27 @@ func main() {
 	}
 	defer listener.Close()
 
-	socketframe.NewSocketServer(listener, &redis.Redis{})
+	server.NewSocketServer(listener, &redis.Redis{})
+}
+
+func clientTest() {
+	pool := client.NewPool(&tcpConnDialer{}, 1)
+
+	conn0, err := pool.GetConn()
+	logger.Log(logger.DEBUG, conn0, err)
+
+	conn1, err := pool.GetConn()
+	logger.Log(logger.DEBUG, conn1, err)
+
+	pool.RecoverConn(conn0)
+	pool.RecoverConn(conn1)
+}
+
+func main() {
+	logger.Init()
+	logger.AddLogger("default", nil)
+
+	clientTest()
+	for {
+	}
 }

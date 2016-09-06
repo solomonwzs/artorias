@@ -1,4 +1,4 @@
-package socketframe
+package server
 
 import (
 	"errors"
