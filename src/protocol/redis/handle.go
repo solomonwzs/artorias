@@ -1,11 +1,15 @@
 package redis
 
 import (
+	dialRedis "dial/redis"
+
 	"logger"
 	"socketframe/server"
 )
 
-type Redis struct{}
+type Redis struct {
+	redisConnPools []*dialRedis.RedisConnPool
+}
 
 func (*Redis) Init(worker *server.Worker) *server.ProtocolInitState {
 	return server.InitStateOK(newConnState())
@@ -45,5 +49,8 @@ func (*Redis) Terminal(reason int, err interface{}, state0 interface{}) {
 }
 
 func processCommand(cmd *command) []byte {
-	return []byte("+\r\n")
+	if isIgnoreCommand(cmd) {
+		return []byte("+OK\r\n")
+	}
+	return []byte("+OK\r\n")
 }

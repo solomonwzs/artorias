@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"protocol/redis"
-	"socketframe/client"
 	"socketframe/server"
 )
 
@@ -17,17 +16,6 @@ const (
 	CONN_PORT = "3333"
 	CONN_TYPE = "tcp"
 )
-
-type tcpConnDialer struct{}
-
-func (d *tcpConnDialer) NewConn() (net.Conn, error) {
-	conn, err := net.Dial("tcp", "localhost:6379")
-	return conn, err
-}
-
-func (d *tcpConnDialer) DelConn(conn net.Conn) {
-	conn.Close()
-}
 
 func serverTest() {
 	listener, err := net.Listen(CONN_TYPE,
@@ -42,17 +30,20 @@ func serverTest() {
 }
 
 func clientTest() {
-	rd := dialRedis.NewRedisDialer("127.0.0.1:6379")
-	pool := client.NewPool(rd, 1)
-
-	conn0, err := pool.GetConn()
-	logger.Log(logger.DEBUG, conn0, err)
-
-	conn1, err := pool.GetConn()
-	logger.Log(logger.DEBUG, conn1, err)
-
-	pool.RecoverConn(conn0)
-	pool.RecoverConn(conn1)
+	rcp := dialRedis.NewRedisConnPool("127.0.0.1:6379:0", 16)
+	rc, err := rcp.GetConn()
+	if err != nil {
+		logger.Log(logger.ERROR, err)
+		return
+	}
+	rc.Query(2, [][]byte{
+		[]byte("GET"),
+		[]byte("a"),
+	})
+	// rc.Query(2, [][]byte{
+	// 	[]byte("SELECT"),
+	// 	[]byte("1"),
+	// })
 }
 
 func main() {
@@ -60,6 +51,5 @@ func main() {
 	logger.AddLogger("default", nil)
 
 	clientTest()
-	for {
-	}
+	serverTest()
 }

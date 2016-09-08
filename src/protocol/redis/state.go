@@ -3,9 +3,9 @@ package redis
 const (
 	_SM_ERROR int = iota
 	_SM_START
-	_SM_PARSE_ARGN
-	_SM_PARSE_ARGN_END
-	_SM_PARSE_ARGN_OK
+	_SM_PARSE_ARGC
+	_SM_PARSE_ARGC_END
+	_SM_PARSE_ARGC_OK
 	_SM_PARSE_ARG_LEN
 	_SM_PARSE_ARG_LEN_END
 	_SM_PARSE_ARG
@@ -18,6 +18,7 @@ type command struct {
 	argv         [][]byte
 	stateMachine int
 	buf          []byte
+	recvBytes    []byte
 	argvLen      int
 
 	pargc    int
@@ -30,6 +31,7 @@ func newCommand() *command {
 		argv:         nil,
 		stateMachine: _SM_START,
 		buf:          []byte{},
+		recvBytes:    []byte{},
 		argvLen:      0,
 
 		pargc:    0,
@@ -39,21 +41,21 @@ func newCommand() *command {
 
 func (cmd *command) smStart(char byte) {
 	if char == '*' {
-		cmd.stateMachine = _SM_PARSE_ARGN
+		cmd.stateMachine = _SM_PARSE_ARGC
 	}
 }
 
-func (cmd *command) smParseArgn(char byte) {
+func (cmd *command) smParseArgc(char byte) {
 	if char >= '0' && char <= '9' {
 		cmd.buf = append(cmd.buf, char)
 	} else if char == '\r' && len(cmd.buf) != 0 {
-		cmd.stateMachine = _SM_PARSE_ARGN_END
+		cmd.stateMachine = _SM_PARSE_ARGC_END
 	} else {
 		cmd.stateMachine = _SM_ERROR
 	}
 }
 
-func (cmd *command) smParseArgnEnd(char byte) {
+func (cmd *command) smParseArgcEnd(char byte) {
 	if char == '\n' {
 		cmd.argc = 0
 		for _, char := range cmd.buf {
@@ -61,13 +63,13 @@ func (cmd *command) smParseArgnEnd(char byte) {
 		}
 		cmd.argv = make([][]byte, cmd.argc)
 		cmd.buf = []byte{}
-		cmd.stateMachine = _SM_PARSE_ARGN_OK
+		cmd.stateMachine = _SM_PARSE_ARGC_OK
 	} else {
 		cmd.stateMachine = _SM_ERROR
 	}
 }
 
-func (cmd *command) smParseArgnOK(char byte) {
+func (cmd *command) smParseArgcOK(char byte) {
 	if char == '$' {
 		cmd.stateMachine = _SM_PARSE_ARG_LEN
 	} else {
@@ -117,7 +119,7 @@ func (cmd *command) smParseArgEnd(char byte) {
 		if cmd.pargc == cmd.argc {
 			cmd.stateMachine = _SM_END
 		} else {
-			cmd.stateMachine = _SM_PARSE_ARGN_OK
+			cmd.stateMachine = _SM_PARSE_ARGC_OK
 		}
 	} else {
 		cmd.stateMachine = _SM_ERROR
@@ -129,12 +131,12 @@ func (cmd *command) parseCommand(input []byte) int {
 		switch cmd.stateMachine {
 		case _SM_START:
 			cmd.smStart(char)
-		case _SM_PARSE_ARGN:
-			cmd.smParseArgn(char)
-		case _SM_PARSE_ARGN_END:
-			cmd.smParseArgnEnd(char)
-		case _SM_PARSE_ARGN_OK:
-			cmd.smParseArgnOK(char)
+		case _SM_PARSE_ARGC:
+			cmd.smParseArgc(char)
+		case _SM_PARSE_ARGC_END:
+			cmd.smParseArgcEnd(char)
+		case _SM_PARSE_ARGC_OK:
+			cmd.smParseArgcOK(char)
 		case _SM_PARSE_ARG_LEN:
 			cmd.smParseArgLen(char)
 		case _SM_PARSE_ARG_LEN_END:
@@ -144,6 +146,7 @@ func (cmd *command) parseCommand(input []byte) int {
 		case _SM_PARSE_ARG_END:
 			cmd.smParseArgEnd(char)
 		}
+		cmd.recvBytes = append(cmd.recvBytes, char)
 
 		if cmd.stateMachine == _SM_END || cmd.stateMachine == _SM_ERROR {
 			return i
