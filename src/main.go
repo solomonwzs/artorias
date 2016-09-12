@@ -30,14 +30,14 @@ func serverTest() {
 }
 
 func clientTest() {
-	rcp := dialRedis.NewRedisConnPool("127.0.0.1:6379:0", 16)
+	rcp := dialRedis.NewRedisConnPool("127.0.0.1:6379:1", 16)
 	rc, err := rcp.GetConn()
 	if err != nil {
 		logger.Log(logger.ERROR, err)
 		return
 	}
 	rc.Query(2, [][]byte{
-		[]byte("GET"),
+		[]byte("GETALL"),
 		[]byte("a"),
 	})
 	// rc.Query(2, [][]byte{
@@ -50,6 +50,6 @@ func main() {
 	logger.Init()
 	logger.AddLogger("default", nil)
 
-	clientTest()
+	// clientTest()
 	serverTest()
 }
