@@ -1,13 +1,28 @@
 package redisparser
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 const (
 	_SM_START = iota
 	_SM_UNITL_CRLF
+	_SM_FIXED_LEN
+	_SM_MULIT
 	_SM_END
 	_SM_ERROR
 )
+
+var _MSG_SM map[int]string = map[int]string{
+	_SM_START:      "start",
+	_SM_UNITL_CRLF: "until_CRLF",
+	_SM_FIXED_LEN:  "fixed_len",
+	_SM_MULIT:      "mulit",
+	_SM_END:        "end",
+	_SM_ERROR:      "error",
+}
 
 const (
 	RC_TYPE_STATUS = iota
@@ -18,10 +33,33 @@ const (
 	RC_TYPE_UNKNOWN
 )
 
+var _MSG_CMD_TYPE map[int]string = map[int]string{
+	RC_TYPE_STATUS:  "status",
+	RC_TYPE_ERROR:   "error",
+	RC_TYPE_BULK:    "bulk",
+	RC_TYPE_INT:     "int",
+	RC_TYPE_MULIT:   "mulit",
+	RC_TYPE_UNKNOWN: "unknown",
+}
+
+func endByCtrf(buffer []byte) bool {
+	l := len(buffer)
+	return l >= 2 && buffer[l-2] == '\r' && buffer[l-1] == '\n'
+}
+
 type redisCommandValue struct {
 	_Int      int
 	_Bytes    []byte
 	_Commands []*RedisCommand
+}
+
+func (rcv *redisCommandValue) String() string {
+	vals := []string{}
+	for _, c := range rcv._Commands {
+		vals = append(vals, fmt.Sprintf("%v", c))
+	}
+	return fmt.Sprintf("{\"int\":%d,\"bytes\":\"%s\",\"commands\":[%s]}",
+		rcv._Int, rcv._Bytes, strings.Join(vals, ","))
 }
 
 func (rcv *redisCommandValue) setInt(i int) {
@@ -36,34 +74,10 @@ func (rcv *redisCommandValue) setCommands(c []*RedisCommand) {
 	rcv._Commands = c
 }
 
-func (rcv *redisCommandValue) appendToBuffer(b byte) {
-	rcv._Bytes = append(rcv._Bytes, b)
-}
-
-func (rcv *redisCommandValue) bufferEndByCtrf() bool {
-	l := len(rcv._Bytes)
-	return l >= 2 && rcv._Bytes[l-2] == '\r' && rcv._Bytes[l-1] == '\n'
-}
-
-func (rcv *redisCommandValue) bufferToBytes() error {
-	l := len(rcv._Bytes)
-	rcv._Bytes = rcv._Bytes[:l-2]
-	return nil
-}
-
-func (rcv *redisCommandValue) bufferToInt() error {
-	l := len(rcv._Bytes)
-	i, err := strconv.Atoi(string(rcv._Bytes[:l-2]))
-	if err == nil {
-		rcv._Int = i
-	}
-	return err
-}
-
 func newRedisCommandValue() *redisCommandValue {
 	return &redisCommandValue{
 		_Int:      0,
-		_Bytes:    []byte{},
+		_Bytes:    nil,
 		_Commands: nil,
 	}
 }
@@ -84,30 +98,92 @@ func NewRedisCommand() *RedisCommand {
 	return rc
 }
 
-func (rc *RedisCommand) Parser() {
-	stack := []*RedisCommand{rc}
+func (rc *RedisCommand) String() string {
+	return fmt.Sprintf("{\"type\":\"%s\",\"status\":\"%s\",\"value\":%v}",
+		_MSG_CMD_TYPE[rc._type], _MSG_SM[rc.status], rc.value)
+}
 
-	parser := func(bs []byte) {
-		for _, b := range bs {
-			r := stack[len(stack)-1]
-			switch r.status {
-			case _SM_START:
-				parseStart(b, r)
-			case _SM_UNITL_CRLF:
-				parseUnitlCrlf(b, r)
-			}
+type parserStack struct {
+	stack  []*RedisCommand
+	buffer []byte
+	argLen int
+}
+
+func (ps *parserStack) pop() {
+	l := len(ps.stack)
+	for l > 0 {
+		top := ps.stack[l-1]
+		if top.status == _SM_END {
+			ps.stack = ps.stack[:l-1]
+			l -= 1
+		} else if top.status == _SM_MULIT {
+			top.status = _SM_END
+			ps.stack = ps.stack[:l-1]
+			l -= 1
+		} else {
+			return
 		}
 	}
 }
 
-func parseStart(b byte, rc *RedisCommand) {
+func (rc *RedisCommand) Parser() func([]byte) int {
+	ps := &parserStack{
+		stack:  []*RedisCommand{rc},
+		buffer: []byte{},
+		argLen: 0,
+	}
+
+	parser := func(bs []byte) int {
+		if ps.stack == nil || len(ps.stack) == 0 {
+			return 0
+		}
+
+		for i, b := range bs {
+			r := ps.stack[len(ps.stack)-1]
+
+			switch r.status {
+			case _SM_START:
+				parseStart(ps, b, r)
+			case _SM_UNITL_CRLF:
+				parseUnitlCrlf(ps, b, r)
+			case _SM_FIXED_LEN:
+				parseFixedLen(ps, b, r)
+			}
+
+			if len(ps.stack) == 0 {
+				return i + 1
+			}
+			if r.status == _SM_ERROR {
+				ps.stack = nil
+				rc.status = _SM_ERROR
+				return i + 1
+			}
+		}
+		return len(bs)
+	}
+	return parser
+}
+
+func parseFixedLen(ps *parserStack, b byte, rc *RedisCommand) {
+	ps.buffer = append(ps.buffer, b)
+	l := len(ps.buffer)
+	if l == ps.argLen+2 {
+		if endByCtrf(ps.buffer) {
+			rc.value.setBytes(ps.buffer[:l-2])
+			rc.status = _SM_END
+			ps.pop()
+		} else {
+			rc.status = _SM_ERROR
+		}
+	}
+}
+
+func parseStart(ps *parserStack, b byte, rc *RedisCommand) {
 	switch b {
 	case '+':
 		rc._type = RC_TYPE_STATUS
-		rc.status = _SM_UNITL_CRLF
 	case '-':
 		rc._type = RC_TYPE_ERROR
-		rc.status = _SM_UNITL_CRLF
 	case '$':
 		rc._type = RC_TYPE_BULK
 	case ':':
@@ -116,21 +192,56 @@ func parseStart(b byte, rc *RedisCommand) {
 		rc._type = RC_TYPE_MULIT
 	default:
 		rc._type = RC_TYPE_UNKNOWN
+		rc.status = _SM_ERROR
 	}
+	ps.buffer = []byte{}
+	rc.status = _SM_UNITL_CRLF
 }
 
-func parseUnitlCrlf(b byte, rc *RedisCommand) {
-	rc.value.appendToBuffer(b)
-	if rc.value.bufferEndByCtrf() {
+func parseUnitlCrlf(ps *parserStack, b byte, rc *RedisCommand) {
+	ps.buffer = append(ps.buffer, b)
+	if endByCtrf(ps.buffer) {
 		var err error = nil
+		blen := len(ps.buffer)
 		if rc._type == RC_TYPE_STATUS || rc._type == RC_TYPE_ERROR {
-			err = rc.value.bufferToBytes()
+			rc.value.setBytes(ps.buffer[:blen-2])
 			rc.status = _SM_END
+			ps.pop()
 		} else if rc._type == RC_TYPE_INT {
-			err = rc.value.bufferToInt()
-			rc.status = _SM_END
+			i, err := strconv.Atoi(string(ps.buffer[:blen-2]))
+			if err == nil {
+				rc.value.setInt(i)
+				rc.status = _SM_END
+				ps.pop()
+			}
+		} else if rc._type == RC_TYPE_BULK {
+			i, err := strconv.Atoi(string(ps.buffer[:blen-2]))
+			if err == nil {
+				if i < 0 {
+					rc.value.setBytes(nil)
+					rc.status = _SM_END
+					ps.pop()
+				} else {
+					ps.argLen = i
+					rc.status = _SM_FIXED_LEN
+				}
+			}
+		} else if rc._type == RC_TYPE_MULIT {
+			i, err := strconv.Atoi(string(ps.buffer[:blen-2]))
+			if err == nil {
+				rc.status = _SM_MULIT
+				rcs := make([]*RedisCommand, i)
+				for j := 0; j < i; j++ {
+					rcs[j] = NewRedisCommand()
+				}
+				rc.value.setCommands(rcs)
+				for j := i - 1; j >= 0; j-- {
+					ps.stack = append(ps.stack, rcs[j])
+				}
+			}
 		}
 
+		ps.buffer = []byte{}
 		if err != nil {
 			rc.status = _SM_ERROR
 		}

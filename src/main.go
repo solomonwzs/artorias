@@ -2,12 +2,12 @@ package main
 
 import (
 	dialRedis "dial/redis"
-
 	"fmt"
 	"logger"
 	"net"
 	"os"
 	"protocol/redis"
+	"redisparser"
 	"socketframe/server"
 )
 
@@ -49,6 +49,13 @@ func clientTest() {
 func main() {
 	logger.Init()
 	logger.AddLogger("default", nil)
+
+	rc := redisparser.NewRedisCommand()
+	p := rc.Parser()
+	logger.Log(logger.DEBUG, p([]byte("*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r")))
+	logger.Log(logger.DEBUG, rc)
+	logger.Log(logger.DEBUG, p([]byte("\nmyvalue\r\n")))
+	logger.Log(logger.DEBUG, rc)
 
 	// clientTest()
 	serverTest()

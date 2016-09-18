@@ -27,7 +27,7 @@ type GenServerModule interface {
 	Init(args []interface{}) (result *InitResult)
 	Terminate(reason interface{}, state interface{})
 
-	HandleCall(request interface{}, from *gotp.MessageChannel, state interface{})
+	// HandleCall(request interface{}, from *gotp.MessageChannel, state interface{})
 	HandleCast(request interface{}, state interface{})
 }
 
