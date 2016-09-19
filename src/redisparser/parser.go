@@ -103,6 +103,10 @@ func (rc *RedisCommand) String() string {
 		_MSG_CMD_TYPE[rc._type], _MSG_SM[rc.status], rc.value)
 }
 
+func (rc *RedisCommand) OK() bool {
+	return rc._type != RC_TYPE_UNKNOWN && rc.status == _SM_END
+}
+
 func (rc *RedisCommand) Type() int {
 	return rc._type
 }
@@ -229,7 +233,9 @@ func parseUnitlCrlf(ps *Parser, b byte, rc *RedisCommand) {
 	if endByCtrf(ps.buffer) {
 		var err error = nil
 		blen := len(ps.buffer)
-		if rc._type == RC_TYPE_STATUS || rc._type == RC_TYPE_ERROR {
+		if rc._type == RC_TYPE_STATUS || rc._type == RC_TYPE_ERROR ||
+			rc._type == RC_TYPE_UNKNOWN {
+
 			rc.value.setBytes(ps.buffer[:blen-2])
 			rc.status = _SM_END
 			ps.popStacks()

@@ -2,8 +2,8 @@ package redis
 
 import (
 	dialRedis "dial/redis"
-
 	"logger"
+	"redisparser"
 	"socketframe/server"
 )
 
@@ -16,24 +16,25 @@ func (*Redis) Init(worker *server.Worker) *server.ProtocolInitState {
 }
 
 func (*Redis) HandleBytes(buf []byte, state0 interface{}) *server.ProtocolReply {
+	//return server.ReplyClient([]byte("-ERROR\r\n"), state0)
 	logger.Logf(logger.DEBUG, "%#v\n", string(buf))
 	state := state0.(*connState)
 	state.buf = append(state.buf, buf...)
 
-	i := state.cmd.parseCommand(state.buf)
-	state.buf = state.buf[i+1:]
+	i := state.parser.Write(state.buf)
+	state.buf = state.buf[i:]
 
-	logger.Logf(logger.DEBUG, "%+v\n", state.cmd)
-	switch state.cmd.stateMachine {
-	case _SM_END:
-		replyBytes := processCommand(state.cmd)
-		state.cmd = newCommand()
+	cmd := state.parser.GetCommand()
+	if cmd == nil {
+		return server.ReplyNoReply(state)
+	}
+
+	state.parser = redisparser.NewParser()
+	if cmd.OK() {
+		replyBytes := processCommand(cmd)
 		return server.ReplyClient(replyBytes, state)
-	case _SM_ERROR:
-		state.cmd = newCommand()
-		return server.ReplyNoReply(state)
-	default:
-		return server.ReplyNoReply(state)
+	} else {
+		return server.ReplyClient([]byte("-ERROR\r\n"), state)
 	}
 }
 
@@ -46,11 +47,4 @@ func (*Redis) HandleInfo(info interface{}, state0 interface{}) *server.ProtocolR
 
 func (*Redis) Terminal(reason int, err interface{}, state0 interface{}) {
 	logger.Log(logger.DEBUG, reason, err)
-}
-
-func processCommand(cmd *command) []byte {
-	if isIgnoreCommand(cmd) {
-		return []byte("+OK\r\n")
-	}
-	return []byte("+OK\r\n")
 }

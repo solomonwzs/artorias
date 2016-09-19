@@ -4,6 +4,7 @@ import (
 	"io"
 	"logger"
 	"net"
+	"redisparser"
 	"time"
 )
 
@@ -13,11 +14,12 @@ type RedisConn struct {
 }
 
 func (rc *RedisConn) Query(argn int, argv [][]byte) {
-	cmd := wrapCommand(argn, argv)
+	cmd := WrapMulitBulk(argn, argv)
 	rc.conn.Write(cmd)
 
+	p := redisparser.NewParser()
+	buf := make([]byte, 1024)
 	for {
-		buf := make([]byte, 1024)
 		n, err := rc.conn.Read(buf)
 
 		if err == io.EOF {
@@ -28,5 +30,12 @@ func (rc *RedisConn) Query(argn int, argv [][]byte) {
 			break
 		}
 		logger.Logf(logger.DEBUG, "%#v\n", string(buf[:n]))
+		p.Write(buf[:n])
+
+		cmd := p.GetCommand()
+		if cmd != nil {
+			logger.Log(logger.DEBUG, cmd)
+			break
+		}
 	}
 }

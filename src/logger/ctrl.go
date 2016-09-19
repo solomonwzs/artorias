@@ -24,7 +24,7 @@ const (
 )
 
 const (
-	_CTRL_MSG_UPPER_LIMIT = 2048
+	_CTRL_MSG_UPPER_LIMIT = 4096
 )
 
 type LogRecord struct {

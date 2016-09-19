@@ -28,7 +28,7 @@ func (rd *redisDialer) NewConn() (net.Conn, error) {
 		return nil, err
 	}
 
-	_, err = conn.Write(wrapCommand(2, [][]byte{
+	_, err = conn.Write(WrapMulitBulk(2, [][]byte{
 		[]byte("SELECT"),
 		[]byte(rd.db),
 	}))

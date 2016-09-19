@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"protocol/redis"
-	"redisparser"
 	"socketframe/server"
 )
 
@@ -37,8 +36,8 @@ func clientTest() {
 		return
 	}
 	rc.Query(2, [][]byte{
-		[]byte("GETALL"),
-		[]byte("a"),
+		[]byte("GET"),
+		[]byte("aaaaaaaaaaaaaaa"),
 	})
 	// rc.Query(2, [][]byte{
 	// 	[]byte("SELECT"),
@@ -47,15 +46,22 @@ func clientTest() {
 }
 
 func main() {
-	logger.Init()
-	logger.AddLogger("default", nil)
+	// logger.Init()
+	// logger.AddLogger("default", consoleOutput)
 
-	p := redisparser.NewParser()
-	logger.Log(logger.DEBUG, p.Write([]byte("*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r")))
-	logger.Log(logger.DEBUG, p.GetCommand())
-	logger.Log(logger.DEBUG, p.Write([]byte("\nmyvalue\r\n")))
-	logger.Log(logger.DEBUG, p.GetCommand())
+	// p := redisparser.NewParser()
+	// logger.Log(logger.DEBUG, p.Write([]byte("*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r")))
+	// logger.Log(logger.DEBUG, p.GetCommand())
+	// logger.Log(logger.DEBUG, p.Write([]byte("\nmyvalue\r\n")))
+	// logger.Log(logger.DEBUG, p.GetCommand())
 
 	// clientTest()
 	serverTest()
+}
+
+func consoleOutput(l *logger.LogRecord) {
+	if l.Level() < logger.ERROR {
+		return
+	}
+	fmt.Println(l.Message())
 }
