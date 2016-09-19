@@ -50,12 +50,11 @@ func main() {
 	logger.Init()
 	logger.AddLogger("default", nil)
 
-	rc := redisparser.NewRedisCommand()
-	p := rc.Parser()
-	logger.Log(logger.DEBUG, p([]byte("*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r")))
-	logger.Log(logger.DEBUG, rc)
-	logger.Log(logger.DEBUG, p([]byte("\nmyvalue\r\n")))
-	logger.Log(logger.DEBUG, rc)
+	p := redisparser.NewParser()
+	logger.Log(logger.DEBUG, p.Write([]byte("*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r")))
+	logger.Log(logger.DEBUG, p.GetCommand())
+	logger.Log(logger.DEBUG, p.Write([]byte("\nmyvalue\r\n")))
+	logger.Log(logger.DEBUG, p.GetCommand())
 
 	// clientTest()
 	serverTest()

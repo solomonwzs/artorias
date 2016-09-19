@@ -58,7 +58,7 @@ func (rcv *redisCommandValue) String() string {
 	for _, c := range rcv._Commands {
 		vals = append(vals, fmt.Sprintf("%v", c))
 	}
-	return fmt.Sprintf("{\"int\":%d,\"bytes\":\"%s\",\"commands\":[%s]}",
+	return fmt.Sprintf("{\"int\":%d,\"bytes\":%q,\"commands\":[%s]}",
 		rcv._Int, rcv._Bytes, strings.Join(vals, ","))
 }
 
@@ -88,7 +88,7 @@ type RedisCommand struct {
 	status int
 }
 
-func NewRedisCommand() *RedisCommand {
+func newRedisCommand() *RedisCommand {
 	rc := &RedisCommand{
 		_type:  RC_TYPE_UNKNOWN,
 		value:  newRedisCommandValue(),
@@ -99,17 +99,81 @@ func NewRedisCommand() *RedisCommand {
 }
 
 func (rc *RedisCommand) String() string {
-	return fmt.Sprintf("{\"type\":\"%s\",\"status\":\"%s\",\"value\":%v}",
+	return fmt.Sprintf("{\"type\":%q,\"status\":%q,\"value\":%v}",
 		_MSG_CMD_TYPE[rc._type], _MSG_SM[rc.status], rc.value)
 }
 
-type parserStack struct {
-	stack  []*RedisCommand
-	buffer []byte
-	argLen int
+func (rc *RedisCommand) Type() int {
+	return rc._type
 }
 
-func (ps *parserStack) pop() {
+func (rc *RedisCommand) Int() int {
+	return rc.value._Int
+}
+
+func (rc *RedisCommand) Bytes() []byte {
+	return rc.value._Bytes
+}
+
+func (rc *RedisCommand) Commands() []*RedisCommand {
+	return rc.value._Commands
+}
+
+type Parser struct {
+	stack        []*RedisCommand
+	buffer       []byte
+	argLen       int
+	redisCommand *RedisCommand
+}
+
+func NewParser() *Parser {
+	rc := newRedisCommand()
+	return &Parser{
+		stack:        []*RedisCommand{rc},
+		buffer:       []byte{},
+		argLen:       0,
+		redisCommand: rc,
+	}
+}
+
+func (ps *Parser) Write(bs []byte) int {
+	if ps.stack == nil || len(ps.stack) == 0 {
+		return 0
+	}
+
+	for i, b := range bs {
+		r := ps.stack[len(ps.stack)-1]
+
+		switch r.status {
+		case _SM_START:
+			parseStart(ps, b, r)
+		case _SM_UNITL_CRLF:
+			parseUnitlCrlf(ps, b, r)
+		case _SM_FIXED_LEN:
+			parseFixedLen(ps, b, r)
+		}
+
+		if len(ps.stack) == 0 {
+			return i + 1
+		}
+		if r.status == _SM_ERROR {
+			ps.stack = nil
+			ps.redisCommand.status = _SM_ERROR
+			return i + 1
+		}
+	}
+	return len(bs)
+}
+
+func (ps *Parser) GetCommand() *RedisCommand {
+	if ps.stack == nil || len(ps.stack) == 0 {
+		return ps.redisCommand
+	} else {
+		return nil
+	}
+}
+
+func (ps *Parser) popStacks() {
 	l := len(ps.stack)
 	for l > 0 {
 		top := ps.stack[l-1]
@@ -126,59 +190,21 @@ func (ps *parserStack) pop() {
 	}
 }
 
-func (rc *RedisCommand) Parser() func([]byte) int {
-	ps := &parserStack{
-		stack:  []*RedisCommand{rc},
-		buffer: []byte{},
-		argLen: 0,
-	}
-
-	parser := func(bs []byte) int {
-		if ps.stack == nil || len(ps.stack) == 0 {
-			return 0
-		}
-
-		for i, b := range bs {
-			r := ps.stack[len(ps.stack)-1]
-
-			switch r.status {
-			case _SM_START:
-				parseStart(ps, b, r)
-			case _SM_UNITL_CRLF:
-				parseUnitlCrlf(ps, b, r)
-			case _SM_FIXED_LEN:
-				parseFixedLen(ps, b, r)
-			}
-
-			if len(ps.stack) == 0 {
-				return i + 1
-			}
-			if r.status == _SM_ERROR {
-				ps.stack = nil
-				rc.status = _SM_ERROR
-				return i + 1
-			}
-		}
-		return len(bs)
-	}
-	return parser
-}
-
-func parseFixedLen(ps *parserStack, b byte, rc *RedisCommand) {
+func parseFixedLen(ps *Parser, b byte, rc *RedisCommand) {
 	ps.buffer = append(ps.buffer, b)
 	l := len(ps.buffer)
 	if l == ps.argLen+2 {
 		if endByCtrf(ps.buffer) {
 			rc.value.setBytes(ps.buffer[:l-2])
 			rc.status = _SM_END
-			ps.pop()
+			ps.popStacks()
 		} else {
 			rc.status = _SM_ERROR
 		}
 	}
 }
 
-func parseStart(ps *parserStack, b byte, rc *RedisCommand) {
+func parseStart(ps *Parser, b byte, rc *RedisCommand) {
 	switch b {
 	case '+':
 		rc._type = RC_TYPE_STATUS
@@ -198,7 +224,7 @@ func parseStart(ps *parserStack, b byte, rc *RedisCommand) {
 	rc.status = _SM_UNITL_CRLF
 }
 
-func parseUnitlCrlf(ps *parserStack, b byte, rc *RedisCommand) {
+func parseUnitlCrlf(ps *Parser, b byte, rc *RedisCommand) {
 	ps.buffer = append(ps.buffer, b)
 	if endByCtrf(ps.buffer) {
 		var err error = nil
@@ -206,13 +232,13 @@ func parseUnitlCrlf(ps *parserStack, b byte, rc *RedisCommand) {
 		if rc._type == RC_TYPE_STATUS || rc._type == RC_TYPE_ERROR {
 			rc.value.setBytes(ps.buffer[:blen-2])
 			rc.status = _SM_END
-			ps.pop()
+			ps.popStacks()
 		} else if rc._type == RC_TYPE_INT {
 			i, err := strconv.Atoi(string(ps.buffer[:blen-2]))
 			if err == nil {
 				rc.value.setInt(i)
 				rc.status = _SM_END
-				ps.pop()
+				ps.popStacks()
 			}
 		} else if rc._type == RC_TYPE_BULK {
 			i, err := strconv.Atoi(string(ps.buffer[:blen-2]))
@@ -220,7 +246,7 @@ func parseUnitlCrlf(ps *parserStack, b byte, rc *RedisCommand) {
 				if i < 0 {
 					rc.value.setBytes(nil)
 					rc.status = _SM_END
-					ps.pop()
+					ps.popStacks()
 				} else {
 					ps.argLen = i
 					rc.status = _SM_FIXED_LEN
@@ -232,7 +258,7 @@ func parseUnitlCrlf(ps *parserStack, b byte, rc *RedisCommand) {
 				rc.status = _SM_MULIT
 				rcs := make([]*RedisCommand, i)
 				for j := 0; j < i; j++ {
-					rcs[j] = NewRedisCommand()
+					rcs[j] = newRedisCommand()
 				}
 				rc.value.setCommands(rcs)
 				for j := i - 1; j >= 0; j-- {
