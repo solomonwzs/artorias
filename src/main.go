@@ -45,9 +45,16 @@ func clientTest() {
 	// })
 }
 
+func consoleOutput(l *logger.LogRecord) {
+	if l.Level() < logger.ERROR {
+		return
+	}
+	fmt.Println(l.Message())
+}
+
 func main() {
 	// logger.Init()
-	// logger.AddLogger("default", consoleOutput)
+	// logger.AddLogger("default", nil)
 
 	// p := redisparser.NewParser()
 	// logger.Log(logger.DEBUG, p.Write([]byte("*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r")))
@@ -57,11 +64,4 @@ func main() {
 
 	// clientTest()
 	serverTest()
-}
-
-func consoleOutput(l *logger.LogRecord) {
-	if l.Level() < logger.ERROR {
-		return
-	}
-	fmt.Println(l.Message())
 }
