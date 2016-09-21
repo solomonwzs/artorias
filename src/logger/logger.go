@@ -37,62 +37,61 @@ func (l *LogRecord) Level() int {
 }
 
 func Init() {
-	if ctrlChannel == nil {
-		ctrlChannel = make(chan *ctrlMessage, _CTRL_MSG_UPPER_LIMIT)
-		logChannels = make(map[string]chan *LogRecord)
+	if cm == nil {
+		cm = &ctrlManager{
+			logChannels: make(map[string]chan *LogRecord),
+		}
+	}
+}
+
+func Log(level int, message ...interface{}) {
+	if cm != nil && len(cm.logChannels) != 0 {
+		lr := newLogRecord(2, fmt.Sprintln(message...), level)
+		broadcast(lr)
+	}
+}
+
+func Logf(level int, format string, message ...interface{}) {
+	if cm != nil && len(cm.logChannels) != 0 {
+		lr := newLogRecord(2, fmt.Sprintf(format, message...), level)
+		broadcast(lr)
+	}
+}
+
+func AddLogger(id string, f func(*LogRecord)) {
+	if cm != nil {
+		_, exist := cm.logChannels[id]
+		if exist {
+			return
+		}
+
+		cm.mux.Lock()
+		defer cm.mux.Unlock()
+
+		ch := make(chan *LogRecord, 16)
+		cm.logChannels[id] = ch
+		if f == nil {
+			f = consoleOutput
+		}
 		go func() {
-			for msg := range ctrlChannel {
-				switch msg.Message {
-				case _CTRL_WRITE_LOG:
-					broadcast(msg.LR)
-				case _CTRL_ADD_LOGGER:
-					addLogger(msg.LogChannelID, msg.LogerFunc, 16)
-				case _CTRL_DEL_LOGGER:
-					delLogger(msg.LogChannelID)
-				default:
-				}
+			for l := range ch {
+				f(l)
 			}
 		}()
 	}
 }
 
-func Log(level int, message ...interface{}) {
-	if ctrlChannel != nil {
-		msg := &ctrlMessage{
-			Message: _CTRL_WRITE_LOG,
-			LR:      newLogRecord(2, fmt.Sprintln(message...), level),
-		}
-		ctrlChannel <- msg
-	}
-}
-
-func Logf(level int, format string, message ...interface{}) {
-	if ctrlChannel != nil {
-		msg := &ctrlMessage{
-			Message: _CTRL_WRITE_LOG,
-			LR:      newLogRecord(2, fmt.Sprintf(format, message...), level),
-		}
-		ctrlChannel <- msg
-	}
-}
-
-func AddLogger(id string, f func(*LogRecord)) {
-	if ctrlChannel != nil {
-		msg := &ctrlMessage{
-			Message:      _CTRL_ADD_LOGGER,
-			LogChannelID: id,
-			LogerFunc:    f,
-		}
-		ctrlChannel <- msg
-	}
-}
-
 func DelLogger(id string) {
-	if ctrlChannel != nil {
-		msg := &ctrlMessage{
-			Message:      _CTRL_DEL_LOGGER,
-			LogChannelID: id,
+	if cm != nil {
+		ch, exist := cm.logChannels[id]
+		if !exist {
+			return
 		}
-		ctrlChannel <- msg
+
+		cm.mux.Lock()
+		defer cm.mux.Unlock()
+
+		delete(cm.logChannels, id)
+		close(ch)
 	}
 }

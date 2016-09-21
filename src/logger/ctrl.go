@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -33,36 +34,18 @@ type LogRecord struct {
 	message string
 	created time.Time
 	level   int
+	format  string
 }
 
-type ctrlMessage struct {
-	Message      int
-	LogChannelID string
-	LogerFunc    func(*LogRecord)
-	LR           *LogRecord
+type ctrlManager struct {
+	mux         sync.Mutex
+	logChannels map[string]chan *LogRecord
 }
 
 var (
-	logChannels map[string]chan *LogRecord
-	debug       bool              = true
-	ctrlChannel chan *ctrlMessage = nil
+	debug bool         = true
+	cm    *ctrlManager = nil
 )
-
-func (l *LogRecord) setFile(file string) {
-	l.file = file
-}
-
-func (l *LogRecord) setLine(line int) {
-	l.line = line
-}
-
-func (l *LogRecord) setMessage(message string) {
-	l.message = message
-}
-
-func (l *LogRecord) setCreated(created time.Time) {
-	l.created = created
-}
 
 func (l *LogRecord) setLevel(level int) {
 	l.level = level
@@ -70,53 +53,26 @@ func (l *LogRecord) setLevel(level int) {
 
 func newLogRecord(calldepth int, message string, level int) *LogRecord {
 	l := new(LogRecord)
-	l.setCreated(time.Now())
-	l.setMessage(message)
-	l.setLevel(level)
+	l.created = time.Now()
+	l.message = message
+	l.level = level
 	if debug {
 		_, file, line, ok := runtime.Caller(calldepth)
 		if !ok {
-			l.setFile("???")
-			l.setLine(0)
+			l.file = "???"
+			l.line = 0
 		} else {
-			l.setFile(file)
-			l.setLine(line)
+			l.file = file
+			l.line = line
 		}
 	}
 	return l
 }
 
 func broadcast(l *LogRecord) {
-	for _, ch := range logChannels {
+	for _, ch := range cm.logChannels {
 		ch <- l
 	}
-}
-
-func addLogger(id string, f func(*LogRecord), buffer int) {
-	_, exist := logChannels[id]
-	if exist {
-		return
-	}
-
-	ch := make(chan *LogRecord, buffer)
-	logChannels[id] = ch
-	if f == nil {
-		f = consoleOutput
-	}
-	go func() {
-		for l := range ch {
-			f(l)
-		}
-	}()
-}
-
-func delLogger(id string) {
-	ch, exist := logChannels[id]
-	if !exist {
-		return
-	}
-	delete(logChannels, id)
-	close(ch)
 }
 
 func consoleOutput(l *LogRecord) {

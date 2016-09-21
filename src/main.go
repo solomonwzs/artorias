@@ -53,7 +53,7 @@ func consoleOutput(l *logger.LogRecord) {
 }
 
 func main() {
-	// logger.Init()
+	logger.Init()
 	// logger.AddLogger("default", nil)
 
 	// p := redisparser.NewParser()
