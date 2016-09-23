@@ -1,6 +1,6 @@
 #include "wrap_event.h"
 
-int static inline
+int
 set_non_block(int fd) {
   int flags;
   if ((flags = fcntl(fd, F_GETFL)) == -1) {
@@ -27,11 +27,6 @@ make_socket(uint16_t port) {
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval,
              sizeof(int));
 
-  if (set_non_block(sock) == -1) {
-    perror("no-block socket");
-    exit(EXIT_FAILURE);
-  }
-
   bzero((char *)&name, sizeof(name));
   name.sin_family = AF_INET;
   name.sin_port = htons(port);
@@ -47,4 +42,13 @@ make_socket(uint16_t port) {
 
 void
 event_server(int fd) {
+  // struct event_config *cfg;
+  // struct event_base *base;
+  // struct event *listen_event;
+
+  // base = event_base_new();
+  // if (!base) {
+  //   perror("event");
+  //   exit(EXIT_FAILURE);
+  // }
 }
