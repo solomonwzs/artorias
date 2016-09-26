@@ -17,3 +17,7 @@ all:$(SOURCES:%.c=%.o) pre
 
 pre:
 	@mkdir -p $(BUILD_PATH)
+
+clean:
+	@rm ./src/*.o
+	@rm $(BUILD_PATH)/*
