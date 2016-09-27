@@ -3,18 +3,18 @@
 
 void
 epoll_server(int fd) {
-  int epfd = epoll_create1(0);
+  int epfd = epoll_create(1);
   struct epoll_event listen_event;
 
   listen_event.events = EPOLLIN | EPOLLET;
   listen_event.data.fd = fd;
   epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &listen_event);
 
-  struct epoll_event events[500];
   int active_cnt;
   int i;
+  struct epoll_event events[100];
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 500, -1);
+    active_cnt = epoll_wait(epfd, events, 100, -1);
     for (i = 0; i < active_cnt; ++i) {
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
@@ -37,9 +37,9 @@ epoll_server(int fd) {
         int n = read_from_client(infd);
         if (n <= 0) {
           close(infd);
-          break;
+        } else {
+          write(infd, "+OK\r\n", 5);
         }
-        write(infd, "+OK\r\n", 5);
       }
     }
   }

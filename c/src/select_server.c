@@ -29,9 +29,10 @@ select_server(int fd) {
           int n = read_from_client(i);
           if (n <= 0) {
             close(i);
-            break;
+            FD_CLR(i, &active_fd_set);
+          } else {
+            write(i, "+OK\r\n", 5);
           }
-          write(i, "+OK\r\n", 5);
         }
       }
     }

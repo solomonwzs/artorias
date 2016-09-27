@@ -6,7 +6,7 @@
 int
 set_non_block(int fd) {
   int flags;
-  if ((flags = fcntl(fd, F_GETFL)) == -1) {
+  if ((flags = fcntl(fd, F_GETFL, 0)) == -1) {
     debug_perror("non-block");
     return -1;
   }
@@ -48,37 +48,41 @@ make_socket(uint16_t port) {
 int
 read_from_client(int fd) {
   char buffer[MAXLEN];
-  // int nbytes;
+  int nbytes;
 
-  // int n = 0;
-  // do {
-  //   nbytes = read(fd, buffer, MAXLEN);
-  //   if (nbytes < 0) {
-  //     debug_perror("read");
-  //     return errno == EAGAIN ? n : -1;
-  //   } else if (nbytes == 0) {
-  //     return 0;
-  //   } else {
-  //     debug_log("Server: got message: '%s'\n", buffer);
-  //     n += nbytes;
-  //   }
-  // } while (nbytes > 0);
-  // return 0;
-  return read(fd, buffer, MAXLEN);
+  int n = 0;
+  do {
+    nbytes = read(fd, buffer, MAXLEN);
+    if (nbytes < 0) {
+      if (errno == EAGAIN) {
+        return n;
+      } else {
+        debug_perror("read");
+        return -1;
+      }
+    } else if (nbytes == 0) {
+      return 0;
+    } else {
+      debug_log("Server: got message: '%s'\n", buffer);
+      n += nbytes;
+    }
+  } while (nbytes > 0);
+  return 0;
+  // return read(fd, buffer, MAXLEN);
 }
 
 int
 new_accept_fd(int fd) {
   int infd;
-  struct sockaddr_in clientname;
+  struct sockaddr_in in_addr;
   unsigned int size;
 
-  size = sizeof(clientname);
-  infd = accept(fd, (struct sockaddr *)&clientname, &size);
+  size = sizeof(in_addr);
+  infd = accept(fd, (struct sockaddr *)&in_addr, &size);
   if (infd >= 0) {
     debug_log("Server: connect from host %s, port %d.\n",
-              inet_ntoa(clientname.sin_addr),
-              ntohs(clientname.sin_port));
+              inet_ntoa(in_addr.sin_addr),
+              ntohs(in_addr.sin_port));
   }
   return infd;
 }
