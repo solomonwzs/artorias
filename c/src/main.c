@@ -12,8 +12,8 @@ main(int argc, char **argv) {
     perror("listen");
     exit(EXIT_FAILURE);
   }
-  select_server(sock);
-  // epoll_server(sock);
+  // select_server(sock);
+  epoll_server(sock);
 
   return 0;
 }
