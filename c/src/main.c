@@ -1,5 +1,6 @@
 #include "epoll_server.h"
 #include "select_server.h"
+#include "channel.h"
 #include <unistd.h>
 
 #define PORT 5555
