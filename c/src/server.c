@@ -47,7 +47,7 @@ make_socket(uint16_t port) {
 
 int
 read_from_client(int fd) {
-  char buffer[MAXLEN];
+  char buffer[MAXLEN + 1];
   int nbytes;
 
   int n = 0;
@@ -63,7 +63,8 @@ read_from_client(int fd) {
     } else if (nbytes == 0) {
       return 0;
     } else {
-      debug_log("Server: got message: '%s'\n", buffer);
+      buffer[nbytes] = '\0';
+      debug_log("Server: got message: len: %d, '%s'\n", nbytes, buffer);
       n += nbytes;
     }
   } while (nbytes > 0);

@@ -10,7 +10,7 @@ select_server(int fd) {
   while (1) {
     read_fd_set = active_fd_set;
     if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0) {
-      perror("select");
+      debug_perror("select");
       exit(EXIT_FAILURE);
     }
 
@@ -19,7 +19,7 @@ select_server(int fd) {
         if (i == fd) {
           int infd = new_accept_fd(fd);
           if (infd < 0) {
-            perror("accept");
+            debug_perror("accept");
             continue;
           }
           set_non_block(infd);

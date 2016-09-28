@@ -19,19 +19,25 @@ epoll_server(int fd) {
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
         debug_perror("epoll_wait");
-        continue;
+        close(events[i].data.fd);
       } else if (events[i].data.fd == fd) {
-        int infd = new_accept_fd(fd);
-        if (infd < 0) {
-          debug_perror("accept");
-          continue;
-        }
-        set_non_block(infd);
+        while (1) {
+          int infd = new_accept_fd(fd);
+          if (infd == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+              break;
+            } else {
+              debug_perror("accept");
+              break;
+            }
+          }
+          set_non_block(infd);
 
-        struct epoll_event event;
-        event.data.fd = infd;
-        event.events = EPOLLIN | EPOLLET;
-        epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
+          struct epoll_event event;
+          event.data.fd = infd;
+          event.events = EPOLLIN | EPOLLET;
+          epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
+        }
       } else if (events[i].events & EPOLLIN) {
         int infd = events[i].data.fd;
         int n = read_from_client(infd);
