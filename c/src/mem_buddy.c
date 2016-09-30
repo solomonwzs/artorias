@@ -7,6 +7,7 @@
 #define MAX(_x_, _y_) ((_x_) > (_y_) ? (_x_) : (_y_))
 #define IS_POWER_OF_2(_x_) (!((_x_)&((_x_)-1)))
 #define NODE_SIZE(_x_) ((_x_) == 0 ? 0 : 1 << ((_x_) - 1))
+#define BUDDY_SIZE(_x_) (1 << ((_x_)->logn))
 
 
 static inline unsigned
@@ -20,28 +21,27 @@ fix_size(unsigned size) {
 }
 
 as_buddy_t *
-buddy_new(unsigned logn) {
+buddy_new(uint8_t logn) {
   as_buddy_t *b;
   unsigned node_logn;
-  int i;
+  unsigned i;
   unsigned size = 1 << logn;
 
-  b = (as_buddy_t *)malloc(sizeof(unsigned) +
-                           (2 * size - 1) * sizeof(uint8_t));
-  b->size = size * 2;
+  b = (as_buddy_t *)malloc(2 * size * sizeof(uint8_t));
+  b->logn = logn;
   node_logn = logn + 1;
 
-  for (i = 0; i < 2 * size - 1; ++i) {
+  for (i = 0; i < 2 * BUDDY_SIZE(b) - 1; ++i) {
     if (IS_POWER_OF_2(i + 1)) {
       node_logn -= 1;
     }
-    b->longest[i] = node_logn;
+    b->longest[i] = node_logn + 1;
   }
   return b;
 }
 
-unsigned
-buddy_alloc(as_buddy_t *b, int size) {
+int
+buddy_alloc(as_buddy_t *b, unsigned size) {
   if (b == NULL) {
     return -1;
   }
@@ -57,7 +57,7 @@ buddy_alloc(as_buddy_t *b, int size) {
 
   unsigned index = 0;
   unsigned node_size;
-  for (node_size = b->size; node_size != size; node_size /= 2) {
+  for (node_size = BUDDY_SIZE(b); node_size != size; node_size /= 2) {
     if (NODE_SIZE(b->longest[LEFT_CHILD(index)]) >= size) {
       index = LEFT_CHILD(index);
     } else {
@@ -66,7 +66,8 @@ buddy_alloc(as_buddy_t *b, int size) {
   }
   b->longest[index] = 0;
 
-  unsigned offset = (index + 1) * node_size - b->size;
+  unsigned offset = (index + 1) * node_size - BUDDY_SIZE(b);
+  printf("> %d %d\n", index, offset);
   while (index) {
     index = PARENT(index);
     b->longest[index] = MAX(b->longest[LEFT_CHILD(index)],
@@ -77,15 +78,68 @@ buddy_alloc(as_buddy_t *b, int size) {
 
 void
 buddy_free(as_buddy_t *b, unsigned offset) {
-  if (b == NULL || offset >= b->size) {
+  if (b == NULL || offset >= BUDDY_SIZE(b)) {
     return;
   }
 
-  unsigned node_size = 1;
-  unsigned index = offset + b->size - 1;
-  for (; index != 0 && b->longest[index]; index = PARENT(index)) {
-    node_size *= 2;
+  uint8_t node_logn = 1;
+  unsigned index = offset + BUDDY_SIZE(b) - 1;
+  for (; b->longest[index]; index = PARENT(index)) {
+    node_logn += 1;
+    if (index == 0) {
+      return;
+    }
   }
+  b->longest[index] = node_logn;
+
+  unsigned left_longest;
+  unsigned right_longest;
+  while (index) {
+    index = PARENT(index);
+    node_logn += 1;
+
+    left_longest = b->longest[LEFT_CHILD(index)];
+    right_longest = b->longest[RIGHT_CHILD(index)];
+    if (left_longest == right_longest && left_longest == node_logn) {
+      b->longest[index] = node_logn;
+    } else {
+      b->longest[index] = MAX(left_longest, right_longest);
+    }
+  }
+}
+
+void
+buddy_print(as_buddy_t *b) {
+  if (b == NULL || BUDDY_SIZE(b) > 64) {
+    return;
+  }
+
+  char m[65];
+  unsigned i;
+  unsigned j;
+  unsigned node_size;
+  unsigned offset;
+
+  memset(m, '_', sizeof(m));
+  node_size = BUDDY_SIZE(b) * 2;
+  for (i = 0; i < 2 * BUDDY_SIZE(b) - 1; ++i) {
+    if (IS_POWER_OF_2(i + 1)) {
+      node_size /= 2;
+    }
+
+    if (b->longest[i] == 0) {
+      if (i >= BUDDY_SIZE(b) - 1) {
+        m[i - BUDDY_SIZE(b) + 1] = '*';
+      } else if (b->longest[LEFT_CHILD(i)] && b->longest[RIGHT_CHILD(i)]){
+        offset = (i + 1) * node_size - BUDDY_SIZE(b);
+        for (j = offset; j < offset + node_size; ++j) {
+          m[j] = '*';
+        }
+      }
+    }
+  }
+  m[BUDDY_SIZE(b)] = '\0';
+  puts(m);
 }
 
 void
