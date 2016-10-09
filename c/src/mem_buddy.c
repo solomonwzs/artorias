@@ -46,9 +46,7 @@ buddy_alloc(as_buddy_t *b, unsigned size) {
     return -1;
   }
 
-  if (size <= 0) {
-    size = 1;
-  } else if (!IS_POWER_OF_2(size)) {
+  if (!IS_POWER_OF_2(size)) {
     size = fix_size(size);
   }
   if (NODE_SIZE(b->longest[0]) < size) {
@@ -67,7 +65,6 @@ buddy_alloc(as_buddy_t *b, unsigned size) {
   b->longest[index] = 0;
 
   unsigned offset = (index + 1) * node_size - BUDDY_SIZE(b);
-  printf("> %d %d\n", index, offset);
   while (index) {
     index = PARENT(index);
     b->longest[index] = MAX(b->longest[LEFT_CHILD(index)],

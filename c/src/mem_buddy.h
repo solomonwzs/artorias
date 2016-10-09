@@ -8,7 +8,7 @@
 
 typedef struct {
   uint8_t logn;
-  uint8_t longest[0];
+  uint8_t longest[1];
 } as_buddy_t;
 
 extern as_buddy_t *
