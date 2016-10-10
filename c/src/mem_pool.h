@@ -11,12 +11,13 @@ typedef struct as_mb_large_s as_mb_large_t;
 
 struct as_mem_pool_s {
   size_t            max;
+  unsigned          aid;
 
-  as_mb_small_t    *empty;
-  as_mb_small_t    *partial;
-  as_mb_small_t    *full;
+  as_mb_small_t     *empty;
+  as_mb_small_t     *partial;
+  as_mb_small_t     *full;
 
-  as_mb_large_t    *large;
+  as_mb_large_t     *large;
 };
 
 struct as_mb_small_s {

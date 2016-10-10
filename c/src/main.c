@@ -2,6 +2,7 @@
 #include "select_server.h"
 #include "channel.h"
 #include "mem_buddy.h"
+#include "mem_slot.h"
 #include <unistd.h>
 
 #define PORT 5555
@@ -17,6 +18,8 @@ main(int argc, char **argv) {
   // }
   // // select_server(sock);
   // epoll_server(sock);
+
+  printf("%d\n", bits_cl0_u32(12));
 
   as_buddy_t *b = buddy_new(4);
   unsigned x = buddy_alloc(b, 4);
