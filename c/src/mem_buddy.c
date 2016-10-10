@@ -28,9 +28,12 @@ buddy_new(uint8_t logn) {
   unsigned size = 1 << logn;
 
   b = (as_buddy_t *)malloc(2 * size * sizeof(uint8_t));
+  if (b == NULL) {
+    return NULL;
+  }
+
   b->logn = logn;
   node_logn = logn + 1;
-
   for (i = 0; i < 2 * BUDDY_SIZE(b) - 1; ++i) {
     if (IS_POWER_OF_2(i + 1)) {
       node_logn -= 1;
