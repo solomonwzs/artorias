@@ -1,7 +1,10 @@
 #include "mem_pool.h"
 
+#define MALLOC malloc
+#define FREE free
+
 #define MALLOC_DATA_FIX(_x_) \
-    (as_mem_data_fix_t *)malloc(sizeof(as_mem_data_fix_t) + (_x_) - 1)
+    (as_mem_data_fix_t *)MALLOC(sizeof(as_mem_data_fix_t) + (_x_) - 1)
 
 
 as_mem_pool_fix_t *
@@ -11,7 +14,7 @@ mem_pool_fix_new(unsigned n, size_t fsize[]) {
   }
 
   as_mem_pool_fix_t *p;
-  p = (as_mem_pool_fix_t *)malloc(sizeof(as_mem_pool_fix_t) +
+  p = (as_mem_pool_fix_t *)MALLOC(sizeof(as_mem_pool_fix_t) +
                                   sizeof(as_mem_pool_fix_field_t) * (n - 1));
   if (p == NULL) {
     return NULL;
@@ -31,6 +34,10 @@ mem_pool_fix_new(unsigned n, size_t fsize[]) {
 
 as_mem_data_fix_t *
 mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
+  if (p == NULL || size == 0) {
+    return NULL;
+  }
+
   int i = 0;
   int j = p->n - 1;
   int k;
@@ -50,7 +57,7 @@ mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
   }
 
   as_mem_data_fix_t *d;
-  if (i == p->n) {
+  if (i >= p->n) {
     d = MALLOC_DATA_FIX(size);
     if (d == NULL) {
       return NULL;
@@ -62,6 +69,7 @@ mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
       d = p->f[i].header;
       p->f[i].header = d->next;
       d->next = NULL;
+      p->empty -= p->f[i].size;
     } else {
       d = MALLOC_DATA_FIX(size);
       if (d == NULL) {
@@ -70,6 +78,7 @@ mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
       d->next = NULL;
       d->idx = i;
     }
+    p->used += p->f[i].size;
   }
   return d;
 }
@@ -84,5 +93,23 @@ mem_pool_fix_free(as_mem_pool_fix_t *p, as_mem_data_fix_t *d) {
     int i = d->idx;
     d->next = p->f[i].header;
     p->f[i].header = d;
+    p->empty += p->f[i].size;
   }
+}
+
+void
+mem_pool_fix_destory(as_mem_pool_fix_t *p) {
+  if (p == NULL) {
+    return;
+  }
+
+  int i = 0;
+  for (i = 0; i < p->n; ++i) {
+    while (p->f[i].header) {
+      as_mem_data_fix_t *d = p->f[i].header->next;
+      FREE(p->f[i].header);
+      p->f[i].header = d;
+    }
+  }
+  FREE(p);
 }

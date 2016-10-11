@@ -18,9 +18,21 @@ typedef struct {
 
 typedef struct {
   unsigned                  n;
-  unsigned                  used;
-  unsigned                  empty;
+  int                       used;
+  int                       empty;
   as_mem_pool_fix_field_t   f[1];
 } as_mem_pool_fix_t;
+
+extern as_mem_pool_fix_t *
+mem_pool_fix_new(unsigned n, size_t fsize[]);
+
+extern void
+mem_pool_fix_destory(as_mem_pool_fix_t *p);
+
+extern as_mem_data_fix_t *
+mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size);
+
+extern void
+mem_pool_fix_free(as_mem_pool_fix_t *p, as_mem_data_fix_t *d);
 
 #endif
