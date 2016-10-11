@@ -20,14 +20,14 @@ fix_size(unsigned size) {
   return size + 1;
 }
 
-as_buddy_t *
+as_mem_buddy_t *
 buddy_new(uint8_t logn) {
-  as_buddy_t *b;
+  as_mem_buddy_t *b;
   unsigned node_logn;
   unsigned i;
   unsigned size = 1 << logn;
 
-  b = (as_buddy_t *)malloc(2 * size * sizeof(uint8_t));
+  b = (as_mem_buddy_t *)MALLOC(2 * size * sizeof(uint8_t));
   if (b == NULL) {
     return NULL;
   }
@@ -44,7 +44,7 @@ buddy_new(uint8_t logn) {
 }
 
 int
-buddy_alloc(as_buddy_t *b, unsigned size) {
+buddy_alloc(as_mem_buddy_t *b, unsigned size) {
   if (b == NULL) {
     return -1;
   }
@@ -77,7 +77,7 @@ buddy_alloc(as_buddy_t *b, unsigned size) {
 }
 
 void
-buddy_free(as_buddy_t *b, unsigned offset) {
+buddy_free(as_mem_buddy_t *b, unsigned offset) {
   if (b == NULL || offset >= BUDDY_SIZE(b)) {
     return;
   }
@@ -109,7 +109,7 @@ buddy_free(as_buddy_t *b, unsigned offset) {
 }
 
 void
-buddy_print(as_buddy_t *b) {
+buddy_print(as_mem_buddy_t *b) {
   if (b == NULL || BUDDY_SIZE(b) > 64) {
     return;
   }
@@ -143,6 +143,6 @@ buddy_print(as_buddy_t *b) {
 }
 
 void
-buddy_destroy(as_buddy_t *b) {
-  free(b);
+buddy_destroy(as_mem_buddy_t *b) {
+  FREE(b);
 }
