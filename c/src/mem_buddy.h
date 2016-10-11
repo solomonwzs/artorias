@@ -7,9 +7,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define MALLOC malloc
-#define FREE free
-
 typedef struct {
   uint8_t logn;
   uint8_t longest[1];

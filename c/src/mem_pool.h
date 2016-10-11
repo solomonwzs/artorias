@@ -5,33 +5,22 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-typedef struct as_mem_pool_s as_mem_pool_t;
-typedef struct as_mb_small_s as_mb_small_t;
-typedef struct as_mb_large_s as_mb_large_t;
+typedef struct as_mem_data_fix_s {
+  struct as_mem_data_fix_s  *next;
+  int                       idx;
+  uint8_t                   d[1];
+} as_mem_data_fix_t;
 
-struct as_mem_pool_s {
-  size_t            max;
-  unsigned          aid;
+typedef struct {
+  size_t              size;
+  as_mem_data_fix_t   *header;
+} as_mem_pool_fix_field_t;
 
-  as_mb_small_t     *empty;
-  as_mb_small_t     *partial;
-  as_mb_small_t     *full;
-
-  as_mb_large_t     *large;
-};
-
-struct as_mb_small_s {
-  size_t          size;
-  u_char          *last;
-  unsigned        cnt;
-  uint8_t         failed;
-  as_mb_small_t   *next;
-  u_char          d[1];
-};
-
-struct as_mb_large_s {
-  as_mb_large_t   *next;
-  u_char          d[1];
-};
+typedef struct {
+  unsigned                  n;
+  unsigned                  used;
+  unsigned                  empty;
+  as_mem_pool_fix_field_t   f[1];
+} as_mem_pool_fix_t;
 
 #endif
