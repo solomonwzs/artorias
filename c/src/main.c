@@ -52,20 +52,23 @@ mem_slot_test() {
 void
 mem_pool_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
-  as_mem_pool_fix_t *p = mem_pool_fix_new(s, sizeof(s) / sizeof(s[0]));
+  as_mem_pool_fixed_t *p = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
 
-  as_mem_data_fix_t *a = mem_pool_fix_alloc(p, 18);
-  printf("%zu\n", a->size);
+  as_mem_data_fixed_t *a = mem_pool_fixed_alloc(p, 18);
+  printf("%x\n", a->d);
   printf("%d\n", p->empty);
-  mem_pool_fix_recycle(p, a);
+  mem_pool_fixed_recycle(p, a);
   printf("%d\n", p->empty);
+  as_mem_data_fixed_t *b = mem_pool_fixed_alloc(p, 18);
+  printf("%x\n", b->d);
+  mem_pool_fixed_recycle(p, b);
 
-  mem_pool_fix_destory(p);
+  mem_pool_fixed_destroy(p);
 }
 
 
 int
 main(int argc, char **argv) {
-  mem_pool_test();
+  t();
   return 0;
 }
