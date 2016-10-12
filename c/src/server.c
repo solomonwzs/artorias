@@ -3,6 +3,7 @@
 #define PORT    5555
 #define MAXLEN  1024
 
+
 int
 set_non_block(int fd) {
   int flags;
@@ -16,6 +17,7 @@ set_non_block(int fd) {
   }
   return 0;
 }
+
 
 int
 make_socket(uint16_t port) {
@@ -45,6 +47,7 @@ make_socket(uint16_t port) {
   return sock;
 }
 
+
 int
 read_from_client(int fd) {
   char buffer[MAXLEN + 1];
@@ -71,6 +74,7 @@ read_from_client(int fd) {
   return 0;
   // return read(fd, buffer, MAXLEN);
 }
+
 
 int
 new_accept_fd(int fd) {

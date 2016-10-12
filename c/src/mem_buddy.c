@@ -23,6 +23,7 @@ fix_size(unsigned size) {
   return size + 1;
 }
 
+
 as_mem_buddy_t *
 buddy_new(uint8_t logn) {
   as_mem_buddy_t *b;
@@ -45,6 +46,7 @@ buddy_new(uint8_t logn) {
   }
   return b;
 }
+
 
 int
 buddy_alloc(as_mem_buddy_t *b, unsigned size) {
@@ -78,6 +80,7 @@ buddy_alloc(as_mem_buddy_t *b, unsigned size) {
   }
   return offset;
 }
+
 
 void
 buddy_free(as_mem_buddy_t *b, unsigned offset) {
@@ -144,6 +147,7 @@ buddy_print(as_mem_buddy_t *b) {
   m[BUDDY_SIZE(b)] = '\0';
   puts(m);
 }
+
 
 void
 buddy_destroy(as_mem_buddy_t *b) {

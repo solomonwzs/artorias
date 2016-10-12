@@ -7,7 +7,7 @@
 
 typedef struct as_mem_data_fix_s {
   struct as_mem_data_fix_s  *next;
-  int                       idx;
+  size_t                    size;
   uint8_t                   d[1];
 } as_mem_data_fix_t;
 
@@ -24,7 +24,7 @@ typedef struct {
 } as_mem_pool_fix_t;
 
 extern as_mem_pool_fix_t *
-mem_pool_fix_new(unsigned n, size_t fsize[]);
+mem_pool_fix_new(size_t fsize[], unsigned n);
 
 extern void
 mem_pool_fix_destory(as_mem_pool_fix_t *p);
@@ -33,6 +33,6 @@ extern as_mem_data_fix_t *
 mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size);
 
 extern void
-mem_pool_fix_free(as_mem_pool_fix_t *p, as_mem_data_fix_t *d);
+mem_pool_fix_recycle(as_mem_pool_fix_t *p, as_mem_data_fix_t *d);
 
 #endif

@@ -8,7 +8,7 @@
 
 
 as_mem_pool_fix_t *
-mem_pool_fix_new(unsigned n, size_t fsize[]) {
+mem_pool_fix_new(size_t fsize[], unsigned n) {
   if (n < 1) {
     return NULL;
   }
@@ -32,30 +32,37 @@ mem_pool_fix_new(unsigned n, size_t fsize[]) {
   return p;
 }
 
+
+static inline int
+bin_search_position(as_mem_pool_fix_t *p, size_t size) {
+  int left = 0;
+  int right = p->n - 1;
+  int middle;
+  while (left < right) {
+    middle = (left + right) / 2;
+    if (p->f[middle].size == size) {
+      left = middle;
+      break;
+    } else if (p->f[middle].size < size) {
+      left = middle + 1;
+    } else {
+      right = middle - 1;
+    }
+  }
+  return left;
+}
+
+
 as_mem_data_fix_t *
 mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
   }
 
-  int i = 0;
-  int j = p->n - 1;
-  int k;
-  while (i < j) {
-    k = (i + j) / 2;
-    if (p->f[k].size == size) {
-      i = k;
-      break;
-    } else if (p->f[k].size < size) {
-      i = k + 1;
-    } else {
-      j = k - 1;
-    }
-  }
+  int i = bin_search_position(p, size);
   if (p->f[i].size < size) {
     i += 1;
   }
-
   as_mem_data_fix_t *d;
   if (i >= p->n) {
     d = MALLOC_DATA_FIX(size);
@@ -63,7 +70,7 @@ mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
       return NULL;
     }
     d->next = NULL;
-    d->idx = -1;
+    d->size = size;
   } else {
     if (p->f[i].header != NULL) {
       d = p->f[i].header;
@@ -76,26 +83,34 @@ mem_pool_fix_alloc(as_mem_pool_fix_t *p, size_t size) {
         return NULL;
       }
       d->next = NULL;
-      d->idx = i;
+      d->size = p->f[i].size;
     }
-    p->used += p->f[i].size;
   }
   return d;
 }
 
+
 void
-mem_pool_fix_free(as_mem_pool_fix_t *p, as_mem_data_fix_t *d) {
-  if (d != NULL && (d->idx == -1 || p == NULL)) {
+mem_pool_fix_recycle(as_mem_pool_fix_t *p, as_mem_data_fix_t *d) {
+  if (d != NULL && p == NULL) {
     free(d);
   }
 
   if (p != NULL && d != NULL) {
-    int i = d->idx;
-    d->next = p->f[i].header;
-    p->f[i].header = d;
-    p->empty += p->f[i].size;
+    int i = bin_search_position(p, d->size);
+    if (p->f[i].size > d->size) {
+      i -= 1;
+    }
+    if (i < 0) {
+      free(d);
+    } else {
+      d->next = p->f[i].header;
+      p->f[i].header = d;
+      p->empty += p->f[i].size;
+    }
   }
 }
+
 
 void
 mem_pool_fix_destory(as_mem_pool_fix_t *p) {

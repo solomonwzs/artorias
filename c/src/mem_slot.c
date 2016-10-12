@@ -2,6 +2,10 @@
 
 #define SLOT_SIZE(_x_) ((_x_)->n * 8)
 
+#define MALLOC malloc
+#define FREE free
+
+
 int
 bits_cl0_u8(uint8_t x) {
   int n = 7;
@@ -11,6 +15,7 @@ bits_cl0_u8(uint8_t x) {
   return n;
 }
 
+
 int
 bits_ct0_u8(uint8_t x) {
   int n = 0;
@@ -19,6 +24,7 @@ bits_ct0_u8(uint8_t x) {
   if (!(x & 0x1))     { n += 1;             }
   return n;
 }
+
 
 int
 __bits_cl0_u32(unsigned x) {
@@ -31,6 +37,7 @@ __bits_cl0_u32(unsigned x) {
   return n;
 }
 
+
 int
 __bits_ct0_u32(unsigned x) {
   int n = 0;
@@ -41,6 +48,7 @@ __bits_ct0_u32(unsigned x) {
   if (!(x & 0x1))     { n += 1;             }
   return n;
 }
+
 
 int
 __bits_cl0_u64(unsigned long long x) {
@@ -54,6 +62,7 @@ __bits_cl0_u64(unsigned long long x) {
   return n;
 }
 
+
 int
 __bits_ct0_u64(unsigned long long x) {
   int n = 0;
@@ -66,11 +75,11 @@ __bits_ct0_u64(unsigned long long x) {
   return n;
 }
 
+
 as_mem_slot_t *
 slot_new(uint8_t n) {
   as_mem_slot_t *s;
-  s = (as_mem_slot_t *)malloc(
-      sizeof(as_mem_slot_t) + n - 1);
+  s = (as_mem_slot_t *)MALLOC(sizeof(as_mem_slot_t) + n - 1);
   if (s == NULL) {
     return NULL;
   }
@@ -80,10 +89,12 @@ slot_new(uint8_t n) {
   return s;
 }
 
+
 void
 slot_destroy(as_mem_slot_t *s) {
-  free(s);
+  FREE(s);
 }
+
 
 static inline void
 mark_used_flag(uint8_t *flag, int offset, int len) {
@@ -103,6 +114,7 @@ mark_used_flag(uint8_t *flag, int offset, int len) {
   }
 }
 
+
 static inline void
 mark_free_flag(uint8_t *flag, int offset, int len) {
   int offset0 = offset + len;
@@ -120,6 +132,7 @@ mark_free_flag(uint8_t *flag, int offset, int len) {
     }
   }
 }
+
 
 int
 slot_alloc(as_mem_slot_t *s, unsigned size) {
@@ -152,6 +165,7 @@ slot_alloc(as_mem_slot_t *s, unsigned size) {
   return -1;
 }
 
+
 void
 slot_free(as_mem_slot_t *s, int offset, unsigned size) {
   if (s == NULL || offset > SLOT_SIZE(s) || offset + size > SLOT_SIZE(s)) {
@@ -159,6 +173,7 @@ slot_free(as_mem_slot_t *s, int offset, unsigned size) {
   }
   mark_free_flag(s->flag, offset, size);
 }
+
 
 void
 slot_print(as_mem_slot_t *s) {
