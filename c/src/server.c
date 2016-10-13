@@ -91,3 +91,59 @@ new_accept_fd(int fd) {
   }
   return infd;
 }
+
+
+int
+send_fd_by_socket(int socket, int fd) {
+  struct iovec io;
+  struct msghdr msg = {0};
+  char buf[CMSG_SPACE(sizeof(fd))];
+
+  io.iov_base = "msg";
+  io.iov_len = 3;
+
+  msg.msg_iov = &io;
+  msg.msg_iovlen = 1;
+  msg.msg_control = buf;
+  msg.msg_controllen = sizeof(buf);
+
+  struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+  cmsg->cmsg_level = SOL_SOCKET;
+  cmsg->cmsg_type = SCM_RIGHTS;
+  cmsg->cmsg_len = CMSG_LEN(sizeof(fd));
+
+  *((int *)CMSG_DATA(cmsg)) = fd;
+
+  if (sendmsg(socket, &msg, 0) < 0) {
+    debug_perror("send_fd");
+    return -1;
+  }
+  return 0;
+}
+
+int
+recv_fd_from_socket(int socket) {
+  struct msghdr msg = {0};
+  char mbuf[256];
+  char cbuf[256];
+  struct iovec io;
+
+  io.iov_base = mbuf;
+  io.iov_len = sizeof(mbuf);
+
+  msg.msg_iov = &io;
+  msg.msg_iovlen = 1;
+  msg.msg_control = cbuf;
+  msg.msg_controllen = sizeof(cbuf);
+
+  if (recvmsg(socket, &msg, 0) < 0) {
+    debug_perror("recv_fd");
+    return -1;
+  }
+
+  struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+  unsigned char *data = CMSG_DATA(cmsg);
+  int fd = *((int *)data);
+
+  return fd;
+}
