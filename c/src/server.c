@@ -98,9 +98,10 @@ send_fd_by_socket(int socket, int fd) {
   struct iovec io;
   struct msghdr msg = {0};
   char buf[CMSG_SPACE(sizeof(fd))];
+  char mbuf[256];
 
-  io.iov_base = "msg";
-  io.iov_len = 3;
+  io.iov_base = mbuf;
+  io.iov_len = sizeof(mbuf);
 
   msg.msg_iov = &io;
   msg.msg_iovlen = 1;
