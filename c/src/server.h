@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#define DEBUG
+// #define DEBUG
 #ifdef DEBUG
 #define debug_log(_fmt_, ...) \
     fprintf(stderr, "\033[0;33m[%s:%d:%s] %d\033[0m " _fmt_, __FILE__, \
@@ -17,7 +17,14 @@
 #define debug_perror(_s_) debug_log("%s: %s\n", _s_, strerror(errno))
 #else
 #define debug_log(_fmt_, ...)
+#define debug_perror(_s_)
+/*
 #define debug_perror(_s_) perror(_s_)
+#define _debug_log(_fmt_, ...) \
+    fprintf(stderr, "\033[0;33m[%s:%d:%s] %d\033[0m " _fmt_, __FILE__, \
+            __LINE__, __func__, getpid(), ## __VA_ARGS__)
+#define debug_perror(_s_) _debug_log("%s: %s\n", _s_, strerror(errno))
+*/
 #endif
 
 

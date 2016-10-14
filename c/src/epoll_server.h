@@ -10,4 +10,7 @@
 extern void
 epoll_server(int fd);
 
+extern void
+master_workers_server(int fd, int n);
+
 #endif
