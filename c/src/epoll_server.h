@@ -2,6 +2,7 @@
 #define __EPOLL_SERVER_H__
 
 #include "server.h"
+#include "mem_pool.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>

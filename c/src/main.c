@@ -55,13 +55,13 @@ mem_pool_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
   as_mem_pool_fixed_t *p = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
 
-  as_mem_data_fixed_t *a = mem_pool_fixed_alloc(p, 18);
-  printf("%x\n", a->d);
+  void *a = mem_pool_fixed_alloc(p, 18);
+  printf("%p\n", a);
   printf("%d\n", p->empty);
   mem_pool_fixed_recycle(p, a);
   printf("%d\n", p->empty);
-  as_mem_data_fixed_t *b = mem_pool_fixed_alloc(p, 18);
-  printf("%x\n", b->d);
+  void *b = mem_pool_fixed_alloc(p, 18);
+  printf("%p\n", b);
   mem_pool_fixed_recycle(p, b);
 
   mem_pool_fixed_destroy(p);

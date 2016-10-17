@@ -2,8 +2,8 @@
 
 #define SLOT_SIZE(_x_) ((_x_)->n * 8)
 
-#define MALLOC malloc
-#define FREE free
+#define as_malloc malloc
+#define as_free free
 
 
 int
@@ -79,7 +79,7 @@ __bits_ct0_u64(unsigned long long x) {
 as_mem_slot_t *
 slot_new(uint8_t n) {
   as_mem_slot_t *s;
-  s = (as_mem_slot_t *)MALLOC(sizeof(as_mem_slot_t) + n - 1);
+  s = (as_mem_slot_t *)as_malloc(sizeof(as_mem_slot_t) + n - 1);
   if (s == NULL) {
     return NULL;
   }
@@ -92,7 +92,7 @@ slot_new(uint8_t n) {
 
 void
 slot_destroy(as_mem_slot_t *s) {
-  FREE(s);
+  as_free(s);
 }
 
 

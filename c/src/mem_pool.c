@@ -1,10 +1,10 @@
 #include "mem_pool.h"
 
-#define MALLOC malloc
-#define FREE free
+#define as_malloc malloc
+#define as_free free
 
 #define MALLOC_DATA_FIX(_x_) \
-    (as_mem_data_fixed_t *)MALLOC(sizeof(as_mem_data_fixed_t) + (_x_) - 1)
+    (as_mem_data_fixed_t *)as_malloc(sizeof(as_mem_data_fixed_t) + (_x_) - 1)
 
 
 as_mem_pool_fixed_t *
@@ -14,8 +14,9 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
   }
 
   as_mem_pool_fixed_t *p;
-  p = (as_mem_pool_fixed_t *)MALLOC(sizeof(as_mem_pool_fixed_t) +
-                                  sizeof(as_mem_pool_fixed_field_t) * (n - 1));
+  p = (as_mem_pool_fixed_t *)as_malloc(
+      sizeof(as_mem_pool_fixed_t) +
+      sizeof(as_mem_pool_fixed_field_t) * (n - 1));
   if (p == NULL) {
     return NULL;
   }
@@ -53,7 +54,7 @@ bin_search_position(as_mem_pool_fixed_t *p, size_t size) {
 }
 
 
-as_mem_data_fixed_t *
+void *
 mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
@@ -86,27 +87,29 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
       d->size = p->f[i].size;
     }
   }
-  return d;
+  return (void *)d->d;
 }
 
 
 void
-mem_pool_fixed_recycle(as_mem_pool_fixed_t *p, as_mem_data_fixed_t *d) {
-  if (d != NULL && p == NULL) {
-    FREE(d);
+mem_pool_fixed_recycle(as_mem_pool_fixed_t *p, void *dd) {
+  if (dd != NULL && p == NULL) {
+    as_free(dd);
   }
 
-  if (p != NULL && d != NULL) {
+  if (p != NULL && dd != NULL) {
+    as_mem_data_fixed_t *d = to_data_fixed(dd);
     int i = bin_search_position(p, d->size);
     if (p->f[i].size > d->size) {
       i -= 1;
     }
-    if (i < 0) {
-      FREE(d);
-    } else {
+
+    if (i >= 0 && i < p->n && p->f[i].size == d->size) {
       d->next = p->f[i].header;
       p->f[i].header = d;
       p->empty += p->f[i].size;
+    } else {
+      as_free(d);
     }
   }
 }
@@ -122,9 +125,9 @@ mem_pool_fixed_destroy(as_mem_pool_fixed_t *p) {
   for (i = 0; i < p->n; ++i) {
     while (p->f[i].header) {
       as_mem_data_fixed_t *d = p->f[i].header->next;
-      FREE(p->f[i].header);
+      as_free(p->f[i].header);
       p->f[i].header = d;
     }
   }
-  FREE(p);
+  as_free(p);
 }

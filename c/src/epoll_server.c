@@ -1,7 +1,7 @@
 #include "epoll_server.h"
 
-#define MALLOC malloc
-#define FREE free
+#define as_malloc malloc
+#define as_free free
 
 static void
 worker_process(int channel_fd);
@@ -27,7 +27,8 @@ epoll_server(int fd) {
   struct epoll_event event;
   int n;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, -1);
+    active_cnt = epoll_wait(epfd, events, 100, 1000);
+    debug_log("%d\n", active_cnt);
     for (i = 0; i < active_cnt; ++i) {
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
@@ -70,7 +71,7 @@ master_workers_server(int fd, int n) {
   int *child_sockets;
   int channel_fd;
 
-  child_sockets = (int *)MALLOC(sizeof(int) * n);
+  child_sockets = (int *)as_malloc(sizeof(int) * n);
   int i;
   int m = 0;
   for (i = 0; i < n; ++i) {
@@ -102,12 +103,16 @@ master_workers_server(int fd, int n) {
     worker_process(channel_fd);
   }
 
-  FREE(child_sockets);
+  as_free(child_sockets);
   close(fd);
 }
 
 static void
 worker_process(int channel_fd) {
+  size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 512};
+  as_mem_pool_fixed_t *mem_pool = mem_pool_fixed_new(
+      fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
+
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
 
@@ -151,6 +156,8 @@ worker_process(int channel_fd) {
       }
     }
   }
+
+  mem_pool_fixed_destroy(mem_pool);
 }
 
 static void

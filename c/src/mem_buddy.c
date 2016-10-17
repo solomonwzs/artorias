@@ -9,8 +9,8 @@
 #define NODE_SIZE(_x_) ((_x_) == 0 ? 0 : 1 << ((_x_) - 1))
 #define BUDDY_SIZE(_x_) (1 << ((_x_)->logn))
 
-#define MALLOC malloc
-#define FREE free
+#define as_malloc malloc
+#define as_free free
 
 
 static inline unsigned
@@ -31,7 +31,7 @@ buddy_new(uint8_t logn) {
   unsigned i;
   unsigned size = 1 << logn;
 
-  b = (as_mem_buddy_t *)MALLOC(2 * size * sizeof(uint8_t));
+  b = (as_mem_buddy_t *)as_malloc(2 * size * sizeof(uint8_t));
   if (b == NULL) {
     return NULL;
   }
@@ -151,5 +151,5 @@ buddy_print(as_mem_buddy_t *b) {
 
 void
 buddy_destroy(as_mem_buddy_t *b) {
-  FREE(b);
+  as_free(b);
 }
