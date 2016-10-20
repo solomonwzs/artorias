@@ -9,9 +9,6 @@
 #define NODE_SIZE(_x_) ((_x_) == 0 ? 0 : 1 << ((_x_) - 1))
 #define BUDDY_SIZE(_x_) (1 << ((_x_)->logn))
 
-#define as_malloc malloc
-#define as_free free
-
 
 static inline unsigned
 fix_size(unsigned size) {

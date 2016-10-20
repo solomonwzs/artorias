@@ -2,9 +2,6 @@
 
 #define SLOT_SIZE(_x_) ((_x_)->n * 8)
 
-#define as_malloc malloc
-#define as_free free
-
 
 int
 bits_cl0_u8(uint8_t x) {

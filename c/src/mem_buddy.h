@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "utils.h"
 
 typedef struct {
   uint8_t logn;

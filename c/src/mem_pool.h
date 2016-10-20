@@ -4,23 +4,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
-#ifndef offsetof
-#   ifdef __GNUC__
-#     define offsetof(st, m) __builtin_offsetof(st, m)
-#   else
-#     define offsetof(st, m) ((size_t)&(((st *)0)->m))
-#   endif
-#endif
+#include "utils.h"
 
 #define to_data_fixed(_p_) \
     ((as_mem_data_fixed_t *)((uint8_t *)(_p_) - \
                              offsetof(as_mem_data_fixed_t, d)))
 
 typedef struct as_mem_data_fixed_s {
-  struct as_mem_data_fixed_s  *next;
-  size_t                      size;
-  uint8_t                     d[1];
+  void      *p;
+  uint8_t   idx;
+  uint8_t   d[1];
 } as_mem_data_fixed_t;
 
 typedef struct {
@@ -29,9 +22,9 @@ typedef struct {
 } as_mem_pool_fixed_field_t;
 
 typedef struct {
-  unsigned                    n;
   int                         used;
   int                         empty;
+  uint8_t                     n;
   as_mem_pool_fixed_field_t   f[1];
 } as_mem_pool_fixed_t;
 
@@ -45,6 +38,6 @@ extern void *
 mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size);
 
 extern void
-mem_pool_fixed_recycle(as_mem_pool_fixed_t *p, void *dd);
+mem_pool_fixed_recycle(void *dd);
 
 #endif

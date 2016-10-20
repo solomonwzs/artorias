@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
 
 #ifdef __GNUC__
 #define bits_cl0_u32 __builtin_clz
