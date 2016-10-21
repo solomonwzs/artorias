@@ -108,10 +108,12 @@ rb_tree_print(as_rb_node_t *n, as_rb_node_t *leaf) {
 
 void
 rb_tree_test() {
-  size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
+  debug_log("%zu, %zu\n", sizeof(as_rb_tree_t), sizeof_rb_node(sizeof(int)));
+
+  size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512};
   as_mem_pool_fixed_t *pool = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
 
-  int arr[] = {12, 34, 54, 13, 78, 92, 11, 4, 48};
+  int arr[] = {12, 34, 54, 13, 78, 92, 11, 4, 48, 20, 67};
   as_rb_tree_t *tree = mem_pool_fixed_alloc(pool, sizeof(as_rb_tree_t));
   rb_tree_init(tree, rb_node_comp);
   for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); ++i) {

@@ -76,7 +76,7 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
       d->p = p;
       p->empty -= p->f[i].size;
     } else {
-      d = malloc_data_fixed(size);
+      d = malloc_data_fixed(p->f[i].size);
       if (d == NULL) {
         return NULL;
       }
