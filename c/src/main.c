@@ -84,8 +84,6 @@ rb_node_comp(void *a, void *b) {
 
 void
 rb_node_free(as_rb_node_t *n, void *data) {
-  int *i = (int *)n->d;
-  debug_log("%d\n", *i);
   mem_pool_fixed_recycle(n);
 }
 
@@ -95,7 +93,13 @@ rb_tree_print(as_rb_node_t *n, as_rb_node_t *leaf) {
   if (n->left != leaf) {
     rb_tree_print(n->left, leaf);
   }
-  printf("[%d %d]", *((int *)n->d), n->color);
+
+  if (n->color == RED) {
+    printf("\033[1;31m %d \033[0m", *((int *)n->d));
+  } else {
+    printf(" %d ", *((int *)n->d));
+  }
+
   if (n->right != leaf) {
     rb_tree_print(n->right, leaf);
   }

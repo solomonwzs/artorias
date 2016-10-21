@@ -109,7 +109,7 @@ rotate_left(as_rb_tree_t *t, as_rb_node_t *p) {
   p->right = y;
 
   if (p->parent == NULL) {
-    t->root = p;
+    t->root = q;
   } else {
     if (at_left_side(p)) {
       p->parent->left = q;
@@ -349,13 +349,13 @@ rb_tree_destroy(as_rb_tree_t *t, void *data,
       as_rb_node_t *fa = tn->parent;
       if (fa != NULL) {
         if (at_left_side(tn)) {
-          tn->parent->left = leaf;
+          fa->left = leaf;
         } else {
-          tn->parent->right = leaf;
+          fa->right = leaf;
         }
-        node_free(tn, data);
-        tn = fa;
       }
+      node_free(tn, data);
+      tn = fa;
     }
   }
 }
