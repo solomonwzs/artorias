@@ -124,14 +124,28 @@ rotate_left(as_rb_tree_t *t, as_rb_node_t *p) {
 
 
 static inline as_rb_node_t *
-get_smallest_node(as_rb_tree_t *t) {
-  if (t == NULL || t->root == NULL) {
+get_most_left_node(as_rb_tree_t *t, as_rb_node_t *n) {
+  if (t == NULL || n == NULL) {
     return NULL;
   }
 
-  as_rb_node_t *n = t->root;
-  while (n->left != NULL) {
+  as_rb_node_t *leaf = &t->leaf;
+  while (n->left != leaf) {
     n = n->left;
+  }
+  return n;
+}
+
+
+static inline as_rb_node_t *
+get_most_rigth_node(as_rb_tree_t *t, as_rb_node_t *n) {
+  if (t == NULL || n == NULL) {
+    return NULL;
+  }
+
+  as_rb_node_t *leaf = &t->leaf;
+  while (n->right != leaf) {
+    n = n->right;
   }
   return n;
 }
@@ -213,34 +227,48 @@ delete_case(as_rb_tree_t *t, as_rb_node_t *n) {
 
 void
 rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
-  as_rb_node_t *leaf = &(t->leaf);
+  as_rb_node_t *leaf = &t->leaf;
   if (n->parent == NULL && n->left == leaf && n->right == leaf) {
     t->root = NULL;
     return;
   }
 
-  as_rb_node_t *child = n->left != leaf ? n->left : n->right;
-  if (n->parent == NULL) {
-    child->parent = NULL;
-    child->color = BLACK;
-    t->root = child;
-    return;
-  }
-
-  if (at_left_side(n)) {
-    n->parent->left = child;
-  } else {
-    n->parent->right = child;
-  }
-  child->parent = n->parent;
-
-  if (n->color == BLACK) {
-    if (child->color == RED) {
-      child->color = BLACK;
-    } else {
-      delete_case(t, child);
+  if (n->left == leaf && n->right == leaf) {
+    if (n->parent == NULL) {
+      t->root = NULL;
+      return;
     }
+    delete_case(t, n);
   }
+
+  as_rb_node_t *ns;
+  if (n->left != leaf) {
+    ns = get_most_rigth_node(t, n->left);
+  } else {
+    ns = get_most_left_node(t, n->right);
+  }
+
+  // if (n->parent == NULL) {
+  //   child->parent = NULL;
+  //   child->color = BLACK;
+  //   t->root = child;
+  //   return;
+  // }
+
+  // if (at_left_side(n)) {
+  //   n->parent->left = child;
+  // } else {
+  //   n->parent->right = child;
+  // }
+  // child->parent = n->parent;
+
+  // if (n->color == BLACK) {
+  //   if (child->color == RED) {
+  //     child->color = BLACK;
+  //   } else {
+  //     delete_case(t, child);
+  //   }
+  // }
 }
 
 
@@ -296,7 +324,7 @@ rb_tree_insert(as_rb_tree_t *t, as_rb_node_t *n) {
 
   n->color = RED;
   as_rb_node_t *tn = t->root;
-  as_rb_node_t *leaf = &(t->leaf);
+  as_rb_node_t *leaf = &t->leaf;
   if (tn == NULL) {
     n->color = BLACK;
     n->parent = NULL;
@@ -339,7 +367,7 @@ rb_tree_destroy(as_rb_tree_t *t, void *data,
   }
 
   as_rb_node_t *tn = t->root;
-  as_rb_node_t *leaf = &(t->leaf);
+  as_rb_node_t *leaf = &t->leaf;
   while (tn != NULL) {
     if (tn->left != leaf) {
       tn = tn->left;

@@ -114,16 +114,29 @@ rb_tree_test() {
   as_mem_pool_fixed_t *pool = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
 
   int arr[] = {12, 34, 54, 13, 78, 92, 11, 4, 48, 20, 67};
+  int n = sizeof(arr) / sizeof(arr[0]);
+
   as_rb_tree_t *tree = mem_pool_fixed_alloc(pool, sizeof(as_rb_tree_t));
+  as_rb_node_t *nodes = mem_pool_fixed_alloc(pool, sizeof(as_rb_node_t) * n);
+
   rb_tree_init(tree, rb_node_comp);
-  for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); ++i) {
-    as_rb_node_t *node = mem_pool_fixed_alloc(
-        pool, sizeof_rb_node(sizeof(int)));
+  for (int i = 0; i < n; ++i) {
+    // as_rb_node_t *node = mem_pool_fixed_alloc(
+    //     pool, sizeof_rb_node(sizeof(int)));
+    as_rb_node_t *node = &nodes[i];
     *((int *)node->d) = arr[i];
     rb_tree_insert(tree, node);
+    // rb_tree_print(tree->root, &(tree->leaf)); printf("\n");
+  }
+  // rb_tree_destroy(tree, NULL, rb_node_free);
+
+  rb_tree_print(tree->root, &(tree->leaf)); printf("\n");
+  for (int i = 0; i < n; ++i) {
+    rb_tree_delete(tree, &nodes[i]);
     rb_tree_print(tree->root, &(tree->leaf)); printf("\n");
   }
-  rb_tree_destroy(tree, NULL, rb_node_free);
+
+  mem_pool_fixed_recycle(nodes);
   mem_pool_fixed_recycle(tree);
   mem_pool_fixed_destroy(pool);
 }
