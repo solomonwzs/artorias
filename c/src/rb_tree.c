@@ -228,47 +228,9 @@ delete_case(as_rb_tree_t *t, as_rb_node_t *n) {
 void
 rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
   as_rb_node_t *leaf = &t->leaf;
-  if (n->parent == NULL && n->left == leaf && n->right == leaf) {
-    t->root = NULL;
-    return;
-  }
-
-  if (n->left == leaf && n->right == leaf) {
-    if (n->parent == NULL) {
-      t->root = NULL;
-      return;
-    }
-    delete_case(t, n);
-  }
-
-  as_rb_node_t *ns;
-  if (n->left != leaf) {
-    ns = get_most_rigth_node(t, n->left);
+  if (n->right == leaf) {
   } else {
-    ns = get_most_left_node(t, n->right);
   }
-
-  // if (n->parent == NULL) {
-  //   child->parent = NULL;
-  //   child->color = BLACK;
-  //   t->root = child;
-  //   return;
-  // }
-
-  // if (at_left_side(n)) {
-  //   n->parent->left = child;
-  // } else {
-  //   n->parent->right = child;
-  // }
-  // child->parent = n->parent;
-
-  // if (n->color == BLACK) {
-  //   if (child->color == RED) {
-  //     child->color = BLACK;
-  //   } else {
-  //     delete_case(t, child);
-  //   }
-  // }
 }
 
 
