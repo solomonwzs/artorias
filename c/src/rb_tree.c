@@ -1,15 +1,12 @@
 #include "rb_tree.h"
 
-#define at_left_side(n) ((n) == rb_node_parent(n)->left)
-#define at_right_side(n) ((n) == rb_node_parent(n)->right)
-
 
 static inline as_rb_node_t *
 grandparent(as_rb_node_t *n) {
-  if (n == NULL || rb_node_parent(n) == NULL) {
+  if (n == NULL || n->parent == NULL) {
     return NULL;
   }
-  return rb_node_parent(rb_node_parent(n));
+  return n->parent->parent;
 }
 
 
@@ -19,14 +16,14 @@ uncle(as_rb_node_t *n) {
   if (g == NULL) {
     return NULL;
   }
-  return rb_node_parent(n) == g->right ? g->left : g->right;
+  return n->parent == g->right ? g->left : g->right;
 }
 
 
 static inline as_rb_node_t *
 sibling(as_rb_node_t *n) {
   as_rb_node_t *fa;
-  if (n == NULL || (fa = rb_node_parent(n)) == NULL) {
+  if (n == NULL || (fa = n->parent) == NULL) {
     return NULL;
   }
   return n == fa->left ? fa->right : fa->left;
@@ -52,11 +49,11 @@ rotate_rigth(as_rb_tree_t *t, as_rb_node_t *q) {
 
   as_rb_node_t *y = p->right;
   if (y != NULL) {
-    rb_node_set_parent(y, q);
+    y->parent = q;
   }
   q->left = y;
 
-  as_rb_node_t *fa = rb_node_parent(q);
+  as_rb_node_t *fa = q->parent;
   if (fa == NULL) {
     t->root = p;
   } else {
@@ -67,8 +64,8 @@ rotate_rigth(as_rb_tree_t *t, as_rb_node_t *q) {
     }
   }
   p->right = q;
-  rb_node_set_parent(p, fa);
-  rb_node_set_parent(q, p);
+  p->parent = fa;
+  q->parent = p;
 }
 
 
@@ -94,11 +91,11 @@ rotate_left(as_rb_tree_t *t, as_rb_node_t *p) {
 
   as_rb_node_t *y = q->left;
   if (y != NULL) {
-    rb_node_set_parent(y, p);
+    y->parent = p;
   }
   p->right = y;
 
-  as_rb_node_t *fa = rb_node_parent(p);
+  as_rb_node_t *fa = p->parent;
   if (fa == NULL) {
     t->root = q;
   } else {
@@ -109,119 +106,91 @@ rotate_left(as_rb_tree_t *t, as_rb_node_t *p) {
     }
   }
   q->left = p;
-  rb_node_set_parent(q, fa);
-  rb_node_set_parent(p, q);
+  q->parent = fa;
+  p->parent = q;
 }
 
 
-static inline as_rb_node_t *
-get_most_left_node(as_rb_tree_t *t, as_rb_node_t *n) {
-  if (t == NULL || n == NULL) {
-    return NULL;
+static inline void
+delete_case(as_rb_tree_t *t, as_rb_node_t *n) {
+  if (t == NULL && n == NULL) {
+    return;
   }
 
-  as_rb_node_t *leaf = &t->leaf;
-  while (n->left != leaf) {
-    n = n->left;
+  as_rb_node_t *s;
+  while (1) {
+    if (n->parent == NULL) {
+      return;
+    }
+
+    s = sibling(n);
+    if (s->color == RED) {
+      n->parent->color = RED;
+      s->color = BLACK;
+      if (n == n->parent->left) {
+        rotate_left(t, s);
+      } else {
+        rotate_rigth(t, s);
+      }
+      s = sibling(n);
+    }
+
+    if (s->color == BLACK &&
+        n->parent->color == BLACK &&
+        s->left->color == BLACK &&
+        s->right->color == BLACK) {
+      s->color = RED;
+      n = n->parent;
+      continue;
+    }
+
+    if (n->parent->color == RED &&
+        s->color == BLACK &&
+        s->left->color == BLACK &&
+        s->right->color == BLACK) {
+      s->color = RED;
+      n->parent->color = BLACK;
+      return;
+    }
+
+    if (s->color == BLACK) {
+      if (n == n->parent->left &&
+          s->right->color == BLACK &&
+          s->left->color == RED) {
+        s->color = RED;
+        s->left->color = BLACK;
+        rotate_rigth(t, s);
+        s = sibling(n);
+      } else if (n == n->parent->right &&
+                 s->left->color == BLACK &&
+                 s->right->color == RED) {
+        s->color = RED;
+        s->right->color = BLACK;
+        rotate_left(t, s);
+        s = sibling(n);
+      }
+    }
+
+    s->color = n->parent->color;
+    n->parent->color = BLACK;
+    if (n == n->parent->left) {
+      s->right->color = BLACK;
+      rotate_left(t, n->parent);
+    } else {
+      s->left->color = BLACK;
+      rotate_rigth(t, n->parent);
+    }
+    return;
   }
-  return n;
 }
-
-
-static inline as_rb_node_t *
-get_most_rigth_node(as_rb_tree_t *t, as_rb_node_t *n) {
-  if (t == NULL || n == NULL) {
-    return NULL;
-  }
-
-  as_rb_node_t *leaf = &t->leaf;
-  while (n->right != leaf) {
-    n = n->right;
-  }
-  return n;
-}
-
-
-// static void
-// delete_case(as_rb_tree_t *t, as_rb_node_t *n) {
-//   if (t == NULL && n == NULL) {
-//     return;
-//   }
-// 
-//   as_rb_node_t *s;
-//   while (1) {
-//     if (n->parent == NULL) {
-//       return;
-//     }
-// 
-//     s = sibling(n);
-//     if (s->color == RED) {
-//       n->parent->color = RED;
-//       s->color = BLACK;
-//       if (at_left_side(n)) {
-//         rotate_left(t, s);
-//       } else {
-//         rotate_rigth(t, s);
-//       }
-//       s = sibling(n);
-//     }
-// 
-//     if (s->color == BLACK &&
-//         n->parent->color == BLACK &&
-//         s->left->color == BLACK &&
-//         s->right->color == BLACK) {
-//       s->color = RED;
-//       n = n->parent;
-//       continue;
-//     }
-// 
-//     if (n->parent->color == RED &&
-//         s->color == BLACK &&
-//         s->left->color == BLACK &&
-//         s->right->color == BLACK) {
-//       s->color = RED;
-//       n->parent->color = BLACK;
-//       return;
-//     }
-// 
-//     if (s->color == BLACK) {
-//       if (at_left_side(n) &&
-//           s->right->color == BLACK &&
-//           s->left->color == RED) {
-//         s->color = RED;
-//         s->left->color = BLACK;
-//         rotate_rigth(t, s);
-//         s = sibling(n);
-//       } else if (at_right_side(n) &&
-//                  s->left->color == BLACK &&
-//                  s->right->color == RED) {
-//         s->color = RED;
-//         s->right->color = BLACK;
-//         rotate_left(t, s);
-//         s = sibling(n);
-//       }
-//     }
-// 
-//     s->color = n->parent->color;
-//     n->parent->color = BLACK;
-//     if (at_left_side(n)) {
-//       s->right->color = BLACK;
-//       rotate_left(t, n->parent);
-//     } else {
-//       s->left->color = BLACK;
-//       rotate_rigth(t, n->parent);
-//     }
-//     return;
-//   }
-// }
 
 
 static void inline
-swap_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *n) {
+swap_and_remove_ori_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *n) {
   as_rb_node_t *fa;
   as_rb_node_t *rc;
 
-  if ((fa = rb_node_parent(ori)) == NULL) {
+  if ((fa = ori->parent) == NULL) {
     t->root = n;
   } else {
     if (ori == fa->left) {
@@ -232,21 +201,41 @@ swap_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *n) {
   }
 
   rc = n->right;
-  fa = rb_node_parent(n);
+  fa = n->parent;
   if (fa == ori) {
     fa = n;
   } else {
     if (rc != NULL) {
-      rb_node_set_parent(rc, fa);
+      rc->parent = fa;
     }
     fa->left = rc;
     n->right = ori->right;
-    rb_node_set_parent(ori->right, n);
+    ori->right->parent = n;
   }
 
-  n->__parent_color = ori->__parent_color;
+  n->parent = ori->parent;
+  n->color = ori->color;
   n->left = ori->left;
-  rb_node_set_parent(ori->left, n);
+  ori->left->parent = n;
+}
+
+
+static void inline
+remove_node_has_one_child(as_rb_tree_t *t, as_rb_node_t *n) {
+  as_rb_node_t *fa = n->parent;
+  as_rb_node_t *child = n->left == NULL ? n->right : n->left;
+  if (child != NULL) {
+    child->parent = fa;
+  }
+  if (fa != NULL) {
+    if (n == fa->left) {
+      fa->left = child;
+    } else {
+      fa->right = child;
+    }
+  } else {
+    t->root = child;
+  }
 }
 
 
@@ -256,28 +245,23 @@ rb_delete(as_rb_tree_t *t, as_rb_node_t *n) {
     return;
   }
 
-  as_rb_node_t *child;
-  if (n->left == NULL) {
-    child = n->right;
-  } else if (n->right == NULL) {
-    child = n->left;
+  if (n->left == NULL || n->right == NULL) {
+    remove_node_has_one_child(t, n);
   } else {
     as_rb_node_t *ori = n;
     as_rb_node_t *left;
-    as_rb_node_t *fa;
-    char color;
 
     n = n->right;
     while ((left = n->left) != NULL) {
       n = n->left;
     }
-    swap_node(t, ori, n);
+    swap_and_remove_ori_node(t, ori, n);
   }
 }
 
 
 void
-rb_insert_case(as_rb_tree_t *t, as_rb_node_t *n) {
+rb_tree_insert_case(as_rb_tree_t *t, as_rb_node_t *n) {
   if (t == NULL || n == NULL) {
     return;
   }
@@ -285,13 +269,13 @@ rb_insert_case(as_rb_tree_t *t, as_rb_node_t *n) {
   as_rb_node_t *fa;
   as_rb_node_t *gf;
   as_rb_node_t *uc;
-  while ((fa = rb_node_parent(n)) && rb_node_color(fa) == RED) {
-    if ((uc = uncle(n)) && rb_node_color(uc) == RED) {
-      rb_node_set_black(fa);
-      rb_node_set_black(uc);
+  while ((fa = n->parent) && fa->color == RED) {
+    if ((uc = uncle(n)) && uc->color == RED) {
+      fa->color = BLACK;
+      uc->color = BLACK;
 
       gf = grandparent(n);
-      rb_node_set_red(gf);
+      gf->color = RED;
       n = gf;
 
       continue;
@@ -302,25 +286,25 @@ rb_insert_case(as_rb_tree_t *t, as_rb_node_t *n) {
       rotate_left(t, fa);
       n = n->left;
 
-      fa = rb_node_parent(n);
-      gf = rb_node_parent(fa);
+      fa = n->parent;
+      gf = fa->parent;
     } else if (n == fa->left && fa == gf->right) {
       rotate_rigth(t, fa);
       n = n->right;
 
-      fa = rb_node_parent(n);
-      gf = rb_node_parent(fa);
+      fa = n->parent;
+      gf = fa->parent;
     }
 
-    rb_node_set_black(fa);
-    rb_node_set_red(gf);
+    fa->color = BLACK;
+    gf->color = RED;
     if (n == fa->left) {
       rotate_rigth(t, gf);
     } else {
       rotate_left(t, gf);
     }
   }
-  rb_node_set_black(t->root);
+  t->root->color = BLACK;
 }
 
 
@@ -339,9 +323,9 @@ rb_tree_destroy(as_rb_tree_t *t, void *data,
     } else if (tn->right != leaf) {
       tn = tn->right;
     } else {
-      as_rb_node_t *fa = rb_node_parent(tn);
+      as_rb_node_t *fa = tn->parent;
       if (fa != NULL) {
-        if (at_left_side(tn)) {
+        if (tn == fa->left) {
           fa->left = leaf;
         } else {
           fa->right = leaf;

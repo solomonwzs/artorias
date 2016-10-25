@@ -6,22 +6,18 @@
 #include <sys/types.h>
 #include "utils.h"
 
-#define to_data_fixed(_p_) \
-    ((as_mem_data_fixed_t *)((uint8_t *)(_p_) - \
-                             offsetof(as_mem_data_fixed_t, d)))
-
 typedef struct as_mem_data_fixed_s {
   void      *p;
-  uint8_t   idx;
   uint8_t   d[1];
 } as_mem_data_fixed_t;
 
 typedef struct {
-  size_t                size;
-  as_mem_data_fixed_t   *header;
+  size_t                      size;
+  struct as_mem_pool_fixed_s  *pool;
+  as_mem_data_fixed_t         *header;
 } as_mem_pool_fixed_field_t;
 
-typedef struct {
+typedef struct as_mem_pool_fixed_s {
   int                         used;
   int                         empty;
   uint8_t                     n;

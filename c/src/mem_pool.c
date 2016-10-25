@@ -22,6 +22,7 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
   for (i = 0; i < n; ++i) {
     p->f[i].size = fsize[i];
     p->f[i].header = NULL;
+    p->f[i].pool = p;
   }
   p->n = n;
   p->used = 0;
@@ -68,7 +69,6 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
       return NULL;
     }
     d->p = NULL;
-    d->idx = p->n;
   } else {
     if (p->f[i].header != NULL) {
       d = p->f[i].header;
@@ -80,8 +80,7 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
       if (d == NULL) {
         return NULL;
       }
-      d->p = p;
-      d->idx = i;
+      d->p = &p->f[i];
     }
   }
   return (void *)d->d;
@@ -94,17 +93,16 @@ mem_pool_fixed_recycle(void *dd) {
     return;
   }
 
-  as_mem_data_fixed_t *d = to_data_fixed(dd);
-  as_mem_pool_fixed_t *p = (as_mem_pool_fixed_t *)d->p;
-
-  if (p == NULL) {
+  as_mem_data_fixed_t *d = container_of(dd, as_mem_data_fixed_t, d);
+  as_mem_pool_fixed_field_t *f = (as_mem_pool_fixed_field_t *)d->p;
+  if (f == NULL) {
     as_free(d);
   }
 
-  uint8_t i = d->idx;
-  d->p = p->f[i].header;
-  p->f[i].header = d;
-  p->empty += p->f[i].size;
+  as_mem_pool_fixed_t *pool = f->pool;
+  d->p = f->header;
+  f->header = d;
+  pool->empty += f->size;
 }
 
 
