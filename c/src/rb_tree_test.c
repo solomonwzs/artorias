@@ -4,28 +4,13 @@
 #include "utils.h"
 
 #define to_node(p) (container_of((p), node, r))
+#define node_comp(a, b) ((a)->i < (b)->i)
 
 
 typedef struct {
   as_rb_node_t  r;
   int           i;
 } node;
-
-
-static void
-insert(as_rb_tree_t *t, node *n) {
-  as_rb_node_t **p = &(t->root);
-  while (*p != NULL) {
-    n->r.parent = *p;
-    node *m = to_node(*p);
-    if (n->i < m->i) {
-      p = &(*p)->left;
-    } else {
-      p = &(*p)->right;
-    }
-  }
-  *p = &n->r;
-}
 
 
 void
@@ -68,8 +53,16 @@ rb_tree_test() {
     m->i = arr[i];
     m->r.parent = m->r.left = m->r.right = NULL;
     m->r.color = RED;
-    insert(tree, m);
+    rb_tree_insert(tree, m, node_comp, node, r);
     rb_tree_insert_case(tree, &m->r);
+    rb_tree_print(to_node(tree->root));
+    printf("\n");
+  }
+
+  for (int i = 0; i < n; ++i) {
+    node *m = &ns[i];
+    m->i = arr[i];
+    rb_tree_delete(tree, &m->r);
     rb_tree_print(to_node(tree->root));
     printf("\n");
   }

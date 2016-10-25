@@ -21,8 +21,22 @@ typedef struct {
   as_rb_node_t  leaf;
 } as_rb_tree_t;
 
+#define rb_tree_insert(tree, node, comp, type, member) do {\
+  as_rb_node_t **__ptr = &((tree)->root);\
+  while (*__ptr != NULL) {\
+    (node)->member.parent = *__ptr;\
+    __ptr = \
+    comp(node, container_of(*__ptr, type, member)) ? \
+    &(*__ptr)->left : &(*__ptr)->right;\
+  }\
+  *__ptr = &(node)->member;\
+} while(0)
+
 extern void
 rb_tree_insert_case(as_rb_tree_t *t, as_rb_node_t *n);
+
+extern void
+rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n);
 
 extern void
 rb_tree_destroy(as_rb_tree_t *t, void *data,
