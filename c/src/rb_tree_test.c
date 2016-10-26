@@ -15,6 +15,10 @@ typedef struct {
 
 void
 rb_tree_print(node *n) {
+  if (n == NULL) {
+    return;
+  }
+
   printf("{");
   if (n->r.left != NULL) {
     rb_tree_print(to_node(n->r.left));
