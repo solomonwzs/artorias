@@ -157,7 +157,7 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n) {
       if (s->color == RED) {
         delete_case1(t, n, s, left);
       }
-      if (is_null_or_black(s->left) || 
+      if (is_null_or_black(s->left) ||
           is_null_or_black(s->right)) {
         delete_case2(n, s);
       } else {
@@ -171,7 +171,7 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n) {
       if (s->color == RED) {
         delete_case1(t, n, s, right);
       }
-      if (is_null_or_black(s->left) || 
+      if (is_null_or_black(s->left) ||
           is_null_or_black(s->right)) {
         delete_case2(n, s);
       } else {
@@ -193,6 +193,7 @@ static void inline
 swap_and_remove_ori_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *sub) {
   as_rb_node_t *fa;
   as_rb_node_t *rc;
+  char color = sub->color;
 
   if ((fa = ori->parent) == NULL) {
     t->root = sub;
@@ -222,7 +223,9 @@ swap_and_remove_ori_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *sub) 
   sub->left = ori->left;
   ori->left->parent = sub;
 
-  rb_tree_delete_case(t, rc);
+  if (color == BLACK) {
+    rb_tree_delete_case(t, rc);
+  }
 }
 
 
@@ -242,7 +245,9 @@ remove_node_has_one_child(as_rb_tree_t *t, as_rb_node_t *ori) {
   } else {
     t->root = sub;
   }
-  rb_tree_delete_case(t, sub);
+  if (ori->color == BLACK) {
+    rb_tree_delete_case(t, sub != NULL ? sub : fa);
+  }
 }
 
 

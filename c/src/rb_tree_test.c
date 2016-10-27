@@ -13,28 +13,26 @@ typedef struct {
 } node;
 
 
-void
+static void
 rb_tree_print(node *n) {
-  if (n == NULL) {
-    return;
-  }
-
   printf("{");
-  if (n->r.left != NULL) {
-    rb_tree_print(to_node(n->r.left));
-  }
+  if (n != NULL) {
+    if (n->r.left != NULL) {
+      rb_tree_print(to_node(n->r.left));
+    }
 
-  if (n->r.color == RED) {
-    printf("\033[1;31m %d \033[0m", n->i);
-  } else {
-    printf(" %d ", n->i);
-  }
-  printf("\033[0;37m%lx %lx \033[0m",
-         (unsigned long)(&n->r) & 0xfff,
-         (unsigned long)(n->r.parent) & 0xfff);
+    if (n->r.color == RED) {
+      printf("\033[1;31m %d \033[0m", n->i);
+    } else {
+      printf(" %d ", n->i);
+    }
+    printf("\033[0;37m%lx %lx \033[0m",
+           (unsigned long)(&n->r) & 0xfff,
+           (unsigned long)(n->r.parent) & 0xfff);
 
-  if (n->r.right != NULL) {
-    rb_tree_print(to_node(n->r.right));
+    if (n->r.right != NULL) {
+      rb_tree_print(to_node(n->r.right));
+    }
   }
   printf("}");
 }
