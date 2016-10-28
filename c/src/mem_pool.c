@@ -97,6 +97,7 @@ mem_pool_fixed_recycle(void *dd) {
   as_mem_pool_fixed_field_t *f = (as_mem_pool_fixed_field_t *)d->p;
   if (f == NULL) {
     as_free(d);
+    return;
   }
 
   as_mem_pool_fixed_t *pool = f->pool;

@@ -18,7 +18,6 @@ typedef struct as_rb_node_s {
 
 typedef struct {
   as_rb_node_t  *root;
-  as_rb_node_t  leaf;
 } as_rb_tree_t;
 
 #define rb_tree_insert(tree, node, comp, type, member) do {\
@@ -38,9 +37,9 @@ rb_tree_insert_case(as_rb_tree_t *t, as_rb_node_t *n);
 extern void
 rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n);
 
-// extern void
-// rb_tree_destroy(as_rb_tree_t *t, void *data,
-//                 void (*node_free)(as_rb_node_t *, void *));
+extern void
+rb_tree_postorder_travel(as_rb_tree_t *t, void *data,
+                         void (*func)(as_rb_node_t *, void *));
 
 extern void
 rb_tree_test();

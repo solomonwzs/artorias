@@ -40,10 +40,10 @@ rb_tree_print(node *n) {
 
 void
 rb_tree_test() {
-  size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512};
+  size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1024};
   as_mem_pool_fixed_t *pool = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
 
-  int arr[] = {12, 34, 54, 13, 78, 92, 11, 4, 48, 20, 67};
+  int arr[] = {34, 5, 12, 15, 71, 45, 2, 33, 3, 83, 61, 43, 11};
   int n = sizeof(arr) / sizeof(arr[0]);
 
   node *ns = mem_pool_fixed_alloc(pool, sizeof(node) * n);
