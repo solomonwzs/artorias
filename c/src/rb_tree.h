@@ -31,6 +31,11 @@ typedef struct {
   *__ptr = &(node)->member;\
 } while(0)
 
+#define rb_tree_isolated_node(n) do {\
+  n->parent = n->left = n->right = NULL;\
+  n->color = RED;\
+} while(0)
+
 extern void
 rb_tree_insert_case(as_rb_tree_t *t, as_rb_node_t *n);
 

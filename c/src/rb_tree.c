@@ -335,3 +335,36 @@ rb_tree_postorder_travel(as_rb_tree_t *t, void *data,
     }
   }
 }
+
+void
+rb_tree_delete_subtree(as_rb_tree_t *t, as_rb_node_t *n) {
+  if (t == NULL || n == NULL) {
+    return;
+  }
+
+  if (t->root == n) {
+    t->root = NULL;
+    return;
+  }
+
+  as_rb_node_t *fa = n->parent;
+  as_rb_node_t *gf = fa->parent;
+  as_rb_node_t *s = fa->left == n ? fa->right : fa->left;
+  if (fa->color == RED) {
+    if (gf == NULL) {
+      t->root = s;
+    } else {
+      if (gf->left == fa) {
+        gf->left = s;
+      } else {
+        gf->right = s;
+      }
+    }
+    if (s != NULL) {
+      s->parent = gf;
+    }
+
+    rb_tree_isolated_node(fa);
+  }
+  n->parent = NULL;
+}
