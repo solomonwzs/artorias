@@ -3,6 +3,8 @@
 #define malloc_data_fixed(_x_) \
     (as_mem_data_fixed_t *)as_malloc(offsetof(as_mem_data_fixed_t, d) + (_x_))
 
+#define field_size(f, i) ((f)[i].size)
+
 
 as_mem_pool_fixed_t *
 mem_pool_fixed_new(size_t fsize[], unsigned n) {
@@ -32,33 +34,14 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
 }
 
 
-static inline uint8_t
-bin_search_position(as_mem_pool_fixed_t *p, size_t size) {
-  uint8_t left = 0;
-  uint8_t right = p->n - 1;
-  uint8_t middle;
-  while (left < right) {
-    middle = (left + right) / 2;
-    if (p->f[middle].size == size) {
-      left = middle;
-      break;
-    } else if (p->f[middle].size < size) {
-      left = middle + 1;
-    } else {
-      right = middle - 1;
-    }
-  }
-  return left;
-}
-
-
 void *
 mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
   }
 
-  int i = bin_search_position(p, size);
+  int i;
+  binary_search(p->f, p->n, size, field_size, i);
   if (p->f[i].size < size) {
     i += 1;
   }

@@ -41,3 +41,20 @@
      })
 
 #endif
+
+#define binary_search(arr, len, key, val, left) do {\
+  left = 0;\
+  typeof(len) __right = (len) - 1;\
+  typeof(len) __mid;\
+  while (left < __right) {\
+    __mid = (left + __right) / 2;\
+    if (val((arr), __mid) == key) {\
+      left = __mid;\
+      break;\
+    } else if (val((arr), __mid) < key) {\
+      left = __mid + 1;\
+    } else {\
+      __right = __mid - 1;\
+    }\
+  }\
+} while (0)
