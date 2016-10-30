@@ -18,7 +18,6 @@ typedef struct {
 } as_mem_pool_fixed_field_t;
 
 typedef struct as_mem_pool_fixed_s {
-  int                         used;
   int                         empty;
   uint8_t                     n;
   as_mem_pool_fixed_field_t   f[1];

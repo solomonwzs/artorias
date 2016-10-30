@@ -20,14 +20,26 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
     return NULL;
   }
 
-  int i = 0;
+  int i;
+  int j;
   for (i = 0; i < n; ++i) {
     p->f[i].size = fsize[i];
     p->f[i].header = NULL;
     p->f[i].pool = p;
   }
+
+  size_t tmp;
+  for (i = 0; i < n - 1; ++i) {
+    for (j = i + 1; j < n; ++j) {
+      if (p->f[i].size > p->f[j].size) {
+        tmp = p->f[i].size;
+        p->f[i].size = p->f[j].size;
+        p->f[j].size = tmp;
+      }
+    }
+  }
+
   p->n = n;
-  p->used = 0;
   p->empty = 0;
 
   return p;
@@ -40,8 +52,7 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
     return NULL;
   }
 
-  int i;
-  binary_search(p->f, p->n, size, field_size, i);
+  int i = binary_search(p->f, p->n, size, field_size);
   if (p->f[i].size < size) {
     i += 1;
   }

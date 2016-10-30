@@ -1,6 +1,5 @@
 #include "server.h"
 
-#define PORT    5555
 #define MAXLEN  1024
 
 

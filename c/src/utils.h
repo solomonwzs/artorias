@@ -35,26 +35,28 @@
 #endif
 
 #define container_of(ptr, type, member) \
-    ({\
-     const typeof(((type *)0)->member)*__mptr = (ptr);\
-     (type *)((char *)__mptr - offsetof(type, member));\
-     })
+({\
+  const typeof(((type *)0)->member)*__mptr = (ptr);\
+  (type *)((char *)__mptr - offsetof(type, member));\
+ })
 
 #endif
 
-#define binary_search(arr, len, key, val, left) do {\
-  left = 0;\
+#define binary_search(arr, len, key, val) \
+({\
+  typeof(len) __left = 0;\
   typeof(len) __right = (len) - 1;\
   typeof(len) __mid;\
-  while (left < __right) {\
-    __mid = (left + __right) / 2;\
+  while (__left < __right) {\
+    __mid = (__left + __right) / 2;\
     if (val((arr), __mid) == key) {\
-      left = __mid;\
-      break;\
+      __left = __mid;\
+    break;\
     } else if (val((arr), __mid) < key) {\
-      left = __mid + 1;\
+      __left = __mid + 1;\
     } else {\
       __right = __mid - 1;\
     }\
   }\
-} while (0)
+  __left;\
+ })
