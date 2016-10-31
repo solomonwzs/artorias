@@ -20,8 +20,8 @@ server_test() {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  // epoll_server(sock);
-  master_workers_server(sock, 2);
+  epoll_server2(sock);
+  // master_workers_server(sock, 1);
 }
 
 
@@ -73,6 +73,7 @@ mem_pool_test() {
 
 int
 main(int argc, char **argv) {
+  // server_test();
   rb_tree_test();
   return 0;
 }

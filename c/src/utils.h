@@ -28,35 +28,33 @@
 
 #ifndef offsetof
 #   ifdef __GNUC__
-#     define offsetof(st, m) __builtin_offsetof(st, m)
+#     define offsetof(_st_, _m_) __builtin_offsetof(_st_, _m_)
 #   else
-#     define offsetof(st, m) ((size_t)&(((st *)0)->m))
+#     define offsetof(_st_, _m_) ((size_t)&(((_st_ *)0)->_m_))
 #   endif
 #endif
 
-#define container_of(ptr, type, member) \
-({\
-  const typeof(((type *)0)->member)*__mptr = (ptr);\
-  (type *)((char *)__mptr - offsetof(type, member));\
- })
+#define container_of(_ptr_, _type_, _member_) ({\
+  const typeof(((_type_ *)0)->_member_)*__mptr = (_ptr_);\
+  (_type_ *)((char *)__mptr - offsetof(_type_, _member_));\
+})
 
 #endif
 
-#define binary_search(arr, len, key, val) \
-({\
-  typeof(len) __left = 0;\
-  typeof(len) __right = (len) - 1;\
-  typeof(len) __mid;\
+#define binary_search(_arr_, _len_, _key_, _eq_, _lt_) ({\
+  typeof(_len_) __left = 0;\
+  typeof(_len_) __right = (_len_) - 1;\
+  typeof(_len_) __mid;\
   while (__left < __right) {\
     __mid = (__left + __right) / 2;\
-    if (val((arr), __mid) == key) {\
+    if (_eq_((_arr_), __mid, (_key_))) {\
       __left = __mid;\
     break;\
-    } else if (val((arr), __mid) < key) {\
+    } else if (_lt_((_arr_), __mid, (_key_))) {\
       __left = __mid + 1;\
     } else {\
       __right = __mid - 1;\
     }\
   }\
   __left;\
- })
+})

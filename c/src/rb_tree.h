@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include "utils.h"
 
-typedef enum {EQ, GT, LT} rb_comp_t;
-
 #define RED     0x00
 #define BLACK   0x01
 
@@ -20,20 +18,31 @@ typedef struct {
   as_rb_node_t  *root;
 } as_rb_tree_t;
 
-#define rb_tree_insert(tree, node, comp, type, member) do {\
-  as_rb_node_t **__ptr = &((tree)->root);\
+#define rb_tree_insert(_tree_, _node_, _lt_) do {\
+  as_rb_node_t **__ptr = &((_tree_)->root);\
   while (*__ptr != NULL) {\
-    (node)->member.parent = *__ptr;\
+    (_node_)->parent = *__ptr;\
     __ptr = \
-    comp(node, container_of(*__ptr, type, member)) ? \
-    &(*__ptr)->left : &(*__ptr)->right;\
+    _lt_((_node_), *__ptr) ? &(*__ptr)->left : &(*__ptr)->right;\
   }\
-  *__ptr = &(node)->member;\
+  *__ptr = (_node_);\
 } while(0)
 
-#define rb_tree_node_init(n) do {\
-  (n)->parent = (n)->left = (n)->right = NULL;\
-  (n)->color = RED;\
+#define rb_tree_find(_tree_, _key_, _eq_, _lt_) ({\
+  as_rb_node_t *__ptr = (_tree_)->root;\
+  while (__ptr != NULL) {\
+    if (_eq_((_key_), __ptr)) {\
+      break;\
+    } else {\
+      __ptr = _lt_((_key_), __ptr) ? __ptr->left : __ptr->right;\
+    }\
+  }\
+  __ptr;\
+})
+
+#define rb_tree_node_init(_n_) do {\
+  (_n_)->parent = (_n_)->left = (_n_)->right = NULL;\
+  (_n_)->color = RED;\
 } while (0)
 
 extern void

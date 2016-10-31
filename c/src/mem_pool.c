@@ -3,8 +3,6 @@
 #define malloc_data_fixed(_x_) \
     (as_mem_data_fixed_t *)as_malloc(offsetof(as_mem_data_fixed_t, d) + (_x_))
 
-#define field_size(f, i) ((f)[i].size)
-
 
 as_mem_pool_fixed_t *
 mem_pool_fixed_new(size_t fsize[], unsigned n) {
@@ -46,13 +44,16 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
 }
 
 
+#define field_size_eq(f, idx, s) ((f)[idx].size == (s))
+#define field_size_lt(f, idx, s) ((f)[idx].size < (s))
+
 void *
 mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
   }
 
-  int i = binary_search(p->f, p->n, size, field_size);
+  int i = binary_search(p->f, p->n, size, field_size_eq, field_size_lt);
   if (p->f[i].size < size) {
     i += 1;
   }

@@ -1,37 +1,37 @@
 #include "rb_tree.h"
 
-#define is_null_or_black(n) ((n) == NULL || (n)->color == BLACK)
+#define is_null_or_black(_n_) ((_n_) == NULL || (_n_)->color == BLACK)
 
-#define delete_case1(t, n, fa, s, lr1, lr2) do {\
-  s->color = BLACK;\
-  fa->color = RED;\
-  rotate_##lr1(t, fa);\
-  s = fa->lr2;\
+#define delete_case1(_t_, _n_, _fa_, _s_, _lr1_, _lr2_) do {\
+  _s_->color = BLACK;\
+  _fa_->color = RED;\
+  rotate_##_lr1_(_t_, _fa_);\
+  _s_ = _fa_->_lr2_;\
 } while (0)
 
-#define delete_case2(n, fa, s) do {\
-  s->color = RED;\
-  n = fa;\
-  fa = n->parent;\
+#define delete_case2(_n_, _fa_, _s_) do {\
+  _s_->color = RED;\
+  _n_ = _fa_;\
+  _fa_ = _n_->parent;\
 } while (0)
 
-#define delete_case3(t, n, fa, s, lr1, lr2) do {\
-  if (s->lr2 != NULL) {\
-    s->lr2->color = BLACK;\
+#define delete_case3(_t_, _n_, _fa_, _s_, _lr1_, _lr2_) do {\
+  if (_s_->_lr1_ != NULL) {\
+    _s_->_lr1_->color = BLACK;\
   }\
-  s->color = RED;\
-  rotate_##lr1(t, s);\
-  s = fa->lr1;\
+  _s_->color = RED;\
+  rotate_##_lr2_(_t_, _s_);\
+  _s_ = _fa_->_lr2_;\
 } while(0)\
 
-#define delete_case4(t, n, fa, s, lr1, lr2) do {\
-  s->color = fa->color;\
-  fa->color = BLACK;\
-  if (s->lr1 != NULL) {\
-    s->lr1->color = BLACK;\
+#define delete_case4(_t_, _n_, _fa_, _s_, _lr1_, _lr2_) do {\
+  _s_->color = _fa_->color;\
+  _fa_->color = BLACK;\
+  if (_s_->_lr2_ != NULL) {\
+    _s_->_lr2_->color = BLACK;\
   }\
-  rotate_##lr2(t, fa);\
-  n = t->root;\
+  rotate_##_lr1_(_t_, _fa_);\
+  _n_ = _t_->root;\
 } while(0)
 
 
@@ -137,9 +137,9 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *fa) {
         delete_case2(n, fa, s);
       } else {
         if (is_null_or_black(s->right)) {
-          delete_case3(t, n, fa, s, right, left);
+          delete_case3(t, n, fa, s, left, right);
         }
-        delete_case4(t, n, s, fa, right, left);
+        delete_case4(t, n, fa, s, left, right);
         break;
       }
     } else {
@@ -152,9 +152,9 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *fa) {
         delete_case2(n, fa, s);
       } else {
         if (is_null_or_black(s->left)) {
-          delete_case3(t, n, fa, s, left, right);
+          delete_case3(t, n, fa, s, right, left);
         }
-        delete_case4(t, n, s, fa, left, right);
+        delete_case4(t, n, fa, s, right, left);
         break;
       }
     }
@@ -234,6 +234,7 @@ rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
   }
 
   if (n->left == NULL || n->right == NULL) {
+    printf("+++\n");
     remove_node_has_one_child(t, n);
   } else {
     as_rb_node_t *ori = n;
@@ -243,6 +244,7 @@ rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
     while ((left = n->left) != NULL) {
       n = n->left;
     }
+    printf("---\n");
     swap_and_remove_ori_node(t, ori, n);
   }
 }
