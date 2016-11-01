@@ -70,7 +70,6 @@ rb_tree_test() {
   for (int i = 0; i < n; ++i) {
     // node *m = &ns[i];
     as_rb_node_t *n = rb_tree_find(tree, arr[i], node_i_eq, node_i_lt);
-    printf("%d, %p\n", arr[i], n);
     node *m = container_of(n, node, r);
 
     rb_tree_delete(tree, &m->r);

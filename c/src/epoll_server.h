@@ -3,9 +3,7 @@
 
 #include "server.h"
 #include "mem_pool.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
+#include "wrap_conn.h"
 #include <sys/epoll.h>
 
 extern void
@@ -13,8 +11,5 @@ epoll_server(int fd);
 
 extern void
 epoll_server2(int fd);
-
-extern void
-master_workers_server(int fd, int n);
 
 #endif

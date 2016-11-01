@@ -1,4 +1,4 @@
-#include "epoll_server.h"
+#include "mw_server.h"
 
 #define close_wrap_conn(_cp_, _wc_) do {\
   close((_wc_)->fd);\
@@ -6,34 +6,39 @@
   rb_conn_pool_delete(_cp_, _wc_);\
 } while (0)
 
+#define add_wrap_conn_event(_wc_, _e_, _epfd_) do {\
+  set_non_block((_wc_)->fd);\
+  (_e_).data.ptr = (_wc_);\
+  (_e_).events = EPOLLIN | EPOLLET;\
+  epoll_ctl((_epfd_), EPOLL_CTL_ADD, (_wc_)->fd, &(_e_));\
+} while (0)
 
-void
-epoll_server(int fd) {
+
+static void
+master_process(int socket, int *child_sockets, int n) {
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
 
   listen_event.events = EPOLLIN | EPOLLET;
-  listen_event.data.fd = fd;
-  set_non_block(fd);
-  epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &listen_event);
+  listen_event.data.fd = socket;
+  set_non_block(socket);
+  epoll_ctl(epfd, EPOLL_CTL_ADD, socket, &listen_event);
 
   int active_cnt;
   int i;
   struct epoll_event events[100];
   int infd;
-  struct epoll_event event;
-  int n;
+  int j = 0;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, 1000);
-    debug_log("%d\n", active_cnt);
+    active_cnt = epoll_wait(epfd, events, 100, -1);
     for (i = 0; i < active_cnt; ++i) {
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
         debug_perror("epoll_wait");
         close(events[i].data.fd);
-      } else if (events[i].data.fd == fd) {
+      } else if (events[i].data.fd == socket) {
         while (1) {
-          infd = new_accept_fd(fd);
+          infd = new_accept_fd(socket);
           if (infd == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
               break;
@@ -42,18 +47,9 @@ epoll_server(int fd) {
               break;
             }
           }
-          set_non_block(infd);
-          event.data.fd = infd;
-          event.events = EPOLLIN | EPOLLET;
-          epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
-        }
-      } else if (events[i].events & EPOLLIN) {
-        infd = events[i].data.fd;
-        n = read_from_client(infd);
-        if (n <= 0) {
+          send_fd_by_socket(child_sockets[j], infd);
+          j = (j + 1) % n;
           close(infd);
-        } else {
-          write(infd, "+OK\r\n", 5);
         }
       }
     }
@@ -61,8 +57,8 @@ epoll_server(int fd) {
 }
 
 
-void
-epoll_server2(int fd) {
+static void
+worker_process(int channel_fd) {
   size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512,
     768, 1024};
   as_mem_pool_fixed_t *mem_pool = mem_pool_fixed_new(
@@ -70,13 +66,10 @@ epoll_server2(int fd) {
 
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
-  as_rb_conn_t wfd;
+  as_rb_conn_t cfd_conn;
 
-  listen_event.events = EPOLLIN | EPOLLET;
-  wfd.fd = fd;
-  listen_event.data.ptr = &wfd;
-  set_non_block(fd);
-  epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &listen_event);
+  cfd_conn.fd = channel_fd;
+  add_wrap_conn_event(&cfd_conn, listen_event, epfd);
 
   as_rb_conn_pool_t conn_pool = empty_rb_conn_pool;
   int active_cnt;
@@ -87,27 +80,22 @@ epoll_server2(int fd) {
   int n;
   as_rb_conn_t *wc;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, -1);
+    active_cnt = epoll_wait(epfd, events, 100, 5*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
         debug_perror("epoll_wait");
-        if (wc->fd == fd) {
+        if (wc->fd == channel_fd) {
           close(wc->fd);
         } else {
           close_wrap_conn(&conn_pool, wc);
         }
-      } else if (wc->fd == fd) {
+      } else if (wc->fd == channel_fd) {
         while (1) {
-          infd = new_accept_fd(fd);
+          infd = recv_fd_from_socket(channel_fd);
           if (infd == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-              break;
-            } else {
-              debug_perror("accept");
-              break;
-            }
+            break;
           }
 
           as_rb_conn_t *nwc = mem_pool_fixed_alloc(
@@ -115,10 +103,7 @@ epoll_server2(int fd) {
           rb_conn_init(nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
 
-          set_non_block(infd);
-          event.data.ptr = nwc;
-          event.events = EPOLLIN | EPOLLET;
-          epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
+          add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
         n = read_from_client(wc->fd);
@@ -131,4 +116,49 @@ epoll_server2(int fd) {
       }
     }
   }
+  mem_pool_fixed_destroy(mem_pool);
+}
+
+
+void
+master_workers_server(int fd, int n) {
+  int child;
+  int sockets[2];
+  int *child_sockets;
+  int channel_fd;
+
+  child_sockets = (int *)as_malloc(sizeof(int) * n);
+  int i;
+  int m = 0;
+  for (i = 0; i < n; ++i) {
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
+      debug_perror("socketpair");
+    }
+
+    m += 1;
+    child = fork();
+    if (child == -1) {
+      debug_perror("fork");
+    } else if (child) {
+      debug_log("child: %d\n", child);
+      close(sockets[0]);
+      child_sockets[i] = sockets[1];
+    } else {
+      close(sockets[1]);
+      channel_fd = sockets[0];
+      break;
+    }
+  }
+
+  if (child) {
+    master_process(fd, child_sockets, n);
+  } else {
+    for (i = 0; i < m; ++i) {
+      close(child_sockets[i]);
+    }
+    worker_process(channel_fd);
+  }
+
+  as_free(child_sockets);
+  close(fd);
 }

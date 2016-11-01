@@ -6,12 +6,17 @@
 #include <sys/types.h>
 #include "utils.h"
 
+typedef union {
+  struct as_mem_pool_fixed_field_s  *field;
+  struct as_mem_data_fixed_s        *next;
+} as_mem_data_fixed_p_t;
+
 typedef struct as_mem_data_fixed_s {
-  void      *p;
-  uint8_t   d[1];
+  as_mem_data_fixed_p_t   p;
+  uint8_t                 d[1];
 } as_mem_data_fixed_t;
 
-typedef struct {
+typedef struct as_mem_pool_fixed_field_s {
   size_t                      size;
   struct as_mem_pool_fixed_s  *pool;
   as_mem_data_fixed_t         *header;

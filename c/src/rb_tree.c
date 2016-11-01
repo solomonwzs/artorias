@@ -132,7 +132,7 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *fa) {
       if (s->color == RED) {
         delete_case1(t, n, fa, s, left, right);
       }
-      if (is_null_or_black(s->left) ||
+      if (is_null_or_black(s->left) &&
           is_null_or_black(s->right)) {
         delete_case2(n, fa, s);
       } else {
@@ -147,7 +147,7 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *fa) {
       if (s->color == RED) {
         delete_case1(t, n, fa, s, right, left);
       }
-      if (is_null_or_black(s->left) ||
+      if (is_null_or_black(s->left) &&
           is_null_or_black(s->right)) {
         delete_case2(n, fa, s);
       } else {
@@ -198,7 +198,7 @@ swap_and_remove_ori_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *sub) 
   sub->color = ori->color;
   sub->left = ori->left;
   ori->left->parent = sub;
-
+  
   if (color == BLACK) {
     rb_tree_delete_case(t, rc, fa);
   }
@@ -234,7 +234,6 @@ rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
   }
 
   if (n->left == NULL || n->right == NULL) {
-    printf("+++\n");
     remove_node_has_one_child(t, n);
   } else {
     as_rb_node_t *ori = n;
@@ -244,7 +243,6 @@ rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
     while ((left = n->left) != NULL) {
       n = n->left;
     }
-    printf("---\n");
     swap_and_remove_ori_node(t, ori, n);
   }
 }
