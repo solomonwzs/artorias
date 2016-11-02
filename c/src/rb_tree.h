@@ -20,6 +20,8 @@ typedef struct {
 
 #define rb_tree_insert(_tree_, _node_, _lt_) do {\
   as_rb_node_t **__ptr = &((_tree_)->root);\
+  (_node_)->parent = (_node_)->left = (_node_)->right = NULL;\
+  (_node_)->color = RED;\
   while (*__ptr != NULL) {\
     (_node_)->parent = *__ptr;\
     __ptr = \
@@ -40,9 +42,26 @@ typedef struct {
   __ptr;\
 })
 
-#define rb_tree_node_init(_n_) do {\
-  (_n_)->parent = (_n_)->left = (_n_)->right = NULL;\
-  (_n_)->color = RED;\
+#define rb_tree_postorder_travel(_t_, _func_, ...) do {\
+  as_rb_node_t *__tn = (_t_)->root;\
+  while (__tn != NULL) {\
+    if (__tn->left != NULL) {\
+      __tn = __tn->left;\
+    } else if (__tn->right != NULL) {\
+      __tn = __tn->right;\
+    } else {\
+      as_rb_node_t *__fa = __tn->parent;\
+      if (__fa != NULL) {\
+        if (__tn == __fa->left) {\
+          __fa->left = NULL;\
+        } else {\
+          __fa->right = NULL;\
+        }\
+      }\
+      _func_(__tn, ## __VA_ARGS__);\
+      __tn = __fa;\
+    }\
+  }\
 } while (0)
 
 extern void
@@ -52,8 +71,10 @@ extern void
 rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n);
 
 extern void
-rb_tree_postorder_travel(as_rb_tree_t *t, void *data,
-                         void (*func)(as_rb_node_t *, void *));
+rb_tree_insert_to_most_left(as_rb_node_t **root, as_rb_node_t *n);
+
+extern void
+rb_tree_insert_to_most_right(as_rb_node_t **root, as_rb_node_t *n);
 
 extern void
 rb_tree_test();

@@ -198,7 +198,7 @@ swap_and_remove_ori_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *sub) 
   sub->color = ori->color;
   sub->left = ori->left;
   ori->left->parent = sub;
-  
+
   if (color == BLACK) {
     rb_tree_delete_case(t, rc, fa);
   }
@@ -297,29 +297,26 @@ rb_tree_insert_case(as_rb_tree_t *t, as_rb_node_t *n) {
 
 
 void
-rb_tree_postorder_travel(as_rb_tree_t *t, void *data,
-                         void (*func)(as_rb_node_t *, void *)) {
-  if (t == NULL) {
-    return;
+rb_tree_insert_to_most_left(as_rb_node_t **root, as_rb_node_t *n) {
+  n->parent = n->left = n->right = NULL;
+  n->color = RED;
+  as_rb_node_t **ptr = root;
+  while (*ptr != NULL) {
+    n->parent = *ptr;
+    ptr = &(*ptr)->left;
   }
+  *ptr = n;
+}
 
-  as_rb_node_t *tn = t->root;
-  while (tn != NULL) {
-    if (tn->left != NULL) {
-      tn = tn->left;
-    } else if (tn->right != NULL) {
-      tn = tn->right;
-    } else {
-      as_rb_node_t *fa = tn->parent;
-      if (fa != NULL) {
-        if (tn == fa->left) {
-          fa->left = NULL;
-        } else {
-          fa->right = NULL;
-        }
-      }
-      func(tn, data);
-      tn = fa;
-    }
+
+void
+rb_tree_insert_to_most_right(as_rb_node_t **root, as_rb_node_t *n) {
+  n->parent = n->left = n->right = NULL;
+  n->color = RED;
+  as_rb_node_t **ptr = root;
+  while (*ptr != NULL) {
+    n->parent = *ptr;
+    ptr = &(*ptr)->right;
   }
+  *ptr = n;
 }

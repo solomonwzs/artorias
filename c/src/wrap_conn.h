@@ -17,7 +17,6 @@ typedef struct {
 #define empty_rb_conn_pool {NULL}
 
 #define rb_conn_init(_c_, _fd_) do {\
-  rb_tree_node_init(&(_c_)->ut_idx);\
   (_c_)->fd = (_fd_);\
   (_c_)->utime = time(NULL);\
 } while (0)

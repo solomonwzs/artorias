@@ -15,6 +15,11 @@
 
 
 static void
+destroy_rb_conn(as_rb_conn_t *wc) {
+}
+
+
+static void
 master_process(int socket, int *child_sockets, int n) {
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
