@@ -14,7 +14,7 @@ typedef struct {
   as_rb_tree_t ut_tree;
 } as_rb_conn_pool_t;
 
-#define empty_rb_conn_pool {NULL}
+#define NULL_RB_CONN_POOL {NULL}
 
 #define rb_conn_init(_c_, _fd_) do {\
   (_c_)->fd = (_fd_);\

@@ -2,6 +2,7 @@
 
 #define CONN_TIMEOUT 5
 
+
 static void
 master_process(int socket, int *child_sockets, int n) {
   int epfd = epoll_create(1);
@@ -60,7 +61,7 @@ worker_process(int channel_fd) {
   cfd_conn.fd = channel_fd;
   add_wrap_conn_event(&cfd_conn, listen_event, epfd);
 
-  as_rb_conn_pool_t conn_pool = empty_rb_conn_pool;
+  as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
   int active_cnt;
   int i;
   struct epoll_event events[100];

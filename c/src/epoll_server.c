@@ -68,7 +68,7 @@ epoll_server2(int fd) {
   wfd.fd = fd;
   add_wrap_conn_event(&wfd, listen_event, epfd);
 
-  as_rb_conn_pool_t conn_pool = empty_rb_conn_pool;
+  as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
   int active_cnt;
   int i;
   struct epoll_event events[100];

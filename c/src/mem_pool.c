@@ -39,6 +39,7 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
 
   p->n = n;
   p->empty = 0;
+  p->used = 0;
 
   return p;
 }
@@ -77,6 +78,7 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
       }
       d->p.field = &p->f[i];
     }
+    p->used += p->f[i].size;
   }
   return (void *)d->d;
 }
@@ -99,6 +101,7 @@ mem_pool_fixed_recycle(void *dd) {
   d->p.next = f->header;
   f->header = d;
   pool->empty += f->size;
+  pool->used -= f->size;
 }
 
 
