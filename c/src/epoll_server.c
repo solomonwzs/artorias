@@ -1,11 +1,5 @@
 #include "epoll_server.h"
 
-#define close_wrap_conn(_cp_, _wc_) do {\
-  close((_wc_)->fd);\
-  mem_pool_fixed_recycle(_wc_);\
-  rb_conn_pool_delete(_cp_, _wc_);\
-} while (0)
-
 
 void
 epoll_server(int fd) {
@@ -71,12 +65,8 @@ epoll_server2(int fd) {
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
   as_rb_conn_t wfd;
-
-  listen_event.events = EPOLLIN | EPOLLET;
   wfd.fd = fd;
-  listen_event.data.ptr = &wfd;
-  set_non_block(fd);
-  epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &listen_event);
+  add_wrap_conn_event(&wfd, listen_event, epfd);
 
   as_rb_conn_pool_t conn_pool = empty_rb_conn_pool;
   int active_cnt;
@@ -87,10 +77,11 @@ epoll_server2(int fd) {
   int n;
   as_rb_conn_t *wc;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, -1);
+    active_cnt = epoll_wait(epfd, events, 100, 5*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
-      if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
+      if (events[i].events & EPOLLERR ||
+          events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
         debug_perror("epoll_wait");
         if (wc->fd == fd) {
@@ -114,11 +105,7 @@ epoll_server2(int fd) {
               mem_pool, sizeof(as_rb_conn_t));
           rb_conn_init(nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
-
-          set_non_block(infd);
-          event.data.ptr = nwc;
-          event.events = EPOLLIN | EPOLLET;
-          epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
+          add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
         n = read_from_client(wc->fd);
@@ -130,5 +117,10 @@ epoll_server2(int fd) {
         }
       }
     }
+    as_rb_tree_t ot;
+    ot.root = rb_conn_remove_timeout_conn(&conn_pool, 5);
+    rb_tree_postorder_travel(&ot, recycle_timeout_conn);
   }
+  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
+  mem_pool_fixed_destroy(mem_pool);
 }

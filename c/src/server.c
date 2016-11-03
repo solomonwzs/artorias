@@ -137,7 +137,9 @@ recv_fd_from_socket(int socket) {
   msg.msg_controllen = sizeof(cbuf);
 
   if (recvmsg(socket, &msg, 0) < 0) {
-    debug_perror("recv_fd");
+    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+      debug_perror("recv_fd");
+    }
     return -1;
   }
 

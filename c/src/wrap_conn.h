@@ -35,4 +35,7 @@ rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *c);
 extern void
 rb_conn_pool_update_conn_ut(as_rb_conn_pool_t *p, as_rb_conn_t *c);
 
+extern as_rb_node_t *
+rb_conn_remove_timeout_conn(as_rb_conn_pool_t *p, unsigned secs);
+
 #endif

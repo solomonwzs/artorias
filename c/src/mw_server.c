@@ -1,23 +1,6 @@
 #include "mw_server.h"
 
-#define close_wrap_conn(_cp_, _wc_) do {\
-  close((_wc_)->fd);\
-  mem_pool_fixed_recycle(_wc_);\
-  rb_conn_pool_delete(_cp_, _wc_);\
-} while (0)
-
-#define add_wrap_conn_event(_wc_, _e_, _epfd_) do {\
-  set_non_block((_wc_)->fd);\
-  (_e_).data.ptr = (_wc_);\
-  (_e_).events = EPOLLIN | EPOLLET;\
-  epoll_ctl((_epfd_), EPOLL_CTL_ADD, (_wc_)->fd, &(_e_));\
-} while (0)
-
-
-static void
-destroy_rb_conn(as_rb_conn_t *wc) {
-}
-
+#define CONN_TIMEOUT 5
 
 static void
 master_process(int socket, int *child_sockets, int n) {
@@ -37,7 +20,8 @@ master_process(int socket, int *child_sockets, int n) {
   while (1) {
     active_cnt = epoll_wait(epfd, events, 100, -1);
     for (i = 0; i < active_cnt; ++i) {
-      if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
+      if (events[i].events & EPOLLERR ||
+          events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
         debug_perror("epoll_wait");
         close(events[i].data.fd);
@@ -85,7 +69,7 @@ worker_process(int channel_fd) {
   int n;
   as_rb_conn_t *wc;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, 5*1000);
+    active_cnt = epoll_wait(epfd, events, 100, CONN_TIMEOUT*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
@@ -107,7 +91,6 @@ worker_process(int channel_fd) {
               mem_pool, sizeof(as_rb_conn_t));
           rb_conn_init(nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
-
           add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
@@ -120,7 +103,11 @@ worker_process(int channel_fd) {
         }
       }
     }
+    as_rb_tree_t ot;
+    ot.root = rb_conn_remove_timeout_conn(&conn_pool, CONN_TIMEOUT);
+    rb_tree_postorder_travel(&ot, recycle_timeout_conn);
   }
+  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
   mem_pool_fixed_destroy(mem_pool);
 }
 

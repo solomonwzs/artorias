@@ -72,7 +72,6 @@ rb_tree_remove_subtree(as_rb_tree_t *t, unsigned x) {
             to_node((*m)->left)->i >= x)) {
       m = &(*m)->left;
     }
-    debug_log("%p\n", *m);
     if ((ret = (*m)->left) != NULL) {
       ret->parent = NULL;
       n = (*m);
@@ -113,8 +112,11 @@ rb_tree_test() {
     rb_tree_print(to_node(tree->root));
     printf("\n");
   }
-  rb_tree_remove_subtree(tree, 20);
+
+  as_rb_node_t *st = rb_tree_remove_subtree(tree, 20);
   rb_tree_print(to_node(tree->root));
+  printf("\n");
+  rb_tree_print(to_node(st));
   printf("\n");
 
   // for (int i = 0; i < n; ++i) {
@@ -126,7 +128,7 @@ rb_tree_test() {
   //   rb_tree_print(to_node(tree->root));
   //   printf("\n");
   // }
-  
+
   // rb_tree_postorder_travel(tree, print_node, 1, 2);
 
   mem_pool_fixed_recycle(tree);

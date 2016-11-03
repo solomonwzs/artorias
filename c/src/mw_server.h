@@ -4,6 +4,7 @@
 #include "server.h"
 #include "mem_pool.h"
 #include "wrap_conn.h"
+#include "epoll_server.h"
 #include <sys/epoll.h>
 
 extern void

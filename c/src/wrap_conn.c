@@ -17,10 +17,13 @@ rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *c) {
 
 void
 rb_conn_pool_update_conn_ut(as_rb_conn_pool_t *p, as_rb_conn_t *c) {
-  c->utime = time(NULL);
-  rb_tree_delete(&p->ut_tree, &c->ut_idx);
-  rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);
-  rb_tree_insert_case(&p->ut_tree, &c->ut_idx);
+  time_t now = time(NULL);
+  if (now != c->utime) {
+    c->utime = time(NULL);
+    rb_tree_delete(&p->ut_tree, &c->ut_idx);
+    rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);
+    rb_tree_insert_case(&p->ut_tree, &c->ut_idx);
+  }
 }
 
 
