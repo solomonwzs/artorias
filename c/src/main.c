@@ -6,9 +6,26 @@
 #include "mem_slot.h"
 #include "mem_pool.h"
 #include "rb_tree.h"
+#include "bytes.h"
 #include <unistd.h>
 
 #define PORT 5555
+
+
+void
+bytes_test() {
+  size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
+  as_mem_pool_fixed_t *p = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
+
+  as_bytes_t buf = NULL_AS_BYTES;
+  bytes_append(&buf, "1234", 4, p);
+  bytes_append(&buf, "abcde", 5, p);
+
+  bytes_print(&buf);
+
+  bytes_destroy(&buf);
+  mem_pool_fixed_destroy(p);
+}
 
 
 void
@@ -21,8 +38,8 @@ server_test() {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  // epoll_server2(sock);
-  master_workers_server(sock, 2);
+  epoll_server2(sock);
+  // master_workers_server(sock, 2);
 }
 
 
@@ -76,5 +93,6 @@ int
 main(int argc, char **argv) {
   server_test();
   // rb_tree_test();
+  // bytes_test();
   return 0;
 }

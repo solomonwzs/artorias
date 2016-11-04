@@ -1,6 +1,7 @@
 #ifndef __AS_UTILS__
 #define __AS_UTILS__
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

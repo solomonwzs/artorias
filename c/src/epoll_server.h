@@ -2,11 +2,13 @@
 #define __EPOLL_SERVER_H__
 
 #include "server.h"
+#include "bytes.h"
 #include "mem_pool.h"
 #include "wrap_conn.h"
 #include <sys/epoll.h>
 
 #define close_wrap_conn(_cp_, _wc_) do {\
+  debug_log("close: %d\n", (_wc_)->fd);\
   close((_wc_)->fd);\
   mem_pool_fixed_recycle(_wc_);\
   rb_conn_pool_delete(_cp_, _wc_);\

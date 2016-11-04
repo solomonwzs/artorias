@@ -70,7 +70,7 @@ worker_process(int channel_fd) {
   int n;
   as_rb_conn_t *wc;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, CONN_TIMEOUT*1000);
+    active_cnt = epoll_wait(epfd, events, 100, 1*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||

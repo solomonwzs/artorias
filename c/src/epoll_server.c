@@ -77,7 +77,7 @@ epoll_server2(int fd) {
   int n;
   as_rb_conn_t *wc;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, 5*1000);
+    active_cnt = epoll_wait(epfd, events, 100, 1*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR ||
@@ -114,11 +114,17 @@ epoll_server2(int fd) {
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
           write(wc->fd, "+OK\r\n", 5);
+
+          // as_bytes_t buf = NULL_AS_BYTES;
+          // bytes_append(&buf, "1234", 4, mem_pool);
+          // bytes_append(&buf, "abcde", 5, mem_pool);
+          // bytes_write_to_fd(wc->fd, &buf, buf.used);
+          // bytes_destroy(&buf);
         }
       }
     }
     as_rb_tree_t ot;
-    ot.root = rb_conn_remove_timeout_conn(&conn_pool, 5);
+    ot.root = rb_conn_remove_timeout_conn(&conn_pool, 120);
     rb_tree_postorder_travel(&ot, recycle_timeout_conn);
   }
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
