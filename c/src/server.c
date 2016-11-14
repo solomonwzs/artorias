@@ -66,7 +66,7 @@ read_from_client(int fd) {
       return 0;
     } else {
       buffer[nbytes] = '\0';
-      debug_log("Server: got message: len: %d, '%s'\n", nbytes, buffer);
+      // debug_log("Server: got message: len: %d, '%s'\n", nbytes, buffer);
       n += nbytes;
     }
   } while (nbytes > 0);

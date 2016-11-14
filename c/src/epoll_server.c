@@ -55,6 +55,19 @@ epoll_server(int fd) {
 }
 
 
+// static int
+// get_redis_ok(lua_State *L) {
+//   int fd = lua_tointeger(L, -1);
+// 
+//   lua_getglobal(L, "redis_ok");
+//   lua_pcall(L, 0, 2, 0);
+// 
+//   int n = lua_tointeger(L, -1);
+//   
+//   return 1;
+// }
+
+
 void
 epoll_server2(int fd) {
   size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512,
@@ -114,6 +127,10 @@ epoll_server2(int fd) {
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
           write(wc->fd, "+OK\r\n", 5);
+
+          // lua_pushcfunction(wc->L, &get_redis_ok);
+          // lua_pushnumber(wc->L, wc->fd);
+          // lua_pcall(wc->L, 1, 2, 0);
 
           // as_bytes_t buf = NULL_AS_BYTES;
           // bytes_append(&buf, "1234", 4, mem_pool);

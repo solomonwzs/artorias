@@ -1,12 +1,16 @@
 #ifndef __WRAP_CONN__
 #define __WRAP_CONN__
 
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 #include <time.h>
 #include "rb_tree.h"
 
 typedef struct {
   as_rb_node_t  ut_idx;
   time_t        utime;
+  lua_State     *L;
   int           fd;
 } as_rb_conn_t;
 
@@ -16,24 +20,25 @@ typedef struct {
 
 #define NULL_RB_CONN_POOL {NULL}
 
-#define rb_conn_init(_c_, _fd_) do {\
-  (_c_)->fd = (_fd_);\
-  (_c_)->utime = time(NULL);\
+#define rb_conn_pool_init(_p_) \
+    (_p_)->ut_tree.root = NULL
+
+#define rb_conn_pool_delete(_p_, _wc_) \
+    rb_tree_delete(&(_p_)->ut_tree, &(_wc_)->ut_idx)
+
+#define rb_conn_close(_wc_) do {\
+  close((_wc_)->fd);\
+  lua_close((_wc_)->L);\
 } while (0)
 
-#define rb_conn_pool_init(_p_) do {\
-  (_p_)->ut_tree.root = NULL;\
-} while (0)
-
-#define rb_conn_pool_delete(_p_, _c_) do {\
-  rb_tree_delete(&(_p_)->ut_tree, &(_c_)->ut_idx);\
-} while (0)
+extern int
+rb_conn_init(as_rb_conn_t *wc, int fd);
 
 extern void
-rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *c);
+rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *wc);
 
 extern void
-rb_conn_pool_update_conn_ut(as_rb_conn_pool_t *p, as_rb_conn_t *c);
+rb_conn_pool_update_conn_ut(as_rb_conn_pool_t *p, as_rb_conn_t *wc);
 
 extern as_rb_node_t *
 rb_conn_remove_timeout_conn(as_rb_conn_pool_t *p, unsigned secs);

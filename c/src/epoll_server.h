@@ -9,9 +9,9 @@
 
 #define close_wrap_conn(_cp_, _wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
-  close((_wc_)->fd);\
-  mem_pool_fixed_recycle(_wc_);\
+  rb_conn_close(_wc_);\
   rb_conn_pool_delete(_cp_, _wc_);\
+  mem_pool_fixed_recycle(_wc_);\
 } while (0)
 
 #define add_wrap_conn_event(_wc_, _e_, _epfd_) do {\

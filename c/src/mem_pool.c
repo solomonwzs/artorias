@@ -47,7 +47,6 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
 
 #define field_size_eq(f, idx, s) ((f)[idx].size == (s))
 #define field_size_lt(f, idx, s) ((f)[idx].size < (s))
-
 void *
 mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
@@ -91,7 +90,7 @@ mem_pool_fixed_recycle(void *dd) {
   }
 
   as_mem_data_fixed_t *d = container_of(dd, as_mem_data_fixed_t, d);
-  as_mem_pool_fixed_field_t *f = (as_mem_pool_fixed_field_t *)d->p.field;
+  as_mem_pool_fixed_field_t *f = d->p.field;
   if (f == NULL) {
     as_free(d);
     return;

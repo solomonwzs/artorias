@@ -4,6 +4,7 @@
 
 C 			= gcc
 CFLAGS 		= -Wall -fpic -g -c
+LIB 		= -llua
 SOURCES		= $(wildcard ./src/*.c)
 BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
@@ -13,7 +14,7 @@ VALGRIND 	= valgrind
 	@$(C) $(CFLAGS) $< -o $@
 
 all:$(SOURCES:%.c=%.o) pre
-	@$(C) ./src/*.o -o $(BUILD_PATH)/main
+	@$(C) ./src/*.o $(LIB) -o $(BUILD_PATH)/main
 	@echo -e "ok"
 
 pre:

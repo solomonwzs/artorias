@@ -71,17 +71,18 @@ mem_slot_test() {
 
 void
 mem_pool_test() {
-  printf("%zu\n", sizeof(as_mem_data_fixed_t));
+  debug_log("%zu\n", sizeof(as_mem_data_fixed_t));
 
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
   as_mem_pool_fixed_t *p = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
 
   void *a = mem_pool_fixed_alloc(p, 18);
-  printf("%p\n", a);
-  printf("%d\n", p->empty);
-  printf("%d\n", p->empty);
+  debug_log("%zu\n", mem_pool_fixed_size(a));
+  debug_log("%p\n", a);
+  debug_log("%d\n", p->used);
+  debug_log("%d\n", p->empty);
   void *b = mem_pool_fixed_alloc(p, 18);
-  printf("%p\n", b);
+  debug_log("%p\n", b);
   mem_pool_fixed_recycle(b);
   mem_pool_fixed_recycle(a);
 
@@ -91,6 +92,7 @@ mem_pool_test() {
 
 int
 main(int argc, char **argv) {
+  // mem_pool_test();
   server_test();
   // rb_tree_test();
   // bytes_test();

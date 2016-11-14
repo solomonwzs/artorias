@@ -8,6 +8,35 @@
     ((as_rb_conn_t *)(container_of(_n_, as_rb_conn_t, ut_idx)))
 
 
+static int
+init_lua_state(lua_State *L) {
+  luaL_openlibs(L);
+  int err = luaL_dofile(L, "src/lua/foo.lua");
+  return err == 0 ? 0 : -1;
+}
+
+
+int
+rb_conn_init(as_rb_conn_t *c, int fd) {
+  c->fd = fd;
+  c->utime = time(NULL);
+  c->L = luaL_newstate();
+  if (c->L == NULL) {
+    return -1;
+  }
+
+  lua_pushcfunction(c->L, &init_lua_state);
+  int err = lua_pcall(c->L, 0, 1, 0);
+  if (err == LUA_OK &&
+      lua_type(c->L, -1) == LUA_TNUMBER &&
+      lua_tointeger(c->L, -1) == 0) {
+    lua_settop(c->L, 0);
+    return 0;
+  }
+  return -1;
+}
+
+
 void
 rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *c) {
   rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);
