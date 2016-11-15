@@ -1,3 +1,9 @@
+#include "server.h"
+#include "bytes.h"
+#include "mem_pool.h"
+#include "wrap_conn.h"
+#include "lua_output.h"
+#include <sys/epoll.h>
 #include "epoll_server.h"
 
 
@@ -52,29 +58,6 @@ epoll_server(int fd) {
       }
     }
   }
-}
-
-
-static int
-lcf_write_redis_ok(lua_State *L) {
-  int fd = lua_tointeger(L, -1);
-
-  lua_getglobal(L, "redis_ok");
-  int ret = lua_pcall(L, 0, 2, 0);
-  const char *msg;
-  if (ret != LUA_OK) {
-    msg = lua_tostring(L, -1);
-    write(fd, msg, strlen(msg));
-    lua_pushinteger(L, ret);
-    return 1;
-  }
-
-  int len = lua_tointeger(L, -1);
-  msg = lua_tostring(L, -2);
-  write(fd, msg, len);
-  lua_pushinteger(L, LUA_OK);
-
-  return 1;
 }
 
 
@@ -140,13 +123,7 @@ epoll_server2(int fd) {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
           // write(wc->fd, "+OK\r\n", 5);
 
-          lua_pushcfunction(wc->L, lcf_write_redis_ok);
-          lua_pushnumber(wc->L, wc->fd);
-          int ret = lua_pcall(wc->L, 1, 1, 0);
-          if (ret != LUA_OK) {
-            debug_log("Err: %s\n", lua_tostring(wc->L, -1));
-          }
-          lua_pop(wc->L, 1);
+          loutput_redis_ok(wc->L, wc->fd);
 
           // as_bytes_t buf = NULL_AS_BYTES;
           // bytes_append(&buf, "1234", 4, mem_pool);

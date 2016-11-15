@@ -1,3 +1,6 @@
+#include <unistd.h>
+#include <sys/socket.h>
+#include "server.h"
 #include "channel.h"
 
 

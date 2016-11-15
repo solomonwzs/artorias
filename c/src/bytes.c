@@ -1,3 +1,6 @@
+#include <unistd.h>
+#include <string.h>
+#include "utils.h"
 #include "bytes.h"
 
 #define MAX_DOUBLE_SIZE 512

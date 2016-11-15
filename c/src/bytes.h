@@ -1,9 +1,6 @@
 #ifndef __BYTES__
 #define __BYTES__
 
-#include <unistd.h>
-#include <string.h>
-#include "utils.h"
 #include "mem_pool.h"
 
 typedef struct as_bytes_block_s {

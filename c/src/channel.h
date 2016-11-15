@@ -1,10 +1,6 @@
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
-#include <unistd.h>
-#include <sys/socket.h>
-#include "server.h"
-
 typedef struct {
   pid_t pid;
   int fd;

@@ -6,9 +6,15 @@
 #include <lauxlib.h>
 #include "utils.h"
 
-#define AS_LB_OK  0x00
+#define lb_error_msg(_L_) do {\
+  debug_log("lua_error: %s\n", lua_tostring(_L_, -1));\
+  lua_pop(_L_, 1);\
+} while (0)
 
 extern int
 lbind_dofile(lua_State *L, const char *filename);
+
+extern int
+lbind_init_state(lua_State *L);
 
 #endif

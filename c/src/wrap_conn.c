@@ -1,20 +1,11 @@
-#include <time.h>
 #include "utils.h"
+#include "lua_bind.h"
 #include "wrap_conn.h"
 
 #define node_ut_lt(a, b) (container_of(a, as_rb_conn_t, ut_idx)->utime < \
                           container_of(b, as_rb_conn_t, ut_idx)->utime)
 #define to_rb_conn(_n_) \
     ((as_rb_conn_t *)(container_of(_n_, as_rb_conn_t, ut_idx)))
-
-
-static int
-init_lua_state(lua_State *L) {
-  luaL_openlibs(L);
-  int ret = lbind_dofile(L, "src/lua/foo.lua");
-  lua_pushinteger(L, ret);
-  return 1;
-}
 
 
 int
@@ -26,14 +17,11 @@ rb_conn_init(as_rb_conn_t *c, int fd) {
     return -1;
   }
 
-  lua_pushcfunction(c->L, init_lua_state);
-  int ret = lua_pcall(c->L, 0, 1, 0);
-  if (ret == LUA_OK &&
-      lua_tointeger(c->L, -1) == LUA_OK) {
-    lua_settop(c->L, 0);
-    return 0;
+  int ret = lbind_init_state(c->L);
+  if (ret != LUA_OK) {
+    return -1;
   }
-  return -1;
+  return 0;
 }
 
 

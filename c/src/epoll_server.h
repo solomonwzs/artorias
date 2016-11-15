@@ -1,12 +1,6 @@
 #ifndef __EPOLL_SERVER_H__
 #define __EPOLL_SERVER_H__
 
-#include "server.h"
-#include "bytes.h"
-#include "mem_pool.h"
-#include "wrap_conn.h"
-#include <sys/epoll.h>
-
 #define close_wrap_conn(_cp_, _wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
   rb_conn_close(_wc_);\
