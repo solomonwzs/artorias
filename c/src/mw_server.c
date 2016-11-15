@@ -75,7 +75,9 @@ worker_process(int channel_fd) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
-        debug_perror("epoll_wait");
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+          debug_perror("epoll_wait");
+        }
         if (wc->fd == channel_fd) {
           close(wc->fd);
         } else {

@@ -11,8 +11,9 @@
 static int
 init_lua_state(lua_State *L) {
   luaL_openlibs(L);
-  int err = luaL_dofile(L, "src/lua/foo.lua");
-  return err == 0 ? 0 : -1;
+  int ret = lbind_dofile(L, "src/lua/foo.lua");
+  lua_pushinteger(L, ret);
+  return 1;
 }
 
 
@@ -25,11 +26,10 @@ rb_conn_init(as_rb_conn_t *c, int fd) {
     return -1;
   }
 
-  lua_pushcfunction(c->L, &init_lua_state);
-  int err = lua_pcall(c->L, 0, 1, 0);
-  if (err == LUA_OK &&
-      lua_type(c->L, -1) == LUA_TNUMBER &&
-      lua_tointeger(c->L, -1) == 0) {
+  lua_pushcfunction(c->L, init_lua_state);
+  int ret = lua_pcall(c->L, 0, 1, 0);
+  if (ret == LUA_OK &&
+      lua_tointeger(c->L, -1) == LUA_OK) {
     lua_settop(c->L, 0);
     return 0;
   }

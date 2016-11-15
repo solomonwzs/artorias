@@ -1,3 +1,4 @@
 function redis_ok()
-    return "+OK\r\n", 5
+    msg = "+OK!\r\n"
+    return msg, #msg
 end

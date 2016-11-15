@@ -1,11 +1,9 @@
 #ifndef __WRAP_CONN__
 #define __WRAP_CONN__
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 #include <time.h>
 #include "rb_tree.h"
+#include "lua_bind.h"
 
 typedef struct {
   as_rb_node_t  ut_idx;
