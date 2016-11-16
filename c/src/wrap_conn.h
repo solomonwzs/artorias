@@ -8,7 +8,6 @@
 typedef struct {
   as_rb_node_t  ut_idx;
   time_t        utime;
-  lua_State     *L;
   int           fd;
 } as_rb_conn_t;
 
@@ -24,10 +23,8 @@ typedef struct {
 #define rb_conn_pool_delete(_p_, _wc_) \
     rb_tree_delete(&(_p_)->ut_tree, &(_wc_)->ut_idx)
 
-#define rb_conn_close(_wc_) do {\
-  close((_wc_)->fd);\
-  lua_close((_wc_)->L);\
-} while (0)
+#define rb_conn_close(_wc_) \
+    close((_wc_)->fd)
 
 extern int
 rb_conn_init(as_rb_conn_t *wc, int fd);

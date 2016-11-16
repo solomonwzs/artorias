@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "utils.h"
 #include "mem_slot.h"
 
 #define SLOT_SIZE(_x_) ((_x_)->n * 8)

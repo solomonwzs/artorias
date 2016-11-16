@@ -11,17 +11,19 @@ typedef struct as_bytes_block_s {
 } as_bytes_block_t;
 
 typedef struct {
-  size_t            size;
-  size_t            used;
-  int               cnt;
-  as_bytes_block_t  *head;
-  as_bytes_block_t  *tail;
+  size_t                size;
+  size_t                used;
+  int                   cnt;
+  as_mem_pool_fixed_t   *mp;
+  as_bytes_block_t      *head;
+  as_bytes_block_t      *tail;
 } as_bytes_t;
 
-#define NULL_AS_BYTES {0, 0, 0, NULL, NULL}
+extern void
+bytes_init(as_bytes_t *buf, as_mem_pool_fixed_t *mp);
 
 extern void
-bytes_append(as_bytes_t *buf, void *b, size_t len, as_mem_pool_fixed_t *mp);
+bytes_append(as_bytes_t *buf, void *b, size_t len);
 
 extern ssize_t
 bytes_write_to_fd(int fd, as_bytes_t *buf, size_t nbyte);

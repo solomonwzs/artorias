@@ -1,7 +1,7 @@
 #include "server.h"
 #include "bytes.h"
-#include "mem_pool.h"
 #include "wrap_conn.h"
+#include "lua_bind.h"
 #include "lua_output.h"
 #include <sys/epoll.h>
 #include "epoll_server.h"
@@ -49,7 +49,7 @@ epoll_server(int fd) {
         }
       } else if (events[i].events & EPOLLIN) {
         infd = events[i].data.fd;
-        n = read_from_client(infd);
+        n = simple_read_from_client(infd);
         if (n <= 0) {
           close(infd);
         } else {
@@ -65,7 +65,7 @@ void
 epoll_server2(int fd) {
   size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512,
     768, 1024};
-  as_mem_pool_fixed_t *mem_pool = mem_pool_fixed_new(
+  as_mem_pool_fixed_t *mem_pool = mpf_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
 
   int epfd = epoll_create(1);
@@ -73,6 +73,9 @@ epoll_server2(int fd) {
   as_rb_conn_t wfd;
   wfd.fd = fd;
   add_wrap_conn_event(&wfd, listen_event, epfd);
+
+  lua_State *L = lbind_new_state(mem_pool);
+  lbind_init_state(L);
 
   as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
   int active_cnt;
@@ -109,21 +112,23 @@ epoll_server2(int fd) {
             }
           }
 
-          as_rb_conn_t *nwc = mem_pool_fixed_alloc(
+          as_rb_conn_t *nwc = mpf_alloc(
               mem_pool, sizeof(as_rb_conn_t));
           rb_conn_init(nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
           add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
-        n = read_from_client(wc->fd);
+        as_bytes_t buf;
+        bytes_init(&buf, mem_pool);
+        n = read_from_client(wc->fd, &buf);
         if (n <= 0) {
           close_wrap_conn(&conn_pool, wc);
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
           // write(wc->fd, "+OK\r\n", 5);
 
-          loutput_redis_ok(wc->L, wc->fd);
+          loutput_redis_ok(L, wc->fd);
 
           // as_bytes_t buf = NULL_AS_BYTES;
           // bytes_append(&buf, "1234", 4, mem_pool);
@@ -131,6 +136,8 @@ epoll_server2(int fd) {
           // bytes_write_to_fd(wc->fd, &buf, buf.used);
           // bytes_destroy(&buf);
         }
+        // bytes_print(&buf);
+        bytes_destroy(&buf);
       }
     }
     as_rb_tree_t ot;
@@ -138,5 +145,5 @@ epoll_server2(int fd) {
     rb_tree_postorder_travel(&ot, recycle_timeout_conn);
   }
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
-  mem_pool_fixed_destroy(mem_pool);
+  mpf_destroy(mem_pool);
 }

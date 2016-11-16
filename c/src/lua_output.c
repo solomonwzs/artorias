@@ -1,17 +1,8 @@
+#include <unistd.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#include "lua_utils.h"
 #include "lua_output.h"
-
-
-static inline int
-pop_pcall_rcode(lua_State *L, int pcall_ret) {
-  if (pcall_ret != LUA_OK) {
-    lb_error_msg(L);
-    return pcall_ret;
-  } else {
-    int r = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-    return r;
-  }
-}
 
 
 static int

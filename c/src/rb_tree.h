@@ -1,9 +1,6 @@
 #ifndef __RB_TREE__
 #define __RB_TREE__
 
-#include <stdlib.h>
-#include "utils.h"
-
 #define RED     0x00
 #define BLACK   0x01
 

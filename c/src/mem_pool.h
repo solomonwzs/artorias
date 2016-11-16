@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include "utils.h"
 
 typedef union {
@@ -29,19 +28,19 @@ typedef struct as_mem_pool_fixed_s {
   as_mem_pool_fixed_field_t   f[1];
 } as_mem_pool_fixed_t;
 
-#define mem_pool_fixed_size(_d_) \
+#define mpf_data_size(_d_) \
     ((container_of((_d_), as_mem_data_fixed_t, d))->p.field->size)
 
 extern as_mem_pool_fixed_t *
-mem_pool_fixed_new(size_t fsize[], unsigned n);
+mpf_new(size_t fsize[], unsigned n);
 
 extern void
-mem_pool_fixed_destroy(as_mem_pool_fixed_t *p);
+mpf_destroy(as_mem_pool_fixed_t *p);
 
 extern void *
-mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size);
+mpf_alloc(as_mem_pool_fixed_t *p, size_t size);
 
 extern void
-mem_pool_fixed_recycle(void *dd);
+mpf_recycle(void *dd);
 
 #endif

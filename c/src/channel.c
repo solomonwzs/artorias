@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include "server.h"
 #include "channel.h"
+#include "utils.h"
 
 
 void

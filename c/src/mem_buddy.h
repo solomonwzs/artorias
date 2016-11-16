@@ -1,12 +1,7 @@
 #ifndef __MEM_BUDDY__
 #define __MEM_BUDDY__
 
-#include <stdlib.h>
-// #include <jemalloc/jemalloc.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
-#include "utils.h"
 
 typedef struct {
   uint8_t logn;

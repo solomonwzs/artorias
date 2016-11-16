@@ -13,13 +13,22 @@
 
 
 void
-bytes_append(as_bytes_t *buf, void *b, size_t len, as_mem_pool_fixed_t *mp) {
+bytes_init(as_bytes_t *buf, as_mem_pool_fixed_t *mp) {
+  buf->size = buf->used = 0;
+  buf->head = buf->tail = NULL;
+  buf->used = 0;
+  buf->mp = mp;
+}
+
+
+void
+bytes_append(as_bytes_t *buf, void *b, size_t len) {
   size_t a_size;
   size_t nlen = 0;
   if (buf->head == NULL) {
     size_t nlen = len * 2 <= MAX_DOUBLE_SIZE ? len * 2 : len;
-    as_bytes_block_t *block = mem_pool_fixed_alloc(
-        mp, offsetof(as_bytes_block_t, d) + nlen);
+    as_bytes_block_t *block = mpf_alloc(
+        buf->mp, offsetof(as_bytes_block_t, d) + nlen);
     block->next = NULL;
     block->size = nlen;
     block->used = len;
@@ -34,8 +43,8 @@ bytes_append(as_bytes_t *buf, void *b, size_t len, as_mem_pool_fixed_t *mp) {
 
     size_t rl = len - a_size;
     size_t nlen = rl + len <= MAX_DOUBLE_SIZE ? rl + len : rl;
-    as_bytes_block_t *block = mem_pool_fixed_alloc(
-        mp, offsetof(as_bytes_block_t, d) + nlen);
+    as_bytes_block_t *block = mpf_alloc(
+        buf->mp, offsetof(as_bytes_block_t, d) + nlen);
     block->next = NULL;
     block->size = nlen;
     block->used = rl;
@@ -89,7 +98,7 @@ bytes_destroy(as_bytes_t *buf) {
   as_bytes_block_t *b = buf->head;
   while (b != NULL) {
     as_bytes_block_t *tmp = b->next;
-    mem_pool_fixed_recycle(b);
+    mpf_recycle(b);
     b = tmp;
   }
   buf->size = 0;

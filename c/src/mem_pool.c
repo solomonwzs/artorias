@@ -5,7 +5,7 @@
 
 
 as_mem_pool_fixed_t *
-mem_pool_fixed_new(size_t fsize[], unsigned n) {
+mpf_new(size_t fsize[], unsigned n) {
   if (n < 1) {
     return NULL;
   }
@@ -48,7 +48,7 @@ mem_pool_fixed_new(size_t fsize[], unsigned n) {
 #define field_size_eq(f, idx, s) ((f)[idx].size == (s))
 #define field_size_lt(f, idx, s) ((f)[idx].size < (s))
 void *
-mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
+mpf_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
   }
@@ -84,7 +84,7 @@ mem_pool_fixed_alloc(as_mem_pool_fixed_t *p, size_t size) {
 
 
 void
-mem_pool_fixed_recycle(void *dd) {
+mpf_recycle(void *dd) {
   if (dd == NULL) {
     return;
   }
@@ -105,7 +105,7 @@ mem_pool_fixed_recycle(void *dd) {
 
 
 void
-mem_pool_fixed_destroy(as_mem_pool_fixed_t *p) {
+mpf_destroy(as_mem_pool_fixed_t *p) {
   if (p == NULL) {
     return;
   }

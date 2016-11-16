@@ -1,3 +1,4 @@
+#include "utils.h"
 #include "rb_tree.h"
 
 #define is_null_or_black(_n_) ((_n_) == NULL || (_n_)->color == BLACK)

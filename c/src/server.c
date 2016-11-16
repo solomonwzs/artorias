@@ -1,6 +1,9 @@
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include "utils.h"
 #include "server.h"
 
-#define MAXLEN  1024
+#define MAXLEN  256
 
 
 int
@@ -19,7 +22,7 @@ set_non_block(int fd) {
 
 
 int
-make_socket(uint16_t port) {
+make_socket(unsigned port) {
   int sock;
   struct sockaddr_in name;
 
@@ -48,7 +51,7 @@ make_socket(uint16_t port) {
 
 
 int
-read_from_client(int fd) {
+simple_read_from_client(int fd) {
   char buffer[MAXLEN + 1];
   int nbytes;
 
@@ -72,6 +75,31 @@ read_from_client(int fd) {
   } while (nbytes > 0);
   return 0;
   // return read(fd, buffer, MAXLEN);
+}
+
+
+int
+read_from_client(int fd, as_bytes_t *bs) {
+  char buffer[MAXLEN];
+  int nbytes;
+  int n = 0;
+  do {
+    nbytes = read(fd, buffer, MAXLEN);
+    if (nbytes < 0) {
+      if (errno == EAGAIN) {
+        return n;
+      } else {
+        debug_perror("read");
+        return -1;
+      }
+    } else if (nbytes == 0) {
+      return 0;
+    } else {
+      bytes_append(bs, buffer, nbytes);
+      n += nbytes;
+    }
+  } while (nbytes > 0);
+  return 0;
 }
 
 

@@ -93,15 +93,15 @@ rb_tree_remove_subtree(as_rb_tree_t *t, unsigned x) {
 void
 rb_tree_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1024};
-  as_mem_pool_fixed_t *pool = mem_pool_fixed_new(s, sizeof(s) / sizeof(s[0]));
+  as_mem_pool_fixed_t *pool = mpf_new(s, sizeof(s) / sizeof(s[0]));
 
   int arr[] = {34, 5, 12, 15, 71, 45, 2, 33, 3, 83, 61, 43, 11, 21, 22, 9};
   // int arr[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   //   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
   int n = sizeof(arr) / sizeof(arr[0]);
 
-  node *ns = mem_pool_fixed_alloc(pool, sizeof(node) * n);
-  as_rb_tree_t *tree = mem_pool_fixed_alloc(pool, sizeof(as_rb_tree_t));
+  node *ns = mpf_alloc(pool, sizeof(node) * n);
+  as_rb_tree_t *tree = mpf_alloc(pool, sizeof(as_rb_tree_t));
   tree->root = NULL;
 
   for (int i = 0; i < n; ++i) {
@@ -131,7 +131,7 @@ rb_tree_test() {
 
   // rb_tree_postorder_travel(tree, print_node, 1, 2);
 
-  mem_pool_fixed_recycle(tree);
-  mem_pool_fixed_recycle(ns);
-  mem_pool_fixed_destroy(pool);
+  mpf_recycle(tree);
+  mpf_recycle(ns);
+  mpf_destroy(pool);
 }

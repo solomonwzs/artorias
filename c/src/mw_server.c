@@ -1,3 +1,9 @@
+#include "server.h"
+#include "mem_pool.h"
+#include "wrap_conn.h"
+#include "epoll_server.h"
+#include <sys/epoll.h>
+#include <sys/socket.h>
 #include "mw_server.h"
 
 #define CONN_TIMEOUT 5
@@ -51,7 +57,7 @@ static void
 worker_process(int channel_fd) {
   size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512,
     768, 1024};
-  as_mem_pool_fixed_t *mem_pool = mem_pool_fixed_new(
+  as_mem_pool_fixed_t *mem_pool = mpf_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
 
   int epfd = epoll_create(1);
@@ -90,14 +96,13 @@ worker_process(int channel_fd) {
             break;
           }
 
-          as_rb_conn_t *nwc = mem_pool_fixed_alloc(
-              mem_pool, sizeof(as_rb_conn_t));
+          as_rb_conn_t *nwc = mpf_alloc(mem_pool, sizeof(as_rb_conn_t));
           rb_conn_init(nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
           add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
-        n = read_from_client(wc->fd);
+        n = simple_read_from_client(wc->fd);
         if (n <= 0) {
           close_wrap_conn(&conn_pool, wc);
         } else {
@@ -111,7 +116,7 @@ worker_process(int channel_fd) {
     rb_tree_postorder_travel(&ot, recycle_timeout_conn);
   }
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
-  mem_pool_fixed_destroy(mem_pool);
+  mpf_destroy(mem_pool);
 }
 
 

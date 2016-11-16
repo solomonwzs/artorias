@@ -1,3 +1,8 @@
+#include <stdlib.h>
+// #include <jemalloc/jemalloc.h>
+#include <stdio.h>
+#include <string.h>
+#include "utils.h"
 #include "mem_buddy.h"
 
 #define PARENT(_x_) (((_x_) + 1) / 2 - 1)

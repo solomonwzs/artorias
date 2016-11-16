@@ -1,8 +1,6 @@
 #ifndef __REDIS_PARSER__
 #define __REDIS_PARSER__
 
-#include "mem_pool.h"
-
 typedef struct as_bytes_buffer_data_s {
   struct as_bytes_buffer_data_s   *next;
   size_t                          size;

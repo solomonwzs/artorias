@@ -12,15 +12,6 @@ int
 rb_conn_init(as_rb_conn_t *c, int fd) {
   c->fd = fd;
   c->utime = time(NULL);
-  c->L = luaL_newstate();
-  if (c->L == NULL) {
-    return -1;
-  }
-
-  int ret = lbind_init_state(c->L);
-  if (ret != LUA_OK) {
-    return -1;
-  }
   return 0;
 }
 
