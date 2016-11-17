@@ -21,9 +21,14 @@ bytes_test() {
 
   as_bytes_t buf;
   bytes_init(&buf, p);
-  bytes_append(&buf, "1234", 4);
-  bytes_append(&buf, "abcde", 5);
-
+  bytes_append(&buf, "1234\0", 4);
+  bytes_append(&buf, "abcde\0", 5);
+  bytes_reset_used(&buf, 3);
+  bytes_append(&buf, "ABCDEFGH\0", 8);
+  bytes_append(&buf, "ABCDEFGH\0", 8);
+  bytes_print(&buf);
+  bytes_reset_used(&buf, 11);
+  bytes_append(&buf, "1234\0", 4);
   bytes_print(&buf);
 
   bytes_destroy(&buf);
@@ -96,8 +101,8 @@ mem_pool_test() {
 int
 main(int argc, char **argv) {
   // mem_pool_test();
-  server_test();
+  // server_test();
   // rb_tree_test();
-  // bytes_test();
+  bytes_test();
   return 0;
 }

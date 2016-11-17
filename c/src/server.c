@@ -53,53 +53,28 @@ make_socket(unsigned port) {
 int
 simple_read_from_client(int fd) {
   char buffer[MAXLEN + 1];
-  int nbytes;
+  int nbyte;
 
   int n = 0;
   do {
-    nbytes = read(fd, buffer, MAXLEN);
-    if (nbytes < 0) {
+    nbyte = read(fd, buffer, MAXLEN);
+    if (nbyte < 0) {
       if (errno == EAGAIN) {
         return n;
       } else {
         debug_perror("read");
         return -1;
       }
-    } else if (nbytes == 0) {
+    } else if (nbyte == 0) {
       return 0;
     } else {
-      buffer[nbytes] = '\0';
-      // debug_log("Server: got message: len: %d, '%s'\n", nbytes, buffer);
-      n += nbytes;
+      buffer[nbyte] = '\0';
+      // debug_log("Server: got message: len: %d, '%s'\n", nbyte, buffer);
+      n += nbyte;
     }
-  } while (nbytes > 0);
+  } while (nbyte > 0);
   return 0;
   // return read(fd, buffer, MAXLEN);
-}
-
-
-int
-read_from_client(int fd, as_bytes_t *bs) {
-  char buffer[MAXLEN];
-  int nbytes;
-  int n = 0;
-  do {
-    nbytes = read(fd, buffer, MAXLEN);
-    if (nbytes < 0) {
-      if (errno == EAGAIN) {
-        return n;
-      } else {
-        debug_perror("read");
-        return -1;
-      }
-    } else if (nbytes == 0) {
-      return 0;
-    } else {
-      bytes_append(bs, buffer, nbytes);
-      n += nbytes;
-    }
-  } while (nbytes > 0);
-  return 0;
 }
 
 

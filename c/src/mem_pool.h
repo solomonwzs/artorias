@@ -28,6 +28,9 @@ typedef struct as_mem_pool_fixed_s {
   as_mem_pool_fixed_field_t   f[1];
 } as_mem_pool_fixed_t;
 
+#define DEFAULT_FIXED_SIZE \
+{8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1024}
+
 #define mpf_data_size(_d_) \
     ((container_of((_d_), as_mem_data_fixed_t, d))->p.field->size)
 

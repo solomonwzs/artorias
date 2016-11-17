@@ -63,8 +63,7 @@ epoll_server(int fd) {
 
 void
 epoll_server2(int fd) {
-  size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512,
-    768, 1024};
+  size_t fixed_size[] = DEFAULT_FIXED_SIZE;
   as_mem_pool_fixed_t *mem_pool = mpf_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
 
@@ -121,7 +120,7 @@ epoll_server2(int fd) {
       } else if (events[i].events & EPOLLIN) {
         as_bytes_t buf;
         bytes_init(&buf, mem_pool);
-        n = read_from_client(wc->fd, &buf);
+        n = bytes_read_from_fd(&buf, wc->fd);
         if (n <= 0) {
           close_wrap_conn(&conn_pool, wc);
         } else {

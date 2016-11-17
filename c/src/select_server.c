@@ -30,7 +30,7 @@ select_server(int fd) {
           FD_SET(infd, &active_fd_set);
         }
         else {
-          int n = read_from_client(i);
+          int n = simple_read_from_client(i);
           if (n <= 0) {
             close(i);
             FD_CLR(i, &active_fd_set);
