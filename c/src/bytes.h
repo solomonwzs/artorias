@@ -34,7 +34,7 @@ bytes_destroy(as_bytes_t *bs);
 extern void
 bytes_print(as_bytes_t *bs);
 
-extern int
+extern ssize_t
 bytes_read_from_fd(as_bytes_t *bs, int fd);
 
 extern void

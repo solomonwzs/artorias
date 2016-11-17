@@ -10,10 +10,6 @@
 
 #define bs_block_a_ptr(_n_) ((void *)(&(_n_)->d[(_n_)->used]))
 
-#define new_block_size(_s_) \
-    (offsetof(as_bytes_block_t, d) + \
-     ((_s_) * 2 <= MAX_DOUBLE_SIZE ? (_s_) * 2 : (_s_)))
-
 #define to_block(_d_) (container_of(_d_, as_bytes_block_t, d))
 
 
@@ -158,10 +154,33 @@ bytes_print(as_bytes_t *bs) {
 }
 
 
-int
+ssize_t
 bytes_read_from_fd(as_bytes_t *bs, int fd) {
-  // char buf[MAX_BLOCK_SIZE];
-  // int nbyte;
-  int n = 0;
+  ssize_t n = 0;
+  // void *ptr;
+  // size_t size;
+  // ssize_t nbyte;
+
+  // do {
+  //   if (bs->size > bs->used) {
+  //     ptr = bs_block_a_ptr(bs->curr);
+  //     size = available_size(bs->curr);
+  //   } else {
+  //   }
+  //   nbyte = read(fd, ptr, MAXLEN);
+  //   if (nbyte < 0) {
+  //     if (errno == EAGAIN) {
+  //       return n;
+  //     } else {
+  //       debug_perror("read");
+  //       return -1;
+  //     }
+  //   } else if (nbyte == 0) {
+  //     return 0;
+  //   } else {
+  //     buffer[nbyte] = '\0';
+  //     n += nbyte;
+  //   }
+  // } while (nbyte > 0);
   return n;
 }
