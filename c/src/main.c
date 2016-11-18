@@ -101,8 +101,8 @@ mem_pool_test() {
 int
 main(int argc, char **argv) {
   // mem_pool_test();
-  // server_test();
+  server_test();
   // rb_tree_test();
-  bytes_test();
+  // bytes_test();
   return 0;
 }

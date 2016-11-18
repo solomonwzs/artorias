@@ -82,7 +82,7 @@ bytes_append(as_bytes_t *bs, const void *src, size_t n) {
   b->used = n;
   b->next = NULL;
   memcpy(b->d, src, n);
-  
+
   bs->size += size;
   bs->used += n;
   bs->cnt += 1;
@@ -143,9 +143,9 @@ void
 bytes_print(as_bytes_t *bs) {
   as_bytes_block_t *b = bs->head;
   while (b != NULL) {
-    printf("[(%d/%d)", b->used, b->size);
+    printf("[(%zu/%zu)", b->used, b->size);
     for (size_t i = 0; i < b->used; ++i) {
-      printf(" %c", b->d[i]);
+      printf(" %d", b->d[i]);
     }
     printf("]");
     b = b->next;
@@ -154,33 +154,71 @@ bytes_print(as_bytes_t *bs) {
 }
 
 
+static inline int
+bs_get_available_ptr(as_bytes_t *bs, void **ptr, size_t *size) {
+  if (bs->size > bs->used) {
+    *ptr = bs_block_a_ptr(bs->curr);
+    *size = available_size(bs->curr);
+  } else {
+    if (bs->cnt < 5) {
+      *size = 32;
+    } else if (bs->cnt < 10) {
+      *size = 1 << bs->cnt;
+    } else {
+      *size = MAX_BLOCK_SIZE;
+    }
+
+    as_bytes_block_t *b = mpf_alloc(
+        bs->mp, offsetof(as_bytes_block_t, d) + *size);
+    if (b == NULL) {
+      return -1;
+    }
+
+    b->size = *size;
+    b->used = 0;
+    b->next = NULL;
+    bs->size += *size;
+    bs->cnt += 1;
+    if (bs->curr == NULL) {
+      bs->head = b;
+    } else {
+      bs->curr->next = b;
+    }
+    bs->curr = b;
+    *ptr = b->d;
+  }
+  return 0;
+}
+
+
 ssize_t
 bytes_read_from_fd(as_bytes_t *bs, int fd) {
   ssize_t n = 0;
-  // void *ptr;
-  // size_t size;
-  // ssize_t nbyte;
+  void *ptr;
+  size_t size;
+  ssize_t nbyte;
+  size_t osize = bs->size;
+  do {
+    int ret = bs_get_available_ptr(bs, &ptr, &size);
+    if (ret != 0) {
+      bytes_reset_used(bs, osize);
+      return -1;
+    }
 
-  // do {
-  //   if (bs->size > bs->used) {
-  //     ptr = bs_block_a_ptr(bs->curr);
-  //     size = available_size(bs->curr);
-  //   } else {
-  //   }
-  //   nbyte = read(fd, ptr, MAXLEN);
-  //   if (nbyte < 0) {
-  //     if (errno == EAGAIN) {
-  //       return n;
-  //     } else {
-  //       debug_perror("read");
-  //       return -1;
-  //     }
-  //   } else if (nbyte == 0) {
-  //     return 0;
-  //   } else {
-  //     buffer[nbyte] = '\0';
-  //     n += nbyte;
-  //   }
-  // } while (nbyte > 0);
+    nbyte = read(fd, ptr, size);
+    if (nbyte < 0) {
+      if (errno == EAGAIN) {
+        break;
+      } else {
+        debug_perror("read");
+        bytes_reset_used(bs, osize);
+        return -1;
+      }
+    } else {
+      n += nbyte;
+      to_block(ptr)->used += nbyte;
+      bs->used += nbyte;
+    }
+  } while (nbyte > 0);
   return n;
 }

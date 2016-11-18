@@ -85,7 +85,7 @@ epoll_server2(int fd) {
   int n;
   as_rb_conn_t *wc;
   while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, 1*1000);
+    active_cnt = epoll_wait(epfd, events, 100, 5*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR ||
@@ -135,7 +135,7 @@ epoll_server2(int fd) {
           // bytes_write_to_fd(wc->fd, &buf, buf.used);
           // bytes_destroy(&buf);
         }
-        // bytes_print(&buf);
+        bytes_print(&buf);
         bytes_destroy(&buf);
       }
     }
@@ -143,6 +143,7 @@ epoll_server2(int fd) {
     ot.root = rb_conn_remove_timeout_conn(&conn_pool, 120);
     rb_tree_postorder_travel(&ot, recycle_timeout_conn);
   }
+  lua_close(L);
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
   mpf_destroy(mem_pool);
 }
