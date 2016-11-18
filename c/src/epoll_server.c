@@ -121,6 +121,7 @@ epoll_server2(int fd) {
         as_bytes_t buf;
         bytes_init(&buf, mem_pool);
         n = bytes_read_from_fd(&buf, wc->fd);
+        // n = simple_read_from_client(wc->fd);
         if (n <= 0) {
           close_wrap_conn(&conn_pool, wc);
         } else {
