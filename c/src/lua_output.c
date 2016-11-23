@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <sys/socket.h>
 #include "lua_utils.h"
 #include "lua_output.h"
 
@@ -13,14 +14,14 @@ lcf_write_redis_ok(lua_State *L) {
   int ret = lua_pcall(L, 0, 2, 0);
   if (ret != LUA_OK) {
     lb_error_msg(L);
-    write(fd, "-lua error\r\n", 12);
+    send(fd, "-lua error\r\n", 12, MSG_NOSIGNAL);
     lua_pushinteger(L, ret);
     return 1;
   }
 
   int len = lua_tointeger(L, -1);
   const char *msg = lua_tostring(L, -2);
-  write(fd, msg, len);
+  send(fd, msg, len, MSG_NOSIGNAL);
   lua_pushinteger(L, LUA_OK);
 
   return 1;

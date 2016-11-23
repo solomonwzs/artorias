@@ -4,6 +4,7 @@
 #include "lua_bind.h"
 #include "lua_output.h"
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include "epoll_server.h"
 
 
@@ -53,7 +54,7 @@ epoll_server(int fd) {
         if (n <= 0) {
           close(infd);
         } else {
-          write(infd, "+OK\r\n", 5);
+          send(infd, "+OK\r\n", 5, MSG_NOSIGNAL);
         }
       }
     }
@@ -126,7 +127,7 @@ epoll_server2(int fd) {
           close_wrap_conn(&conn_pool, wc);
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
-          // write(wc->fd, "+OK\r\n", 5);
+          // send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
 
           loutput_redis_ok(L, wc->fd);
 
@@ -136,7 +137,7 @@ epoll_server2(int fd) {
           // bytes_write_to_fd(wc->fd, &buf, buf.used);
           // bytes_destroy(&buf);
         }
-        bytes_print(&buf);
+        // bytes_print(&buf);
         bytes_destroy(&buf);
       }
     }

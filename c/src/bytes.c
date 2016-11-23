@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <string.h>
+#include <sys/socket.h>
 #include "utils.h"
 #include "bytes.h"
 
@@ -101,7 +102,7 @@ bytes_write_to_fd(int fd, as_bytes_t *bs, size_t nbyte) {
   ssize_t ret;
   while (b != NULL && nbyte > 0) {
     if (nbyte < b->used) {
-      ret = write(fd, b->d, nbyte);
+      ret = send(fd, b->d, nbyte, MSG_NOSIGNAL);
       if (ret == -1) {
         debug_perror("bytes write");
         return -1;
@@ -109,7 +110,7 @@ bytes_write_to_fd(int fd, as_bytes_t *bs, size_t nbyte) {
         return n + ret;
       }
     } else {
-      ret = write(fd, b->d, b->used);
+      ret = send(fd, b->d, b->used, MSG_NOSIGNAL);
       if (ret == -1) {
         debug_perror("bytes write");
         return -1;
