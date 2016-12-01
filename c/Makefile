@@ -5,7 +5,8 @@
 C 			= gcc
 CFLAGS 		= -Wall -fpic -g -c
 LIB 		= -llua
-SOURCES		= $(wildcard ./src/*.c)
+CORE_PATH 	= "src/core"
+CORE_SRC	= $(wildcard src/core/*.c)
 BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
 
@@ -13,15 +14,18 @@ VALGRIND 	= valgrind
 	@echo -e $@
 	@$(C) $(CFLAGS) $< -o $@
 
-all:$(SOURCES:%.c=%.o) pre
-	@$(C) ./src/*.o $(LIB) -o $(BUILD_PATH)/main
+all:core
 	@echo -e "ok"
+
+core:$(CORE_SRC:%.c=%.o) pre
+	@$(C) $(CORE_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
+	@echo -e "core ok"
 
 pre:
 	@mkdir -p $(BUILD_PATH)
 
 clean:
-	@rm ./src/*.o
+	@rm $(CORE_PATH)/*.o
 	@rm $(BUILD_PATH)/*
 
 run: all
