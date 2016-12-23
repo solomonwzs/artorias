@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #define as_malloc malloc
+#define as_calloc calloc
 #define as_free free
 
 #define DEBUG

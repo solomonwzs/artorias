@@ -28,7 +28,7 @@ clean:
 	@rm $(BUILD_PATH)/*
 
 run: all
-	@$(BUILD_PATH)/main
+	@$(BUILD_PATH)/main "conf/example.lua"
 
 mem_check: all
 	$(VALGRIND) \

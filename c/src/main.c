@@ -100,6 +100,7 @@ mem_pool_test() {
 
 int
 main(int argc, char **argv) {
+  debug_log("%s\n", argv[1]);
   // mem_pool_test();
   server_test();
   // rb_tree_test();
