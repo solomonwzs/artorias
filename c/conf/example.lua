@@ -1,3 +1,3 @@
-local as_config = {
+as_config = {
     ["tcp_port"] = 5555,
 }

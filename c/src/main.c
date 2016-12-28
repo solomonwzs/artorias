@@ -7,6 +7,7 @@
 #include "bytes.h"
 #include "select_server.h"
 #include "mw_server.h"
+#include "lua_pconf.h"
 #include "epoll_server.h"
 #include <unistd.h>
 #include <sys/socket.h>
@@ -97,12 +98,19 @@ mem_pool_test() {
   mpf_destroy(p);
 }
 
+void
+lua_pconf_test() {
+  as_lua_pconf_t *cnf = lpconf_new("conf/example.lua");
+  lpconf_destroy(cnf);
+}
+
 
 int
 main(int argc, char **argv) {
   debug_log("%s\n", argv[1]);
+  lua_pconf_test();
   // mem_pool_test();
-  server_test();
+  // server_test();
   // rb_tree_test();
   // bytes_test();
   return 0;
