@@ -4,7 +4,7 @@
 #include <lua.h>
 
 typedef struct {
-  lua_State *L;
+  lua_State *_L;
 } as_lua_pconf_t;
 
 extern as_lua_pconf_t *

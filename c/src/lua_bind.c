@@ -31,14 +31,21 @@ lbind_dofile(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_dofile);
   lua_pushlightuserdata(L, (void *)filename);
   int ret = lua_pcall(L, 1, 1, 0);
-  return pop_pcall_rcode(L, ret);
+
+  if (ret == LUA_OK) {
+    int r = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+    return r;
+  } else {
+    lb_error_msg(L);
+    return ret;
+  }
 }
 
 
 static int
 lcf_init_state(lua_State *L) {
   luaL_openlibs(L);
-  // lua_pushinteger(L, LUA_OK);
   int ret = lbind_dofile(L, "src/lua/foo.lua");
   lua_pushinteger(L, ret);
   return 1;
@@ -49,7 +56,15 @@ int
 lbind_init_state(lua_State *L) {
   lua_pushcfunction(L, lcf_init_state);
   int ret = lua_pcall(L, 0, 1, 0);
-  return pop_pcall_rcode(L, ret);
+
+  if (ret == LUA_OK) {
+    int r = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+    return r;
+  } else {
+    lb_error_msg(L);
+    return ret;
+  }
 }
 
 

@@ -19,19 +19,21 @@ lpconf_new(const char *filename) {
     return NULL;
   }
 
-  cnf->L = luaL_newstate();
-  if ((ret = lbind_dofile(cnf->L, filename)) != LUA_OK) {
-    lua_close(cnf->L);
-    as_free(cnf);
-    return NULL;
-  }
+  lua_State *L = luaL_newstate();
 
-  int t = lua_getglobal(cnf->L, "as_config");
-  debug_log("%d\n", t);
-  lua_pushstring(cnf->L, "tcp_port");
-  lua_gettable(cnf->L, -2);
-  int i = lua_tointeger(cnf->L, -1);
-  debug_log("%d\n", LUA_TTABLE);
+  // cnf->L = luaL_newstate();
+  // if ((ret = lbind_dofile(cnf->L, filename)) != LUA_OK) {
+  //   lua_close(cnf->L);
+  //   as_free(cnf);
+  //   return NULL;
+  // }
+
+  // int t = lua_getglobal(cnf->L, "as_config");
+  // debug_log("%d\n", t);
+  // lua_pushstring(cnf->L, "tcp_port");
+  // lua_gettable(cnf->L, -2);
+  // int i = lua_tointeger(cnf->L, -1);
+  // debug_log("%d\n", LUA_TTABLE);
 
   return cnf;
 }
@@ -42,6 +44,6 @@ lpconf_destroy(as_lua_pconf_t *cnf) {
   if (cnf == NULL) {
     return;
   }
-  lua_close(cnf->L);
+  lua_close(cnf->_L);
   as_free(cnf);
 }
