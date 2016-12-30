@@ -8,15 +8,4 @@
   lua_pop(_L_, 1);\
 } while (0)
 
-#define pop_pcall_rcode(_L_, _r_) ({\
-  int __r = (_r_);\
-  if ((_r_) != LUA_OK) {\
-    lb_error_msg(_L_);\
-  } else {\
-    __r = lua_tointeger(_L_, -1);\
-    lua_pop(_L_, 1);\
-  }\
-  __r;\
-})
-
 #endif

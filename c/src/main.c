@@ -101,6 +101,10 @@ mem_pool_test() {
 void
 lua_pconf_test() {
   as_lua_pconf_t *cnf = lpconf_new("conf/example.lua");
+  as_cnf_return_t ret = lpconf_get_integer_value(cnf, 2, "server_no", "2");
+  debug_log("%d %d\n", ret.type, ret.val.i);
+  ret = lpconf_get_integer_value(cnf, 1, "name");
+  debug_log("%d %s\n", ret.type, ret.val.s);
   lpconf_destroy(cnf);
 }
 

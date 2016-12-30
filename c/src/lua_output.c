@@ -33,5 +33,13 @@ loutput_redis_ok(lua_State *L, int fd) {
   lua_pushcfunction(L, lcf_write_redis_ok);
   lua_pushnumber(L, fd);
   int ret = lua_pcall(L, 1, 1, 0);
-  return pop_pcall_rcode(L, ret);
+
+  if (ret == LUA_OK) {
+    int r = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+    return r;
+  } else {
+    lb_error_msg(L);
+    return ret;
+  }
 }
