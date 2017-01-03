@@ -30,6 +30,6 @@ extern void
 lpconf_destroy(as_lua_pconf_t *cnf);
 
 extern as_cnf_return_t
-lpconf_get_integer_value(as_lua_pconf_t *cnf, int n, ...);
+lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...);
 
 #endif

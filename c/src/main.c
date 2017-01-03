@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 
 #define PORT 5555
+#define DEFAULT_CONF_FILE "conf/example.lua"
 
 
 void
@@ -38,9 +39,11 @@ bytes_test() {
 
 
 void
-server_test() {
+server_test(as_lua_pconf_t *cnf) {
+  as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 1, "tcp_port");
+
   int sock;
-  sock = make_socket(PORT);
+  sock = make_socket(ret.val.i);
   set_non_block(sock);
   if (listen(sock, 500) < 0) {
     perror("listen");
@@ -101,9 +104,9 @@ mem_pool_test() {
 void
 lua_pconf_test() {
   as_lua_pconf_t *cnf = lpconf_new("conf/example.lua");
-  as_cnf_return_t ret = lpconf_get_integer_value(cnf, 2, "server_no", "2");
+  as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 2, "server_no", "2");
   debug_log("%d %d\n", ret.type, ret.val.i);
-  ret = lpconf_get_integer_value(cnf, 1, "name");
+  ret = lpconf_get_pconf_value(cnf, 1, "name");
   debug_log("%d %s\n", ret.type, ret.val.s);
   lpconf_destroy(cnf);
 }
@@ -111,11 +114,22 @@ lua_pconf_test() {
 
 int
 main(int argc, char **argv) {
-  debug_log("%s\n", argv[1]);
-  lua_pconf_test();
+  as_lua_pconf_t *cnf = NULL;
+  if (argc >= 2) {
+    cnf = lpconf_new(argv[1]);
+  } else {
+      cnf = lpconf_new(DEFAULT_CONF_FILE);
+  }
+  if (cnf == NULL) {
+    exit(1);
+  }
+
+  // lua_pconf_test();
   // mem_pool_test();
-  // server_test();
+  server_test(cnf);
   // rb_tree_test();
   // bytes_test();
+
+  lpconf_destroy(cnf);
   return 0;
 }

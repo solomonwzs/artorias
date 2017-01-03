@@ -34,7 +34,7 @@ lpconf_new(const char *filename) {
   lua_State *L = luaL_newstate();
   if (lbind_dofile(L, filename) != LUA_OK) {
     lua_close(L);
-    as_free(L);
+    as_free(cnf);
     return NULL;
   }
 
@@ -44,7 +44,7 @@ lpconf_new(const char *filename) {
 
 
 as_cnf_return_t
-lpconf_get_integer_value(as_lua_pconf_t *cnf, int n, ...) {
+lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...) {
   va_list ap;
   char *field;
 
