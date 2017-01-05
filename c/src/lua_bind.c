@@ -12,14 +12,14 @@ lcf_dofile(lua_State *L) {
   int ret = luaL_loadfile(L, filename);
 
   if (ret != LUA_OK) {
-    lb_error_msg(L);
+    lb_pop_error_msg(L);
     lua_pushinteger(L, ret);
     return 1;
   }
 
   ret = lua_pcall(L, 0, 0, 0);
   if (ret != LUA_OK) {
-    lb_error_msg(L);
+    lb_pop_error_msg(L);
   }
   lua_pushinteger(L, ret);
   return 1;
@@ -37,7 +37,7 @@ lbind_dofile(lua_State *L, const char *filename) {
     lua_pop(L, 1);
     return r;
   } else {
-    lb_error_msg(L);
+    lb_pop_error_msg(L);
     return ret;
   }
 }
@@ -62,7 +62,7 @@ lbind_init_state(lua_State *L) {
     lua_pop(L, 1);
     return r;
   } else {
-    lb_error_msg(L);
+    lb_pop_error_msg(L);
     return ret;
   }
 }

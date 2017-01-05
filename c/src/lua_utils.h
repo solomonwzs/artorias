@@ -1,11 +1,25 @@
 #ifndef __LUA_UTILS__
 #define __LUA_UTILS__
 
+#include <lua.h>
 #include "utils.h"
 
-#define lb_error_msg(_L_) do {\
-  debug_log("lua_error: %s\n", lua_tostring(_L_, -1));\
+#ifdef DEBUG
+
+#define lb_pop_error_msg(_L_) do {\
+  debug_log("lua error stack trackback: %s\n", lua_tostring(_L_, -1));\
+  lutils_traceback(_L_);\
   lua_pop(_L_, 1);\
 } while (0)
+
+#else
+
+#define lb_pop_error_msg(_L_) lua_pop(_L_, 1)
+
+#endif
+
+
+extern void
+lutils_traceback(lua_State *L);
 
 #endif

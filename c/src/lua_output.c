@@ -13,7 +13,7 @@ lcf_write_redis_ok(lua_State *L) {
   lua_getglobal(L, "redis_ok");
   int ret = lua_pcall(L, 0, 2, 0);
   if (ret != LUA_OK) {
-    lb_error_msg(L);
+    lb_pop_error_msg(L);
     send(fd, "-lua error\r\n", 12, MSG_NOSIGNAL);
     lua_pushinteger(L, ret);
     return 1;
@@ -39,7 +39,7 @@ loutput_redis_ok(lua_State *L, int fd) {
     lua_pop(L, 1);
     return r;
   } else {
-    lb_error_msg(L);
+    lb_pop_error_msg(L);
     return ret;
   }
 }

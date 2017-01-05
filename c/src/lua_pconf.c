@@ -59,7 +59,7 @@ lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...) {
   as_cnf_return_t ret;
   int r = lua_pcall(cnf->_L, n, 1, 0);
   if (r != LUA_OK) {
-    lb_error_msg(cnf->_L);
+    lb_pop_error_msg(cnf->_L);
     ret.type = LUA_TNONE;
   } else {
     switch (lua_type(cnf->_L, -1)) {
