@@ -4,6 +4,8 @@
 #include <lua.h>
 #include "mem_pool.h"
 
+#define LUA_IDX_THREAD_DICT 1
+
 extern int
 lbind_dofile(lua_State *L, const char *filename);
 

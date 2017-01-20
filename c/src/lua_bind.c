@@ -6,6 +6,7 @@
 #include "utils.h"
 
 
+// [-1, +1, e]
 static int
 lcf_dofile(lua_State *L) {
   const char *filename = (const char *)lua_touserdata(L, -1);
@@ -43,6 +44,7 @@ lbind_dofile(lua_State *L, const char *filename) {
 }
 
 
+// [-0, +1, e]
 static int
 lcf_init_state(lua_State *L) {
   luaL_openlibs(L);

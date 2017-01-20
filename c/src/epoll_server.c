@@ -127,9 +127,9 @@ epoll_server2(int fd) {
           close_wrap_conn(&conn_pool, wc);
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
-          // send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
+          send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
 
-          loutput_redis_ok(L, wc->fd);
+          // loutput_redis_ok(L, wc->fd);
 
           // as_bytes_t buf = NULL_AS_BYTES;
           // bytes_append(&buf, "1234", 4, mem_pool);
