@@ -33,7 +33,6 @@ pre:
 
 clean:
 	@rm $(MAIN_PATH)/*.o
-	@rm $(LM_PATH)/*.o
 	@rm $(BUILD_PATH)/*
 
 run: all

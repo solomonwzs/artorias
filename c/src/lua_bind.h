@@ -15,4 +15,7 @@ lbind_init_state(lua_State *L);
 extern lua_State *
 lbind_new_state(as_mem_pool_fixed_t *mp);
 
+extern int
+lbind_append_lua_path(lua_State *L, const char *path);
+
 #endif

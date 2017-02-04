@@ -7,12 +7,15 @@
 #include "bytes.h"
 #include "select_server.h"
 #include "mw_server.h"
+#include "lua_utils.h"
+#include "lua_bind.h"
 #include "lua_pconf.h"
 #include "epoll_server.h"
 #include <unistd.h>
 #include <sys/socket.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
-#define PORT 5555
 #define DEFAULT_CONF_FILE "conf/example.lua"
 
 
@@ -101,6 +104,7 @@ mem_pool_test() {
   mpf_destroy(p);
 }
 
+
 void
 lua_pconf_test() {
   as_lua_pconf_t *cnf = lpconf_new("conf/example.lua");
@@ -109,6 +113,22 @@ lua_pconf_test() {
   ret = lpconf_get_pconf_value(cnf, 1, "name");
   debug_log("%d %s\n", ret.type, ret.val.s);
   lpconf_destroy(cnf);
+}
+
+
+void
+luas_test() {
+  lua_State *L = luaL_newstate();
+  luaL_openlibs(L);
+
+  lbind_append_lua_path(L, "./bin/?.so");
+
+  int ret = luaL_dofile(L, "luas/t_counter.lua");
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(L);
+  }
+
+  lua_close(L);
 }
 
 
@@ -126,9 +146,10 @@ main(int argc, char **argv) {
 
   // lua_pconf_test();
   // mem_pool_test();
-  server_test(cnf);
+  // server_test(cnf);
   // rb_tree_test();
   // bytes_test();
+  luas_test();
 
   lpconf_destroy(cnf);
   return 0;

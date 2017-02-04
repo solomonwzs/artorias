@@ -48,8 +48,8 @@ lbind_dofile(lua_State *L, const char *filename) {
 static int
 lcf_init_state(lua_State *L) {
   luaL_openlibs(L);
-  int ret = lbind_dofile(L, "src/lua/foo.lua");
-  lua_pushinteger(L, ret);
+  // int ret = lbind_dofile(L, "src/lua/foo.lua");
+  // lua_pushinteger(L, ret);
   return 1;
 }
 
@@ -107,5 +107,47 @@ lbind_new_state(as_mem_pool_fixed_t *mp) {
     return luaL_newstate();
   } else {
     return lua_newstate(lalloc, mp);
+  }
+}
+
+
+// [-1, +0, e]
+static int
+lcf_appendlua_path(lua_State *L) {
+  const char *path = lua_tostring(L, -1);
+  if (path == NULL) {
+    lua_pushstring(L, "path is NULL");
+    lua_error(L);
+  }
+
+  lua_getglobal(L, "package");
+  lua_getfield(L, -1, "path");
+  const char *cur_path = lua_tostring(L, -1);
+
+  int clen = strlen(cur_path);
+  int plen = strlen(path);
+  char *new_path = (char *)lua_newuserdata(L, clen + plen + 1);
+  memcpy(new_path, cur_path, clen);
+  new_path[clen] = ';';
+  memcpy(new_path + clen + 1, path, plen);
+  lua_pushstring(L, new_path);
+
+  lua_setfield(L, -4, "path");
+
+  return 0;
+}
+
+
+int
+lbind_append_lua_path(lua_State *L, const char *path) {
+  lua_pushcfunction(L, lcf_appendlua_path);
+  lua_pushstring(L, path);
+  int ret = lua_pcall(L, 1, 0, 0);
+
+  if (ret == LUA_OK) {
+    return 0;
+  } else {
+    lb_pop_error_msg(L);
+    return 1;
   }
 }

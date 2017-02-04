@@ -7,6 +7,7 @@
 #include "utils.h"
 
 
+// [-n, +1, e]
 static int
 lcf_get_value(lua_State *L) {
   int n = lua_gettop(L);
@@ -72,7 +73,7 @@ lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...) {
         ret.val.i = lua_tointeger(cnf->_L, -1);
         break;
       case LUA_TSTRING:
-        ret.type = LPCNF_TNUMBER;
+        ret.type = LPCNF_TSTRING;
         ret.val.s = lua_tostring(cnf->_L, -1);
         break;
       default:

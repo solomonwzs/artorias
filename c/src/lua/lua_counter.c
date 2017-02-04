@@ -2,7 +2,7 @@
 #include <lauxlib.h>
 #include "lua_counter.h"
 #include "../lua_utils.h"
-#include "utils.h"
+#include "../utils.h"
 
 
 static as_counter_t *
