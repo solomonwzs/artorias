@@ -13,20 +13,20 @@ BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
 
 .c.o:
-	@echo -e $@
+	@echo -e "\033[0;33m*\033[0m $@"
 	@$(C) $(CFLAGS) $< -o $@
 
 %.so:
-	@echo -e $@
-	@$(C) $(CFLAGS) $(LIB) -shared -o $@ $(@:%.so=%.c)
+	@echo -e "\033[0;33m*\033[0m $@"
+	@$(C) -fPIC -llua -shared -o $@ $(@:%.so=%.c)
 	@mv $@ $(BUILD_PATH)
 
 all:$(MAIN_SRC:%.c=%.o) pre
 	@$(C) $(MAIN_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
-	@echo -e "all ok"
+	@echo -e "\033[0;32m[OK]\033[0m main ok"
 
 lm:$(LM_SRC:%.c=%.so)
-	@echo -e "all ok"
+	@echo -e "\033[0;32m[OK]\033[0m lua module ok"
 
 pre:
 	@mkdir -p $(BUILD_PATH)
@@ -35,7 +35,7 @@ clean:
 	@rm $(MAIN_PATH)/*.o
 	@rm $(BUILD_PATH)/*
 
-run: all
+run: all lm
 	@$(BUILD_PATH)/main "conf/example.lua"
 
 mem_check: all

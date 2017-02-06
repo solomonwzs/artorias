@@ -111,9 +111,10 @@ lbind_new_state(as_mem_pool_fixed_t *mp) {
 }
 
 
-// [-1, +0, e]
+// [-2, +0, e]
 static int
-lcf_appendlua_path(lua_State *L) {
+lcf_append_lua_package_field(lua_State *L) {
+  const char *f = lua_tostring(L, -2);
   const char *path = lua_tostring(L, -1);
   if (path == NULL) {
     lua_pushstring(L, "path is NULL");
@@ -121,7 +122,7 @@ lcf_appendlua_path(lua_State *L) {
   }
 
   lua_getglobal(L, "package");
-  lua_getfield(L, -1, "path");
+  lua_getfield(L, -1, f);
   const char *cur_path = lua_tostring(L, -1);
 
   int clen = strlen(cur_path);
@@ -132,17 +133,19 @@ lcf_appendlua_path(lua_State *L) {
   memcpy(new_path + clen + 1, path, plen);
   lua_pushstring(L, new_path);
 
-  lua_setfield(L, -4, "path");
+  lua_setfield(L, -4, f);
 
   return 0;
 }
 
 
 int
-lbind_append_lua_path(lua_State *L, const char *path) {
-  lua_pushcfunction(L, lcf_appendlua_path);
+lbind_append_lua_package_field(lua_State *L, const char *field,
+                               const char *path) {
+  lua_pushcfunction(L, lcf_append_lua_package_field);
+  lua_pushstring(L, field);
   lua_pushstring(L, path);
-  int ret = lua_pcall(L, 1, 0, 0);
+  int ret = lua_pcall(L, 2, 0, 0);
 
   if (ret == LUA_OK) {
     return 0;

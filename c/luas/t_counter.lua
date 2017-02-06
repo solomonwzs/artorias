@@ -1,3 +1,6 @@
-local lcounter = require("lua_counter")
+local lcounter = require("lcounter")
 
-print("hello, world")
+local c = lcounter.new(0, "c1")
+c:add(4)
+print("val=" .. c:getval())
+print(c)

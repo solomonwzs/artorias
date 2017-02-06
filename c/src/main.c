@@ -121,7 +121,7 @@ luas_test() {
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
 
-  lbind_append_lua_path(L, "./bin/?.so");
+  lbind_append_lua_cpath(L, "./bin/?.so");
 
   int ret = luaL_dofile(L, "luas/t_counter.lua");
   if (ret != LUA_OK) {

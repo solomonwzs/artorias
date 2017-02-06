@@ -1,6 +1,6 @@
 #include <lua.h>
 #include <lauxlib.h>
-#include "lua_counter.h"
+#include "lcounter.h"
 #include "../lua_utils.h"
 #include "../utils.h"
 
