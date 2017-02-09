@@ -4,8 +4,6 @@
 #include <lua.h>
 #include "mem_pool.h"
 
-#define LUA_IDX_THREAD_DICT 1
-
 extern int
 lbind_dofile(lua_State *L, const char *filename);
 
@@ -18,6 +16,12 @@ lbind_new_state(as_mem_pool_fixed_t *mp);
 extern int
 lbind_append_lua_package_field(lua_State *L, const char *field,
                                const char *path);
+
+extern lua_State *
+lbind_new_fd_lthread(lua_State *L, int fd);
+
+extern int
+lbind_free_fd_lthread(lua_State *L, int fd);
 
 #define lbind_append_lua_cpath(_L_, _p_) \
     lbind_append_lua_package_field(_L_, "cpath", _p_);

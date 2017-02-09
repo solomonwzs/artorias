@@ -6,6 +6,8 @@
 
 #define LM_COUNTER "as_lm_000"
 
+#define LRK_THREAD_TABLE "as_lrk_000"
+
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\
       debug_log("lua error stack trackback: %s\n", lua_tostring(_L_, -1));\

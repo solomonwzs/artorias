@@ -87,7 +87,7 @@ worker_process(int channel_fd) {
         if (wc->fd == channel_fd) {
           close(wc->fd);
         } else {
-          close_wrap_conn(&conn_pool, wc);
+          close_wrap_conn(NULL, &conn_pool, wc);
         }
       } else if (wc->fd == channel_fd) {
         while (1) {
@@ -97,14 +97,14 @@ worker_process(int channel_fd) {
           }
 
           as_rb_conn_t *nwc = mpf_alloc(mem_pool, sizeof(as_rb_conn_t));
-          rb_conn_init(nwc, infd);
+          rb_conn_init(NULL, nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
           add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
         n = simple_read_from_client(wc->fd);
         if (n <= 0) {
-          close_wrap_conn(&conn_pool, wc);
+          close_wrap_conn(NULL, &conn_pool, wc);
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
           write(wc->fd, "+OK\r\n", 5);

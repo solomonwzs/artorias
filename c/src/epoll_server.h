@@ -5,9 +5,9 @@
 #include "utils.h"
 #include <unistd.h>
 
-#define close_wrap_conn(_cp_, _wc_) do {\
+#define close_wrap_conn(_L_, _cp_, _wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
-  rb_conn_close(_wc_);\
+  rb_conn_close(_L_, _wc_);\
   rb_conn_pool_delete(_cp_, _wc_);\
   mpf_recycle(_wc_);\
 } while (0)

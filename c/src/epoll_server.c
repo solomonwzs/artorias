@@ -6,6 +6,14 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include "epoll_server.h"
+#include <signal.h>
+
+
+static volatile int keep_running = 1;
+static void
+init_handler(int dummy) {
+  keep_running = 0;
+}
 
 
 void
@@ -64,6 +72,8 @@ epoll_server(int fd) {
 
 void
 epoll_server2(int fd) {
+  signal(SIGINT, init_handler);
+
   size_t fixed_size[] = DEFAULT_FIXED_SIZE;
   as_mem_pool_fixed_t *mem_pool = mpf_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
@@ -85,7 +95,7 @@ epoll_server2(int fd) {
   struct epoll_event event;
   int n;
   as_rb_conn_t *wc;
-  while (1) {
+  while (keep_running) {
     active_cnt = epoll_wait(epfd, events, 100, 5*1000);
     for (i = 0; i < active_cnt; ++i) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
@@ -98,7 +108,7 @@ epoll_server2(int fd) {
         if (wc->fd == fd) {
           close(wc->fd);
         } else {
-          close_wrap_conn(&conn_pool, wc);
+          close_wrap_conn(L, &conn_pool, wc);
         }
       } else if (wc->fd == fd) {
         while (1) {
@@ -114,7 +124,7 @@ epoll_server2(int fd) {
 
           as_rb_conn_t *nwc = mpf_alloc(
               mem_pool, sizeof(as_rb_conn_t));
-          rb_conn_init(nwc, infd);
+          rb_conn_init(L, nwc, infd);
           rb_conn_pool_insert(&conn_pool, nwc);
           add_wrap_conn_event(nwc, event, epfd);
         }
@@ -124,7 +134,7 @@ epoll_server2(int fd) {
         n = bytes_read_from_fd(&buf, wc->fd);
         // n = simple_read_from_client(wc->fd);
         if (n <= 0) {
-          close_wrap_conn(&conn_pool, wc);
+          close_wrap_conn(L, &conn_pool, wc);
         } else {
           rb_conn_pool_update_conn_ut(&conn_pool, wc);
           send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);

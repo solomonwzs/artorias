@@ -29,7 +29,7 @@ typedef struct as_mem_pool_fixed_s {
 } as_mem_pool_fixed_t;
 
 #define DEFAULT_FIXED_SIZE \
-{8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1024, 1536, 2048}
+{8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512}
 
 #define mpf_data_size(_d_) \
     ((container_of((_d_), as_mem_data_fixed_t, d))->p.field->size)
@@ -42,6 +42,9 @@ mpf_destroy(as_mem_pool_fixed_t *p);
 
 extern void *
 mpf_alloc(as_mem_pool_fixed_t *p, size_t size);
+
+extern void *
+mpf_realloc(void *dd, size_t size);
 
 extern void
 mpf_recycle(void *dd);

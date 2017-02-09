@@ -1,7 +1,11 @@
 #include "mem_pool.h"
 
 #define malloc_data_fixed(_x_) \
-    (as_mem_data_fixed_t *)as_malloc(offsetof(as_mem_data_fixed_t, d) + (_x_))
+    (as_mem_data_fixed_t *)as_malloc(\
+      offsetof(as_mem_data_fixed_t, d) + (_x_))
+#define realloc_data_fixed(_ptr_, _x_) \
+    (as_mem_data_fixed_t *)as_realloc(\
+      _ptr_, offsetof(as_mem_data_fixed_t, d) + (_x_))
 
 
 as_mem_pool_fixed_t *
@@ -13,7 +17,7 @@ mpf_new(size_t fsize[], unsigned n) {
   as_mem_pool_fixed_t *p;
   p = (as_mem_pool_fixed_t *)as_malloc(
       sizeof(as_mem_pool_fixed_t) +
-      sizeof(as_mem_pool_fixed_field_t) * (n - 1));
+      sizeof(as_mem_pool_fixed_field_t) * n);
   if (p == NULL) {
     return NULL;
   }
@@ -25,6 +29,9 @@ mpf_new(size_t fsize[], unsigned n) {
     p->f[i].header = NULL;
     p->f[i].pool = p;
   }
+  p->f[n].size = -1;
+  p->f[n].header = NULL;
+  p->f[n].pool = p;
 
   size_t tmp;
   for (i = 0; i < n - 1; ++i) {
@@ -63,7 +70,7 @@ mpf_alloc(as_mem_pool_fixed_t *p, size_t size) {
     if (d == NULL) {
       return NULL;
     }
-    d->p.field = NULL;
+    d->p.field = &p->f[p->n];
   } else {
     if (p->f[i].header != NULL) {
       d = p->f[i].header;
@@ -83,6 +90,51 @@ mpf_alloc(as_mem_pool_fixed_t *p, size_t size) {
 }
 
 
+void *
+mpf_realloc(void *dd, size_t size) {
+  if (dd == NULL) {
+    return NULL;
+  }
+
+  if (size == 0) {
+    mpf_recycle(dd);
+    return NULL;
+  }
+
+  as_mem_data_fixed_t *d = container_of(dd, as_mem_data_fixed_t, d);
+  as_mem_pool_fixed_field_t *f = d->p.field;
+  as_mem_pool_fixed_t *p = f->pool;
+
+  if (f->size == -1) {
+    if (size <= p->f[p->n - 1].size) {
+      void *ndd = mpf_alloc(p, size);
+      if (ndd != NULL) {
+        memcpy(ndd, dd, size);
+        mpf_recycle(dd);
+        return ndd;
+      }
+    } else {
+      as_mem_data_fixed_t *nd = realloc_data_fixed(d, size);
+      if (nd != NULL) {
+        return (void *)nd->d;
+      }
+    }
+  } else {
+    if (size > f->size) {
+      void *ndd = mpf_alloc(p, size);
+      if (ndd != NULL) {
+        memcpy(ndd, dd, f->size);
+        mpf_recycle(dd);
+        return ndd;
+      }
+    } else {
+      return dd;
+    }
+  }
+  return NULL;
+}
+
+
 void
 mpf_recycle(void *dd) {
   if (dd == NULL) {
@@ -91,7 +143,7 @@ mpf_recycle(void *dd) {
 
   as_mem_data_fixed_t *d = container_of(dd, as_mem_data_fixed_t, d);
   as_mem_pool_fixed_field_t *f = d->p.field;
-  if (f == NULL) {
+  if (f->size == -1) {
     as_free(d);
     return;
   }

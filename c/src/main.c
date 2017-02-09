@@ -118,14 +118,24 @@ lua_pconf_test() {
 
 void
 luas_test() {
-  lua_State *L = luaL_newstate();
-  luaL_openlibs(L);
-
+  size_t fixed_size[] = DEFAULT_FIXED_SIZE;
+  as_mem_pool_fixed_t *mem_pool = mpf_new(
+      fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
+  lua_State *L = lbind_new_state(mem_pool);
+  lbind_init_state(L);
   lbind_append_lua_cpath(L, "./bin/?.so");
 
-  int ret = luaL_dofile(L, "luas/t_counter.lua");
+  // lua_State *T = lua_newthread(L);
+  lua_State *T = lbind_new_fd_lthread(L, 1);
+  // lbind_free_fd_lthread(L, 1);
+  lua_gc(L, LUA_GCCOLLECT, 0);
+  if (T == NULL) {
+    debug_log("thread null\n");
+    return;
+  }
+  int ret = luaL_dofile(T, "luas/t_counter.lua");
   if (ret != LUA_OK) {
-    lb_pop_error_msg(L);
+    lb_pop_error_msg(T);
   }
 
   lua_close(L);
@@ -146,10 +156,10 @@ main(int argc, char **argv) {
 
   // lua_pconf_test();
   // mem_pool_test();
-  // server_test(cnf);
+  server_test(cnf);
   // rb_tree_test();
   // bytes_test();
-  luas_test();
+  // luas_test();
 
   lpconf_destroy(cnf);
   return 0;
