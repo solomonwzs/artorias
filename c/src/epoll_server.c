@@ -153,9 +153,9 @@ epoll_server2(int fd) {
     }
     as_rb_tree_t ot;
     ot.root = rb_conn_remove_timeout_conn(&conn_pool, 120);
-    rb_tree_postorder_travel(&ot, recycle_timeout_conn);
+    rb_tree_postorder_travel(&ot, recycle_conn);
   }
   lua_close(L);
-  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
+  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
   mpf_destroy(mem_pool);
 }

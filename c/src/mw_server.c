@@ -113,9 +113,9 @@ worker_process(int channel_fd) {
     }
     as_rb_tree_t ot;
     ot.root = rb_conn_remove_timeout_conn(&conn_pool, CONN_TIMEOUT);
-    rb_tree_postorder_travel(&ot, recycle_timeout_conn);
+    rb_tree_postorder_travel(&ot, recycle_conn);
   }
-  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_timeout_conn);
+  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
   mpf_destroy(mem_pool);
 }
 

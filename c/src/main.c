@@ -138,6 +138,14 @@ luas_test() {
     lb_pop_error_msg(T);
   }
 
+  lua_pushstring(T, "kk");
+  lua_pushinteger(T, 11);
+  lua_settable(T, LUA_REGISTRYINDEX);
+
+  lua_pushstring(L, "kk");
+  lua_gettable(L, LUA_REGISTRYINDEX);
+  debug_log("%d\n", lua_tointeger(L, -1));
+
   lua_close(L);
 }
 
@@ -156,10 +164,10 @@ main(int argc, char **argv) {
 
   // lua_pconf_test();
   // mem_pool_test();
-  server_test(cnf);
+  // server_test(cnf);
   // rb_tree_test();
   // bytes_test();
-  // luas_test();
+  luas_test();
 
   lpconf_destroy(cnf);
   return 0;

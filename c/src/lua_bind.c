@@ -44,11 +44,19 @@ lbind_dofile(lua_State *L, const char *filename) {
 }
 
 
-// [-0, +1, e]
+// [-0, +0, e]
 static int
 lcf_init_state(lua_State *L) {
   luaL_openlibs(L);
   luaL_newmetatable(L, LRK_THREAD_TABLE);
+
+  luaL_newmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
+  lua_pushvalue(L, -1);
+  lua_pushstring(L, "_mode");
+  lua_pushstring(L, "k");
+  lua_settable(L, -3);
+  lua_setmetatable(L, -2);
+
   return 0;
 }
 
@@ -155,15 +163,22 @@ lcf_new_fd_lthread(lua_State *L) {
   *((int *)k) = fd;
 
   lua_newthread(L);
+
   int ok = luaL_getmetatable(L, LRK_THREAD_TABLE);
   if (!ok) {
     lua_pushstring(L, "thread table not exist");
     lua_error(L);
   }
+  // ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
+  // if (!ok) {
+  //   lua_pushstring(L, "thread local var table not exist");
+  // }
+
   lua_pushstring(L, k);
   lua_pushvalue(L, -3);
   lua_settable(L, -3);
   lua_pop(L, 1);
+
 
   return 1;
 }
