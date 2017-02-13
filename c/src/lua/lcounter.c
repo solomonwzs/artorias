@@ -53,6 +53,17 @@ lcf_counter_new(lua_State *L) {
     luaL_error(L, "name can not be empty");
   }
 
+  int ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
+  if (!ok) {
+    lua_pushstring(L, "thread local var table not exist");
+    lua_error(L);
+  }
+  lua_pushthread(L);
+  lua_gettable(L, -2);
+  lua_pushstring(L, "fd");
+  lua_gettable(L, -2);
+  debug_log("%d\n", lua_tointeger(L, -1));
+
   cu = (as_counter_ud_t *)lua_newuserdata(L, sizeof(as_counter_ud_t));
   cu->c = NULL;
   cu->name = NULL;

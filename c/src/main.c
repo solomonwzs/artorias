@@ -126,7 +126,7 @@ luas_test() {
   lbind_append_lua_cpath(L, "./bin/?.so");
 
   // lua_State *T = lua_newthread(L);
-  lua_State *T = lbind_new_fd_lthread(L, 1);
+  lua_State *T = lbind_new_fd_lthread(L, 12);
   // lbind_free_fd_lthread(L, 1);
   lua_gc(L, LUA_GCCOLLECT, 0);
   if (T == NULL) {
@@ -138,13 +138,13 @@ luas_test() {
     lb_pop_error_msg(T);
   }
 
-  lua_pushstring(T, "kk");
-  lua_pushinteger(T, 11);
-  lua_settable(T, LUA_REGISTRYINDEX);
-
   lua_pushstring(L, "kk");
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  debug_log("%d\n", lua_tointeger(L, -1));
+  lua_pushinteger(L, 11);
+  lua_settable(L, LUA_REGISTRYINDEX);
+
+  lua_pushstring(T, "kk");
+  lua_gettable(T, LUA_REGISTRYINDEX);
+  debug_log("%d\n", lua_tointeger(T, -1));
 
   lua_close(L);
 }

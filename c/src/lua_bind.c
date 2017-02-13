@@ -162,23 +162,30 @@ lcf_new_fd_lthread(lua_State *L) {
   char k[] = {0, 0, 0, 0, 0};
   *((int *)k) = fd;
 
-  lua_newthread(L);
-
   int ok = luaL_getmetatable(L, LRK_THREAD_TABLE);
   if (!ok) {
     lua_pushstring(L, "thread table not exist");
     lua_error(L);
   }
-  // ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
-  // if (!ok) {
-  //   lua_pushstring(L, "thread local var table not exist");
-  // }
+  ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
+  if (!ok) {
+    lua_pushstring(L, "thread local var table not exist");
+    lua_error(L);
+  }
+  lua_newthread(L);
 
   lua_pushstring(L, k);
-  lua_pushvalue(L, -3);
-  lua_settable(L, -3);
-  lua_pop(L, 1);
+  lua_pushvalue(L, -2);
+  lua_settable(L, -5);
 
+  lua_pushvalue(L, -1);
+  lua_newtable(L);
+
+  lua_pushstring(L, "fd");
+  lua_pushinteger(L, fd);
+  lua_settable(L, -3);
+
+  lua_settable(L, -4);
 
   return 1;
 }

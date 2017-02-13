@@ -16,6 +16,32 @@ init_handler(int dummy) {
 }
 
 
+static void
+process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
+                as_mem_pool_fixed_t *mem_pool, lua_State *L) {
+  as_bytes_t buf;
+  bytes_init(&buf, mem_pool);
+  int n = bytes_read_from_fd(&buf, wc->fd);
+  // int n = simple_read_from_client(wc->fd);
+  if (n <= 0) {
+    close_wrap_conn(L, conn_pool, wc);
+  } else {
+    rb_conn_pool_update_conn_ut(conn_pool, wc);
+    send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
+
+    // loutput_redis_ok(L, wc->fd);
+
+    // as_bytes_t buf = NULL_AS_BYTES;
+    // bytes_append(&buf, "1234", 4, mem_pool);
+    // bytes_append(&buf, "abcde", 5, mem_pool);
+    // bytes_write_to_fd(wc->fd, &buf, buf.used);
+    // bytes_destroy(&buf);
+  }
+  // bytes_print(&buf);
+  bytes_destroy(&buf);
+}
+
+
 void
 epoll_server(int fd) {
   int epfd = epoll_create(1);
@@ -93,7 +119,6 @@ epoll_server2(int fd) {
   struct epoll_event events[100];
   int infd;
   struct epoll_event event;
-  int n;
   as_rb_conn_t *wc;
   while (keep_running) {
     active_cnt = epoll_wait(epfd, events, 100, 5*1000);
@@ -129,26 +154,7 @@ epoll_server2(int fd) {
           add_wrap_conn_event(nwc, event, epfd);
         }
       } else if (events[i].events & EPOLLIN) {
-        as_bytes_t buf;
-        bytes_init(&buf, mem_pool);
-        n = bytes_read_from_fd(&buf, wc->fd);
-        // n = simple_read_from_client(wc->fd);
-        if (n <= 0) {
-          close_wrap_conn(L, &conn_pool, wc);
-        } else {
-          rb_conn_pool_update_conn_ut(&conn_pool, wc);
-          send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
-
-          // loutput_redis_ok(L, wc->fd);
-
-          // as_bytes_t buf = NULL_AS_BYTES;
-          // bytes_append(&buf, "1234", 4, mem_pool);
-          // bytes_append(&buf, "abcde", 5, mem_pool);
-          // bytes_write_to_fd(wc->fd, &buf, buf.used);
-          // bytes_destroy(&buf);
-        }
-        // bytes_print(&buf);
-        bytes_destroy(&buf);
+        process_in_data(wc, &conn_pool, mem_pool, L);
       }
     }
     as_rb_tree_t ot;
