@@ -111,7 +111,7 @@ epoll_server2(int fd) {
   add_wrap_conn_event(&wfd, listen_event, epfd);
 
   lua_State *L = lbind_new_state(mem_pool);
-  lbind_init_state(L);
+  lbind_init_state(L, mem_pool);
 
   as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
   int active_cnt;

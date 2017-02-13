@@ -122,7 +122,7 @@ luas_test() {
   as_mem_pool_fixed_t *mem_pool = mpf_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
   lua_State *L = lbind_new_state(mem_pool);
-  lbind_init_state(L);
+  lbind_init_state(L, mem_pool);
   lbind_append_lua_cpath(L, "./bin/?.so");
 
   // lua_State *T = lua_newthread(L);
@@ -147,6 +147,7 @@ luas_test() {
   debug_log("%d\n", lua_tointeger(T, -1));
 
   lua_close(L);
+  mpf_destroy(mem_pool);
 }
 
 

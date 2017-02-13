@@ -1,13 +1,17 @@
 #include <lua.h>
 #include <lauxlib.h>
-#include "lcounter.h"
-#include "../lua_utils.h"
-#include "../utils.h"
+#include "lm_counter.h"
+#include "mem_pool.h"
+#include "lua_utils.h"
+#include "utils.h"
 
 
 static as_counter_t *
-counter_create(int start) {
-  as_counter_t *c = as_malloc(sizeof(as_counter_t));
+counter_create(int start, as_mem_pool_fixed_t *mp) {
+  if (mp == NULL) {
+    return NULL;
+  }
+  as_counter_t *c = mpf_alloc(mp, sizeof(as_counter_t));
   if (c == NULL) {
     return NULL;
   }
@@ -20,7 +24,7 @@ counter_create(int start) {
 static void
 counter_destroy(as_counter_t *c) {
   if (c != NULL) {
-    as_free(c);
+    mpf_recycle(c);
   }
 }
 
@@ -53,6 +57,10 @@ lcf_counter_new(lua_State *L) {
     luaL_error(L, "name can not be empty");
   }
 
+  lua_pushstring(L, LRK_MEM_POOL);
+  lua_gettable(L, LUA_REGISTRYINDEX);
+  as_mem_pool_fixed_t *mp = (as_mem_pool_fixed_t *)lua_touserdata(L, -1);
+
   int ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
   if (!ok) {
     lua_pushstring(L, "thread local var table not exist");
@@ -62,7 +70,7 @@ lcf_counter_new(lua_State *L) {
   lua_gettable(L, -2);
   lua_pushstring(L, "fd");
   lua_gettable(L, -2);
-  debug_log("%d\n", lua_tointeger(L, -1));
+  debug_log("%lld\n", lua_tointeger(L, -1));
 
   cu = (as_counter_ud_t *)lua_newuserdata(L, sizeof(as_counter_ud_t));
   cu->c = NULL;
@@ -71,7 +79,7 @@ lcf_counter_new(lua_State *L) {
   luaL_getmetatable(L, LM_COUNTER);
   lua_setmetatable(L, -2);
 
-  cu->c = counter_create(start);
+  cu->c = counter_create(start, mp);
   cu->name = strdup(name);
 
   return 1;
@@ -145,7 +153,8 @@ lcf_counter_tostring(lua_State *L) {
 }
 
 
-static const struct luaL_Reg as_l_counter_methods[] = {
+static const struct
+luaL_Reg as_l_counter_methods[] = {
   {"add", lcf_counter_add},
   {"getval", lcf_counter_getval},
   {"getname", lcf_counter_getname},
@@ -155,13 +164,15 @@ static const struct luaL_Reg as_l_counter_methods[] = {
 };
 
 
-static const struct luaL_Reg as_l_counter_functions[] = {
+static const struct
+luaL_Reg as_l_counter_functions[] = {
   {"new", lcf_counter_new},
   {NULL, NULL},
 };
 
 
-int luaopen_lcounter(lua_State *L) {
+int
+luaopen_lm_counter(lua_State *L) {
   luaL_newmetatable(L, LM_COUNTER);
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");

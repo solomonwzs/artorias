@@ -6,8 +6,9 @@
 
 #define LM_COUNTER "as_lm_000"
 
-#define LRK_THREAD_TABLE            "as_lrk_000"
-#define LRK_THREAD_LOCAL_VAR_TABLE  "as_lrk_001"
+#define LRK_MEM_POOL                "as_lrk_000"
+#define LRK_THREAD_TABLE            "as_lrk_001"
+#define LRK_THREAD_LOCAL_VAR_TABLE  "as_lrk_002"
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\

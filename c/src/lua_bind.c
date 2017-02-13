@@ -44,10 +44,15 @@ lbind_dofile(lua_State *L, const char *filename) {
 }
 
 
-// [-0, +0, e]
+// [-1, +0, e]
 static int
 lcf_init_state(lua_State *L) {
+  lua_pushstring(L, LRK_MEM_POOL);
+  lua_pushvalue(L, 1);
+  lua_settable(L, LUA_REGISTRYINDEX);
+
   luaL_openlibs(L);
+
   luaL_newmetatable(L, LRK_THREAD_TABLE);
 
   luaL_newmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
@@ -62,17 +67,16 @@ lcf_init_state(lua_State *L) {
 
 
 int
-lbind_init_state(lua_State *L) {
+lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp) {
   lua_pushcfunction(L, lcf_init_state);
-  int ret = lua_pcall(L, 0, 1, 0);
+  lua_pushlightuserdata(L, (void *)mp);
+  int ret = lua_pcall(L, 1, 0, 0);
 
   if (ret == LUA_OK) {
-    int r = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-    return r;
+    return 0;
   } else {
     lb_pop_error_msg(L);
-    return ret;
+    return 1;
   }
 }
 

@@ -8,7 +8,7 @@ extern int
 lbind_dofile(lua_State *L, const char *filename);
 
 extern int
-lbind_init_state(lua_State *L);
+lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp);
 
 extern lua_State *
 lbind_new_state(as_mem_pool_fixed_t *mp);

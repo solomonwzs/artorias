@@ -4,29 +4,31 @@
 
 C 			= gcc
 CFLAGS 		= -Wall -fpic -g -c
+LMCFLAGS 	= -fPIC -llua -shared -Wl,-z,defs
 LIB 		= -llua
 MAIN_PATH 	= "src"
-MAIN_SRC 	= $(wildcard src/*.c)
-LM_PATH 	= "src/lua"
-LM_SRC 		= $(wildcard src/lua/*.c)
 BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
+
+ALL_SRC 	= $(wildcard src/*.c)
+LM_SRC 		= $(wildcard src/lm_*.c)
+MAIN_SRC 	= $(filter-out $(LM_SRC), $(ALL_SRC))
 
 .c.o:
 	@echo -e "\033[0;33m*\033[0m $@"
 	@$(C) $(CFLAGS) $< -o $@
 
-%.so:
-	@echo -e "\033[0;33m*\033[0m $@"
-	@$(C) -fPIC -llua -shared -o $@ $(@:%.so=%.c)
-	@mv $@ $(BUILD_PATH)
-
-all:$(MAIN_SRC:%.c=%.o) pre
+all:obj pre
 	@$(C) $(MAIN_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
 	@echo -e "\033[0;32m[OK]\033[0m main ok"
 
-lm:$(LM_SRC:%.c=%.so)
-	@echo -e "\033[0;32m[OK]\033[0m lua module ok"
+obj:$(ALL_SRC:%.c=%.o)
+
+lm:lm_counter
+	@echo -e "\033[0;32m[OK]\033[0m lua modules ok"
+
+lm_counter:obj
+	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(MAIN_PATH)/mem_pool.o -o $(BUILD_PATH)/$@.so
 
 pre:
 	@mkdir -p $(BUILD_PATH)
@@ -48,4 +50,4 @@ mem_check: all
 		$(BUILD_PATH)/main
 
 t:
-	@echo "$(wildcard src/*.c)"
+	@echo "$(MAIN_SRC)"
