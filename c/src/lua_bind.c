@@ -27,6 +27,7 @@ lcf_dofile(lua_State *L) {
 }
 
 
+// [-0, +0, -]
 int
 lbind_dofile(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_dofile);
@@ -55,6 +56,8 @@ lcf_init_state(lua_State *L) {
 
   luaL_newmetatable(L, LRK_THREAD_TABLE);
 
+  luaL_newmetatable(L, LRK_LCODE_CHUNK_TABLE);
+
   luaL_newmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
   lua_pushvalue(L, -1);
   lua_pushstring(L, "_mode");
@@ -66,6 +69,7 @@ lcf_init_state(lua_State *L) {
 }
 
 
+// [-0, +0, -]
 int
 lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp) {
   lua_pushcfunction(L, lcf_init_state);
@@ -142,6 +146,7 @@ lcf_append_lua_package_field(lua_State *L) {
 }
 
 
+// [-0, +0, -]
 int
 lbind_append_lua_package_field(lua_State *L, const char *field,
                                const char *path) {
@@ -195,6 +200,7 @@ lcf_new_fd_lthread(lua_State *L) {
 }
 
 
+// [-0, +0, -]
 lua_State *
 lbind_new_fd_lthread(lua_State *L, int fd) {
   lua_pushcfunction(L, lcf_new_fd_lthread);
@@ -231,10 +237,45 @@ lcf_free_fd_lthread(lua_State *L) {
 }
 
 
-extern int
+// [-0, +0, -]
+int
 lbind_free_fd_lthread(lua_State *L, int fd) {
   lua_pushcfunction(L, lcf_free_fd_lthread);
   lua_pushinteger(L, fd);
+  int ret = lua_pcall(L, 1, 0, 0);
+
+  if (ret == LUA_OK) {
+    return 0;
+  } else {
+    lb_pop_error_msg(L);
+    return 1;
+  }
+}
+
+
+// [-1, +0, e]
+static int
+lcf_ref_lcode_chunk(lua_State *L) {
+  const char *filename = lua_tostring(L, -1);
+
+  int ok = luaL_getmetatable(L, LRK_LCODE_CHUNK_TABLE);
+  if (!ok) {
+    lua_pushstring(L, "lcode chunk table not exist");
+    lua_error(L);
+  }
+  lua_pushstring(L, filename);
+  luaL_loadfile(L, filename);
+  lua_settable(L, -3);
+
+  return 0;
+}
+
+
+// [-0, +0, -]
+int
+lbind_ref_lcode_chunk(lua_State *L, const char *filename) {
+  lua_pushcfunction(L, lcf_ref_lcode_chunk);
+  lua_pushstring(L, filename);
   int ret = lua_pcall(L, 1, 0, 0);
 
   if (ret == LUA_OK) {

@@ -6,12 +6,12 @@
 #include "utils.h"
 
 
-static as_counter_t *
+static as_lm_counter_t *
 counter_create(int start, as_mem_pool_fixed_t *mp) {
   if (mp == NULL) {
     return NULL;
   }
-  as_counter_t *c = mpf_alloc(mp, sizeof(as_counter_t));
+  as_lm_counter_t *c = mpf_alloc(mp, sizeof(as_lm_counter_t));
   if (c == NULL) {
     return NULL;
   }
@@ -22,7 +22,7 @@ counter_create(int start, as_mem_pool_fixed_t *mp) {
 
 
 static void
-counter_destroy(as_counter_t *c) {
+counter_destroy(as_lm_counter_t *c) {
   if (c != NULL) {
     mpf_recycle(c);
   }
@@ -30,7 +30,7 @@ counter_destroy(as_counter_t *c) {
 
 
 static void
-counter_add(as_counter_t *c, int amount) {
+counter_add(as_lm_counter_t *c, int amount) {
   if (c != NULL) {
     c->val += amount;
   }
@@ -38,7 +38,7 @@ counter_add(as_counter_t *c, int amount) {
 
 
 static int
-counter_getval(as_counter_t *c) {
+counter_getval(as_lm_counter_t *c) {
   return c != NULL ? c->val : 0;
 }
 
@@ -46,7 +46,7 @@ counter_getval(as_counter_t *c) {
 // [-2, +1, e]
 static int
 lcf_counter_new(lua_State *L) {
-  as_counter_ud_t *cu;
+  as_lm_counter_ud_t *cu;
   const char *name;
   int start;
 
@@ -61,18 +61,7 @@ lcf_counter_new(lua_State *L) {
   lua_gettable(L, LUA_REGISTRYINDEX);
   as_mem_pool_fixed_t *mp = (as_mem_pool_fixed_t *)lua_touserdata(L, -1);
 
-  int ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
-  if (!ok) {
-    lua_pushstring(L, "thread local var table not exist");
-    lua_error(L);
-  }
-  lua_pushthread(L);
-  lua_gettable(L, -2);
-  lua_pushstring(L, "fd");
-  lua_gettable(L, -2);
-  debug_log("%lld\n", lua_tointeger(L, -1));
-
-  cu = (as_counter_ud_t *)lua_newuserdata(L, sizeof(as_counter_ud_t));
+  cu = (as_lm_counter_ud_t *)lua_newuserdata(L, sizeof(as_lm_counter_ud_t));
   cu->c = NULL;
   cu->name = NULL;
 
@@ -89,11 +78,10 @@ lcf_counter_new(lua_State *L) {
 // [-0, +0, e]
 static int
 lcf_counter_add(lua_State *L) {
-  as_counter_ud_t *cu;
-  int amount;
+  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
+      L, 1, LM_COUNTER);
+  int amount = luaL_checkinteger(L, 2);
 
-  cu = (as_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
-  amount = luaL_checkinteger(L, 2);
   counter_add(cu->c, amount);
 
   return 0;
@@ -103,9 +91,9 @@ lcf_counter_add(lua_State *L) {
 // [-0, +1, e]
 static int
 lcf_counter_getval(lua_State *L) {
-  as_counter_ud_t *cu;
+  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
+      L, 1, LM_COUNTER);
 
-  cu = (as_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
   lua_pushinteger(L, counter_getval(cu->c));
 
   return 1;
@@ -115,9 +103,9 @@ lcf_counter_getval(lua_State *L) {
 // [-0, +1, e]
 static int
 lcf_counter_getname(lua_State *L) {
-  as_counter_ud_t *cu;
+  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
+      L, 1, LM_COUNTER);
 
-  cu = (as_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
   lua_pushstring(L, cu->name);
 
   return 1;
@@ -127,11 +115,11 @@ lcf_counter_getname(lua_State *L) {
 // [-0, +0, e]
 static int
 lcf_counter_destroy(lua_State *L) {
-  as_counter_ud_t *cu;
-  cu = (as_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
+  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
+      L, 1, LM_COUNTER);
+
   counter_destroy(cu->c);
   cu->c = NULL;
-
   if (cu->name != NULL) {
     as_free(cu->name);
     cu->name = NULL;
@@ -141,20 +129,18 @@ lcf_counter_destroy(lua_State *L) {
 }
 
 
-// [-0, +0, e]
+// [-0, +1, e]
 static int
 lcf_counter_tostring(lua_State *L) {
-  as_counter_ud_t *cu;
-
-  cu = (as_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
+  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
+      L, 1, LM_COUNTER);
   lua_pushfstring(L, "%s(%d)", cu->name, counter_getval(cu->c));
-
   return 1;
 }
 
 
-static const struct
-luaL_Reg as_l_counter_methods[] = {
+static const struct luaL_Reg
+as_lm_counter_methods[] = {
   {"add", lcf_counter_add},
   {"getval", lcf_counter_getval},
   {"getname", lcf_counter_getname},
@@ -164,8 +150,8 @@ luaL_Reg as_l_counter_methods[] = {
 };
 
 
-static const struct
-luaL_Reg as_l_counter_functions[] = {
+static const struct luaL_Reg
+as_lm_counter_functions[] = {
   {"new", lcf_counter_new},
   {NULL, NULL},
 };
@@ -176,8 +162,8 @@ luaopen_lm_counter(lua_State *L) {
   luaL_newmetatable(L, LM_COUNTER);
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, as_l_counter_methods, 0);
-  luaL_newlib(L, as_l_counter_functions);
+  luaL_setfuncs(L, as_lm_counter_methods, 0);
+  luaL_newlib(L, as_lm_counter_functions);
 
   return 1;
 }

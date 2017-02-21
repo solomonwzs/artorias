@@ -5,10 +5,12 @@
 #include "utils.h"
 
 #define LM_COUNTER "as_lm_000"
+#define LM_TSOCKET "as_lm_001"
 
 #define LRK_MEM_POOL                "as_lrk_000"
 #define LRK_THREAD_TABLE            "as_lrk_001"
 #define LRK_THREAD_LOCAL_VAR_TABLE  "as_lrk_002"
+#define LRK_LCODE_CHUNK_TABLE       "as_lrk_003"
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\
