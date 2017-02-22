@@ -125,6 +125,9 @@ luas_test() {
   lbind_init_state(L, mem_pool);
   lbind_append_lua_cpath(L, "./bin/?.so");
 
+  const char *lfilename = "luas/t_counter.lua";
+  lbind_ref_lcode_chunk(L, lfilename);
+
   // lua_State *T = lua_newthread(L);
   lua_State *T = lbind_new_fd_lthread(L, 12);
   // lbind_free_fd_lthread(L, 1);
@@ -133,10 +136,12 @@ luas_test() {
     debug_log("thread null\n");
     return;
   }
-  int ret = luaL_dofile(T, "luas/t_counter.lua");
-  if (ret != LUA_OK) {
-    lb_pop_error_msg(T);
-  }
+
+  // int ret = luaL_dofile(T, "luas/t_counter.lua");
+  // if (ret != LUA_OK) {
+  //   lb_pop_error_msg(T);
+  // }
+  lbind_get_lcode_chunk(T, lfilename) || lua_pcall(T, 0, LUA_MULTRET, 0);
 
   lua_pushstring(L, "kk");
   lua_pushinteger(L, 11);
@@ -144,7 +149,7 @@ luas_test() {
 
   lua_pushstring(T, "kk");
   lua_gettable(T, LUA_REGISTRYINDEX);
-  debug_log("%d\n", lua_tointeger(T, -1));
+  debug_log("%lld\n", lua_tointeger(T, -1));
 
   lua_close(L);
   mpf_destroy(mem_pool);

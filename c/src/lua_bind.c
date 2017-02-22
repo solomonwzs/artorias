@@ -6,6 +6,13 @@
 #include "utils.h"
 
 
+#define lbind_checkmetatable(_L_, _idx_, _emsg_) \
+    if (!luaL_getmetatable(_L_, _idx_)) { \
+      lua_pushstring(_L_, _emsg_);\
+      lua_error(_L_);\
+    }
+
+
 // [-1, +1, e]
 static int
 lcf_dofile(lua_State *L) {
@@ -171,16 +178,10 @@ lcf_new_fd_lthread(lua_State *L) {
   char k[] = {0, 0, 0, 0, 0};
   *((int *)k) = fd;
 
-  int ok = luaL_getmetatable(L, LRK_THREAD_TABLE);
-  if (!ok) {
-    lua_pushstring(L, "thread table not exist");
-    lua_error(L);
-  }
-  ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
-  if (!ok) {
-    lua_pushstring(L, "thread local var table not exist");
-    lua_error(L);
-  }
+  lbind_checkmetatable(L, LRK_THREAD_TABLE,
+                       "thread table not exist");
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
   lua_newthread(L);
 
   lua_pushstring(L, k);
@@ -224,11 +225,8 @@ lcf_free_fd_lthread(lua_State *L) {
   char k[] = {0, 0, 0, 0, 0};
   *((int *)k) = fd;
 
-  int ok = luaL_getmetatable(L, LRK_THREAD_TABLE);
-  if (!ok) {
-    lua_pushstring(L, "thread table not exist");
-    lua_error(L);
-  }
+  lbind_checkmetatable(L, LRK_THREAD_TABLE,
+                       "thread table not exist");
   lua_pushstring(L, k);
   lua_pushnil(L);
   lua_settable(L, -3);
@@ -258,11 +256,8 @@ static int
 lcf_ref_lcode_chunk(lua_State *L) {
   const char *filename = lua_tostring(L, -1);
 
-  int ok = luaL_getmetatable(L, LRK_LCODE_CHUNK_TABLE);
-  if (!ok) {
-    lua_pushstring(L, "lcode chunk table not exist");
-    lua_error(L);
-  }
+  lbind_checkmetatable(L, LRK_LCODE_CHUNK_TABLE,
+                       "lcode chunk table not exist");
   lua_pushstring(L, filename);
   luaL_loadfile(L, filename);
   lua_settable(L, -3);
@@ -277,6 +272,63 @@ lbind_ref_lcode_chunk(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_ref_lcode_chunk);
   lua_pushstring(L, filename);
   int ret = lua_pcall(L, 1, 0, 0);
+
+  if (ret == LUA_OK) {
+    return 0;
+  } else {
+    lb_pop_error_msg(L);
+    return 1;
+  }
+}
+
+
+// [-1, +0, e]
+static int
+lcf_unref_lcode_chunk(lua_State *L) {
+  const char *filename = lua_tostring(L, -1);
+  lua_pushstring(L, filename);
+  lua_pushnil(L);
+  lua_settable(L, -3);
+
+  return 0;
+}
+
+
+// [-0, +0, -]
+int
+lbind_unref_lcode_chunk(lua_State *L, const char *filename) {
+  lua_pushcfunction(L, lcf_unref_lcode_chunk);
+  lua_pushstring(L, filename);
+  int ret = lua_pcall(L, 1, 0, 0);
+
+  if (ret == LUA_OK) {
+    return 0;
+  } else {
+    lb_pop_error_msg(L);
+    return 1;
+  }
+}
+
+
+// [-1, +1, e]
+static int
+lcf_get_lcode_chunk(lua_State *L) {
+  const char *filename = lua_tostring(L, -1);
+  lbind_checkmetatable(L, LRK_LCODE_CHUNK_TABLE,
+                       "lcode chunk table not exist");
+  lua_pushstring(L, filename);
+  lua_gettable(L, -2);
+
+  return 1;
+}
+
+
+// [-0, +1, -]
+int
+lbind_get_lcode_chunk(lua_State *L, const char *filename) {
+  lua_pushcfunction(L, lcf_get_lcode_chunk);
+  lua_pushstring(L, filename);
+  int ret = lua_pcall(L, 1, 1, 0);
 
   if (ret == LUA_OK) {
     return 0;
