@@ -13,24 +13,21 @@
     }
 
 
-// [-1, +1, e]
+// [-1, +0, e]
 static int
 lcf_dofile(lua_State *L) {
   const char *filename = (const char *)lua_touserdata(L, -1);
+
   int ret = luaL_loadfile(L, filename);
-
   if (ret != LUA_OK) {
-    lb_pop_error_msg(L);
-    lua_pushinteger(L, ret);
-    return 1;
+    lua_error(L);
   }
-
   ret = lua_pcall(L, 0, 0, 0);
   if (ret != LUA_OK) {
-    lb_pop_error_msg(L);
+    lua_error(L);
   }
-  lua_pushinteger(L, ret);
-  return 1;
+
+  return 0;
 }
 
 
@@ -39,16 +36,12 @@ int
 lbind_dofile(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_dofile);
   lua_pushlightuserdata(L, (void *)filename);
-  int ret = lua_pcall(L, 1, 1, 0);
 
-  if (ret == LUA_OK) {
-    int r = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-    return r;
-  } else {
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return ret;
   }
+  return ret;
 }
 
 
@@ -81,14 +74,12 @@ int
 lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp) {
   lua_pushcfunction(L, lcf_init_state);
   lua_pushlightuserdata(L, (void *)mp);
-  int ret = lua_pcall(L, 1, 0, 0);
 
-  if (ret == LUA_OK) {
-    return 0;
-  } else {
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return 1;
   }
+  return ret;
 }
 
 
@@ -128,8 +119,8 @@ lbind_new_state(as_mem_pool_fixed_t *mp) {
 // [-2, +0, e]
 static int
 lcf_append_lua_package_field(lua_State *L) {
-  const char *f = lua_tostring(L, -2);
-  const char *path = lua_tostring(L, -1);
+  const char *f = (const char *)lua_touserdata(L, 1);
+  const char *path = (const char *)lua_touserdata(L, 2);
   if (path == NULL) {
     lua_pushstring(L, "path is NULL");
     lua_error(L);
@@ -158,16 +149,14 @@ int
 lbind_append_lua_package_field(lua_State *L, const char *field,
                                const char *path) {
   lua_pushcfunction(L, lcf_append_lua_package_field);
-  lua_pushstring(L, field);
-  lua_pushstring(L, path);
-  int ret = lua_pcall(L, 2, 0, 0);
+  lua_pushlightuserdata(L, (void *)field);
+  lua_pushlightuserdata(L, (void *)path);
 
-  if (ret == LUA_OK) {
-    return 0;
-  } else {
+  int ret = lua_pcall(L, 2, 0, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return 1;
   }
+  return ret;
 }
 
 
@@ -206,8 +195,8 @@ lua_State *
 lbind_new_fd_lthread(lua_State *L, int fd) {
   lua_pushcfunction(L, lcf_new_fd_lthread);
   lua_pushinteger(L, fd);
-  int ret = lua_pcall(L, 1, 1, 0);
 
+  int ret = lua_pcall(L, 1, 1, 0);
   if (ret == LUA_OK) {
     lua_State *T = lua_tothread(L, -1);
     lua_pop(L, 1);
@@ -240,21 +229,19 @@ int
 lbind_free_fd_lthread(lua_State *L, int fd) {
   lua_pushcfunction(L, lcf_free_fd_lthread);
   lua_pushinteger(L, fd);
-  int ret = lua_pcall(L, 1, 0, 0);
 
-  if (ret == LUA_OK) {
-    return 0;
-  } else {
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return 1;
   }
+  return ret;
 }
 
 
 // [-1, +0, e]
 static int
 lcf_ref_lcode_chunk(lua_State *L) {
-  const char *filename = lua_tostring(L, -1);
+  const char *filename = (const char *)lua_touserdata(L, -1);
 
   lbind_checkmetatable(L, LRK_LCODE_CHUNK_TABLE,
                        "lcode chunk table not exist");
@@ -270,22 +257,20 @@ lcf_ref_lcode_chunk(lua_State *L) {
 int
 lbind_ref_lcode_chunk(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_ref_lcode_chunk);
-  lua_pushstring(L, filename);
-  int ret = lua_pcall(L, 1, 0, 0);
+  lua_pushlightuserdata(L, (void *)filename);
 
-  if (ret == LUA_OK) {
-    return 0;
-  } else {
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return 1;
   }
+  return ret;
 }
 
 
 // [-1, +0, e]
 static int
 lcf_unref_lcode_chunk(lua_State *L) {
-  const char *filename = lua_tostring(L, -1);
+  const char *filename = (const char *)lua_touserdata(L, -1);
   lua_pushstring(L, filename);
   lua_pushnil(L);
   lua_settable(L, -3);
@@ -298,22 +283,20 @@ lcf_unref_lcode_chunk(lua_State *L) {
 int
 lbind_unref_lcode_chunk(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_unref_lcode_chunk);
-  lua_pushstring(L, filename);
-  int ret = lua_pcall(L, 1, 0, 0);
+  lua_pushlightuserdata(L, (void *)filename);
 
-  if (ret == LUA_OK) {
-    return 0;
-  } else {
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return 1;
   }
+  return ret;
 }
 
 
 // [-1, +1, e]
 static int
 lcf_get_lcode_chunk(lua_State *L) {
-  const char *filename = lua_tostring(L, -1);
+  const char *filename = (const char *)lua_touserdata(L, -1);
   lbind_checkmetatable(L, LRK_LCODE_CHUNK_TABLE,
                        "lcode chunk table not exist");
   lua_pushstring(L, filename);
@@ -327,13 +310,11 @@ lcf_get_lcode_chunk(lua_State *L) {
 int
 lbind_get_lcode_chunk(lua_State *L, const char *filename) {
   lua_pushcfunction(L, lcf_get_lcode_chunk);
-  lua_pushstring(L, filename);
-  int ret = lua_pcall(L, 1, 1, 0);
+  lua_pushlightuserdata(L, (void *)filename);
 
-  if (ret == LUA_OK) {
-    return 0;
-  } else {
+  int ret = lua_pcall(L, 1, 1, 0);
+  if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-    return 1;
   }
+  return ret;
 }

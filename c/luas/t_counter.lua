@@ -8,3 +8,7 @@ print(c)
 
 local tsock = tsocket.get()
 print(tsock)
+n, s, err = tsock:read(10)
+print(n, s, err)
+
+return 99

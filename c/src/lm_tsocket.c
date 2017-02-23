@@ -1,5 +1,6 @@
 #include <lua.h>
 #include <lauxlib.h>
+#include <sys/socket.h>
 #include "utils.h"
 #include "lua_utils.h"
 #include "mem_pool.h"
@@ -41,8 +42,56 @@ lcf_tsocket_tostring(lua_State *L) {
 }
 
 
+// [-1, +3, e]
+static int
+lcf_tsocket_read(lua_State *L) {
+  as_lm_tsocket_t *tsocket = (as_lm_tsocket_t *)luaL_checkudata(
+      L, 1, LM_TSOCKET);
+  int n = luaL_checkinteger(L, 2);
+  if (n == 0) {
+    n = 1024;
+  }
+
+  char *buf = (char *)lua_newuserdata(L, n);
+  int nbyte = read(tsocket->fd, buf, n);
+  if (nbyte < 0) {
+    lua_pushinteger(L, 0);
+    lua_pushnil(L);
+    lua_pushinteger(L, errno);
+  } else {
+    lua_pushinteger(L, nbyte);
+    lua_pushlstring(L, buf, nbyte);
+    lua_pushnil(L);
+  }
+
+  return 3;
+}
+
+
+// [-1, +2, e]
+static int
+lcf_tsocket_send(lua_State *L) {
+  size_t len;
+  as_lm_tsocket_t *tsocket = (as_lm_tsocket_t *)luaL_checkudata(
+      L, 1, LM_TSOCKET);
+  const char *buf = lua_tolstring(L, 2, &len);
+  int nbyte = send(tsocket->fd, buf, len, MSG_NOSIGNAL);
+  if (nbyte < 0) {
+    lua_pushinteger(L, 0);
+    lua_pushinteger(L, errno);
+  } else {
+    lua_pushinteger(L, nbyte);
+    lua_pushnil(L);
+  }
+
+  return 2;
+}
+
+
 static const struct luaL_Reg
 as_lm_tsocket_methods[] = {
+  {"read", lcf_tsocket_read},
+  {"send", lcf_tsocket_send},
   {"__tostring", lcf_tsocket_tostring},
   {NULL, NULL},
 };

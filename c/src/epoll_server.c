@@ -3,10 +3,14 @@
 #include "wrap_conn.h"
 #include "lua_bind.h"
 #include "lua_output.h"
+#include "lua_utils.h"
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include "epoll_server.h"
 #include <signal.h>
+
+
+#define SOCKET_LUA_FILE "luas/t_socket.lua"
 
 
 static volatile int keep_running = 1;
@@ -16,29 +20,47 @@ init_handler(int dummy) {
 }
 
 
+// static void
+// process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
+//                 as_mem_pool_fixed_t *mem_pool, lua_State *L) {
+//   as_bytes_t buf;
+//   bytes_init(&buf, mem_pool);
+//   int n = bytes_read_from_fd(&buf, wc->fd);
+//   // int n = simple_read_from_client(wc->fd);
+//   if (n <= 0) {
+//     close_wrap_conn(L, conn_pool, wc);
+//   } else {
+//     rb_conn_pool_update_conn_ut(conn_pool, wc);
+//     send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
+//
+//     // loutput_redis_ok(L, wc->fd);
+//
+//     // as_bytes_t buf = NULL_AS_BYTES;
+//     // bytes_append(&buf, "1234", 4, mem_pool);
+//     // bytes_append(&buf, "abcde", 5, mem_pool);
+//     // bytes_write_to_fd(wc->fd, &buf, buf.used);
+//     // bytes_destroy(&buf);
+//   }
+//   // bytes_print(&buf);
+//   bytes_destroy(&buf);
+// }
+
+
 static void
 process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
                 as_mem_pool_fixed_t *mem_pool, lua_State *L) {
-  as_bytes_t buf;
-  bytes_init(&buf, mem_pool);
-  int n = bytes_read_from_fd(&buf, wc->fd);
-  // int n = simple_read_from_client(wc->fd);
-  if (n <= 0) {
+  int n = lua_gettop(wc->T);
+  lbind_get_lcode_chunk(wc->T, SOCKET_LUA_FILE);
+  int ret = lua_pcall(wc->T, 0, LUA_MULTRET, 0);
+  if (ret != LUA_OK){
+    lb_pop_error_msg(wc->T);
+    close_wrap_conn(L, conn_pool, wc);
+  } else if (lua_gettop(wc->T) != n && lua_tointeger(wc->T, -1) == -1) {
     close_wrap_conn(L, conn_pool, wc);
   } else {
+    lua_settop(wc->T, 0);
     rb_conn_pool_update_conn_ut(conn_pool, wc);
-    send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
-
-    // loutput_redis_ok(L, wc->fd);
-
-    // as_bytes_t buf = NULL_AS_BYTES;
-    // bytes_append(&buf, "1234", 4, mem_pool);
-    // bytes_append(&buf, "abcde", 5, mem_pool);
-    // bytes_write_to_fd(wc->fd, &buf, buf.used);
-    // bytes_destroy(&buf);
   }
-  // bytes_print(&buf);
-  bytes_destroy(&buf);
 }
 
 
@@ -112,6 +134,8 @@ epoll_server2(int fd) {
 
   lua_State *L = lbind_new_state(mem_pool);
   lbind_init_state(L, mem_pool);
+  lbind_append_lua_cpath(L, "./bin/?.so");
+  lbind_ref_lcode_chunk(L, SOCKET_LUA_FILE);
 
   as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
   int active_cnt;

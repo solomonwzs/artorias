@@ -141,7 +141,11 @@ luas_test() {
   // if (ret != LUA_OK) {
   //   lb_pop_error_msg(T);
   // }
-  lbind_get_lcode_chunk(T, lfilename) || lua_pcall(T, 0, LUA_MULTRET, 0);
+  lbind_get_lcode_chunk(T, lfilename);
+  debug_log("%d\n", lua_gettop(T));
+  lua_pcall(T, 0, LUA_MULTRET, 0);
+  debug_log("%d\n", lua_gettop(T));
+  debug_log("%lld\n", lua_tointeger(T, -1));
 
   lua_pushstring(L, "kk");
   lua_pushinteger(L, 11);
@@ -170,10 +174,10 @@ main(int argc, char **argv) {
 
   // lua_pconf_test();
   // mem_pool_test();
-  // server_test(cnf);
+  server_test(cnf);
   // rb_tree_test();
   // bytes_test();
-  luas_test();
+  // luas_test();
 
   lpconf_destroy(cnf);
   return 0;
