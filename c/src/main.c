@@ -53,7 +53,7 @@ server_test(as_lua_pconf_t *cnf) {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  epoll_server2(sock);
+  epoll_server(sock);
   // master_workers_server(sock, 2);
 }
 

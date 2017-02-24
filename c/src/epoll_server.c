@@ -66,6 +66,8 @@ process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
 
 void
 epoll_server(int fd) {
+  signal(SIGINT, init_handler);
+
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
 
@@ -80,13 +82,14 @@ epoll_server(int fd) {
   int infd;
   struct epoll_event event;
   int n;
-  while (1) {
+  while (keep_running) {
     active_cnt = epoll_wait(epfd, events, 100, 1000);
-    debug_log("%d\n", active_cnt);
     for (i = 0; i < active_cnt; ++i) {
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
-          !(events[i].events & EPOLLIN)) {
-        debug_perror("epoll_wait");
+          !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+          debug_perror("epoll_wait");
+        }
         close(events[i].data.fd);
       } else if (events[i].data.fd == fd) {
         while (1) {
@@ -100,6 +103,8 @@ epoll_server(int fd) {
             }
           }
           set_non_block(infd);
+          set_socket_send_buffer_size(infd, 2048);
+
           event.data.fd = infd;
           event.events = EPOLLIN | EPOLLET;
           epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
@@ -110,8 +115,30 @@ epoll_server(int fd) {
         if (n <= 0) {
           close(infd);
         } else {
-          send(infd, "+OK\r\n", 5, MSG_NOSIGNAL);
+          event.data.fd = infd;
+          event.events = events[i].events | EPOLLOUT;
+          epoll_ctl(epfd, EPOLL_CTL_MOD, infd, &event);
         }
+      } else if (events[i].events & EPOLLOUT) {
+        infd = events[i].data.fd;
+        char msg[5000];
+        memset(msg, 'a', 5000);
+        msg[0] = '+';
+        msg[4997] = '-';
+        msg[4998] = '\r';
+        msg[4999] = '\n';
+
+        n = simple_write_to_client(infd, msg, 5000);
+        debug_log("%d\n", n);
+        if (n <= 0) {
+          close(infd);
+        } else {
+          event.data.fd = infd;
+          event.events = EPOLLIN | EPOLLET;
+          epoll_ctl(epfd, EPOLL_CTL_MOD, infd, &event);
+        }
+      } else{
+        debug_log("%d\n", events[i].events);
       }
     }
   }

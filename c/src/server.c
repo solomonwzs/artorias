@@ -68,13 +68,35 @@ simple_read_from_client(int fd) {
     } else if (nbyte == 0) {
       return 0;
     } else {
-      buffer[nbyte] = '\0';
+      // buffer[nbyte] = '\0';
       // debug_log("Server: got message: len: %d, '%s'\n", nbyte, buffer);
       n += nbyte;
     }
   } while (nbyte > 0);
   return 0;
   // return read(fd, buffer, MAXLEN);
+}
+
+
+int
+simple_write_to_client(int fd, const char *buf, size_t len) {
+  int i = 0;
+  while (i < len) {
+    int n = send(fd, buf + i, len - i, MSG_NOSIGNAL);
+    if (n < 0) {
+      if (errno == EAGAIN) {
+        return i;
+      } else {
+        debug_perror("send");
+        return -1;
+      }
+    } else if (n == 0) {
+      return i;
+    } else {
+      i += n;
+    }
+  }
+  return len;
 }
 
 
@@ -151,4 +173,18 @@ recv_fd_from_socket(int socket) {
   int fd = *((int *)data);
 
   return fd;
+}
+
+
+int
+set_socket_send_buffer_size(int fd, int snd_size) {
+  int sendbuff = snd_size;
+  if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sendbuff,
+                 sizeof(sendbuff)) == -1) {
+    debug_perror("setsockopt");
+    return -1;
+  }
+  socklen_t optlen = sizeof(sendbuff);
+  getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sendbuff, &optlen);
+  return sendbuff;
 }
