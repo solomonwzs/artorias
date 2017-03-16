@@ -17,15 +17,23 @@ rb_conn_init(lua_State *L, as_rb_conn_t *c, int fd) {
   } else {
     c->T = NULL;
   }
+
+  c->w_write = NULL;
+  c->w_free = NULL;
+  c->w_data = NULL;
+
   return 0;
 }
 
 
 int
-rb_conn_close(lua_State *L, as_rb_conn_t *c) {
+rb_conn_close(as_rb_conn_t *c) {
   close(c->fd);
-  if (L != NULL && c->T != NULL) {
-    lbind_free_fd_lthread(L, c->fd);
+  if (c->T != NULL) {
+    lbind_free_fd_lthread(c->T, c->fd);
+  }
+  if (c->w_data != NULL && c->w_free != NULL) {
+    c->w_free(c->w_data);
   }
   return 0;
 }

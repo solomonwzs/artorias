@@ -54,9 +54,9 @@ process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
   int ret = lua_pcall(wc->T, 0, LUA_MULTRET, 0);
   if (ret != LUA_OK){
     lb_pop_error_msg(wc->T);
-    close_wrap_conn(L, conn_pool, wc);
+    close_wrap_conn(conn_pool, wc);
   } else if (lua_gettop(wc->T) != n && lua_tointeger(wc->T, -1) == -1) {
-    close_wrap_conn(L, conn_pool, wc);
+    close_wrap_conn(conn_pool, wc);
   } else {
     lua_settop(wc->T, 0);
     rb_conn_pool_update_conn_ut(conn_pool, wc);
@@ -177,14 +177,14 @@ epoll_server2(int fd) {
       wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR ||
           events[i].events & EPOLLHUP ||
-          !(events[i].events & EPOLLIN)) {
+          !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
           debug_perror("epoll_wait");
         }
         if (wc->fd == fd) {
           close(wc->fd);
         } else {
-          close_wrap_conn(L, &conn_pool, wc);
+          close_wrap_conn(&conn_pool, wc);
         }
       } else if (wc->fd == fd) {
         while (1) {
@@ -206,6 +206,7 @@ epoll_server2(int fd) {
         }
       } else if (events[i].events & EPOLLIN) {
         process_in_data(wc, &conn_pool, mem_pool, L);
+      } else if (events[i].events & EPOLLOUT) {
       }
     }
     as_rb_tree_t ot;

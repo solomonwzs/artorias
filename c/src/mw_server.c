@@ -1,12 +1,10 @@
 #include "server.h"
 #include "mem_pool.h"
 #include "wrap_conn.h"
-#include "epoll_server.h"
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include "mw_server.h"
-
-#define CONN_TIMEOUT 5
+#include "mw_worker.h"
 
 
 static void
@@ -53,79 +51,29 @@ master_process(int socket, int *child_sockets, int n) {
 }
 
 
-static void
-worker_process(int channel_fd) {
-  size_t fixed_size[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512,
-    768, 1024};
-  as_mem_pool_fixed_t *mem_pool = mpf_new(
-      fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
-
-  int epfd = epoll_create(1);
-  struct epoll_event listen_event;
-  as_rb_conn_t cfd_conn;
-
-  cfd_conn.fd = channel_fd;
-  add_wrap_conn_event(&cfd_conn, listen_event, epfd);
-
-  as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
-  int active_cnt;
-  int i;
-  struct epoll_event events[100];
-  int infd;
-  struct epoll_event event;
-  int n;
-  as_rb_conn_t *wc;
-  while (1) {
-    active_cnt = epoll_wait(epfd, events, 100, 1*1000);
-    for (i = 0; i < active_cnt; ++i) {
-      wc = (as_rb_conn_t *)events[i].data.ptr;
-      if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
-          !(events[i].events & EPOLLIN)) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-          debug_perror("epoll_wait");
-        }
-        if (wc->fd == channel_fd) {
-          close(wc->fd);
-        } else {
-          close_wrap_conn(NULL, &conn_pool, wc);
-        }
-      } else if (wc->fd == channel_fd) {
-        while (1) {
-          infd = recv_fd_from_socket(channel_fd);
-          if (infd == -1) {
-            break;
-          }
-
-          as_rb_conn_t *nwc = mpf_alloc(mem_pool, sizeof(as_rb_conn_t));
-          rb_conn_init(NULL, nwc, infd);
-          rb_conn_pool_insert(&conn_pool, nwc);
-          add_wrap_conn_event(nwc, event, epfd);
-        }
-      } else if (events[i].events & EPOLLIN) {
-        n = simple_read_from_client(wc->fd);
-        if (n <= 0) {
-          close_wrap_conn(NULL, &conn_pool, wc);
-        } else {
-          rb_conn_pool_update_conn_ut(&conn_pool, wc);
-          write(wc->fd, "+OK\r\n", 5);
-        }
-      }
-    }
-    as_rb_tree_t ot;
-    ot.root = rb_conn_remove_timeout_conn(&conn_pool, CONN_TIMEOUT);
-    rb_tree_postorder_travel(&ot, recycle_conn);
-  }
-  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
-  mpf_destroy(mem_pool);
-}
-
-
 void
-master_workers_server(int fd, int n) {
+master_workers_server(as_lua_pconf_t *cnf) {
   int child;
   int sockets[2];
   int *child_sockets;
   int channel_fd;
+  int port;
+  int n;
+  int fd;
+  as_cnf_return_t ret;
+
+  ret = lpconf_get_pconf_value(cnf, 1, "tcp_port");
+  port = ret.val.i;
+
+  ret = lpconf_get_pconf_value(cnf, 1, "n_workers");
+  n = ret.val.i;
+
+  fd = make_socket(port);
+  set_non_block(fd);
+  if (listen(fd, 500) < 0) {
+    perror("listen");
+    exit(EXIT_FAILURE);
+  }
 
   child_sockets = (int *)as_malloc(sizeof(int) * n);
   int i;
@@ -150,13 +98,23 @@ master_workers_server(int fd, int n) {
     }
   }
 
+  void (*wp)(int, as_lua_pconf_t *);
+  ret = lpconf_get_pconf_value(cnf, 1, "worker_type");
+  int worker_type = ret.val.i;
+  switch (worker_type) {
+    case 1:
+      wp = worker_process1;
+    default:
+      wp = worker_process0;
+  }
+
   if (child) {
     master_process(fd, child_sockets, n);
   } else {
     for (i = 0; i < m; ++i) {
       close(child_sockets[i]);
     }
-    worker_process(channel_fd);
+    wp(channel_fd, cnf);
   }
 
   as_free(child_sockets);

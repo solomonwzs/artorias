@@ -42,6 +42,12 @@ bytes_test() {
 
 
 void
+mw_server_test(as_lua_pconf_t *cnf) {
+  master_workers_server(cnf);
+}
+
+
+void
 server_test(as_lua_pconf_t *cnf) {
   as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 1, "tcp_port");
 
@@ -53,7 +59,7 @@ server_test(as_lua_pconf_t *cnf) {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  epoll_server(sock);
+  epoll_server2(sock);
   // master_workers_server(sock, 2);
 }
 
@@ -174,7 +180,8 @@ main(int argc, char **argv) {
 
   // lua_pconf_test();
   // mem_pool_test();
-  server_test(cnf);
+  // server_test(cnf);
+  mw_server_test(cnf);
   // rb_tree_test();
   // bytes_test();
   // luas_test();
