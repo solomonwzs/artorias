@@ -78,6 +78,18 @@ master_workers_server(as_lua_pconf_t *cnf) {
   child_sockets = (int *)as_malloc(sizeof(int) * n);
   int i;
   int m = 0;
+
+  void (*wp)(int, as_lua_pconf_t *);
+  ret = lpconf_get_pconf_value(cnf, 1, "worker_type");
+  int worker_type = ret.val.i;
+  switch (worker_type) {
+    case 1:
+      wp = worker_process1;
+      break;
+    default:
+      wp = worker_process0;
+  }
+
   for (i = 0; i < n; ++i) {
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
       debug_perror("socketpair");
@@ -96,16 +108,6 @@ master_workers_server(as_lua_pconf_t *cnf) {
       channel_fd = sockets[0];
       break;
     }
-  }
-
-  void (*wp)(int, as_lua_pconf_t *);
-  ret = lpconf_get_pconf_value(cnf, 1, "worker_type");
-  int worker_type = ret.val.i;
-  switch (worker_type) {
-    case 1:
-      wp = worker_process1;
-    default:
-      wp = worker_process0;
   }
 
   if (child) {

@@ -3,8 +3,8 @@
 #include <sys/epoll.h>
 #include "server.h"
 
-#define get_cnf_int_val(_cnf_, _n_, _field_) ({\
-  as_cnf_return_t __ret = lpconf_get_pconf_value(_cnf_, _n_, _field_);\
+#define get_cnf_int_val(_cnf_, _n_, ...) ({\
+  as_cnf_return_t __ret = lpconf_get_pconf_value(_cnf_, _n_, ## __VA_ARGS__);\
   __ret.val.i;\
 })
 
@@ -20,33 +20,55 @@
   add_wrap_conn_event(&__cfd_conn, _epfd_);\
 } while(0)
 
-#define handle_error(_wc_, _cfd_, _cp_) do {\
-  if (errno != EAGAIN && errno != EWOULDBLOCK) {\
-    debug_perror("epoll_wait");\
-  }\
-  if ((_wc_)->fd == (_cfd_)) {\
-    close((_wc_)->fd);\
-  } else {\
-    close_wrap_conn(&(_cp_), _wc_);\
-  }\
-} while(0)
 
-#define handle_accept(_cfd_, _cp_, _mp_, _epfd_) while (1) {\
-  int __infd = recv_fd_from_socket(_cfd_);\
-  if (__infd == -1) {\
-    break;\
-  }\
-  as_rb_conn_t *__nwc = mpf_alloc(_mp_, sizeof(as_rb_conn_t));\
-  rb_conn_init(NULL, __nwc, __infd);\
-  rb_conn_pool_insert(&(_cp_), __nwc);\
-  add_wrap_conn_event(__nwc, _epfd_);\
+static inline void
+handler_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
+  if (errno != EAGAIN && errno != EWOULDBLOCK) {
+    debug_perror("epoll_wait");
+  }
+  if (wc->fd == channel_fd) {
+    close(wc->fd);
+  } else {
+    close_wrap_conn(cp, wc);
+  }
 }
 
-#define remove_time_out_conn(_cp_, _tsecs_) do {\
-  as_rb_tree_t __ot;\
-  __ot.root = rb_conn_remove_timeout_conn(&(_cp_), _tsecs_);\
-  rb_tree_postorder_travel(&__ot, recycle_conn);\
-} while(0)
+
+static inline void
+handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
+               int epfd) {
+  while (1) {
+    int infd = recv_fd_from_socket(channel_fd);
+    if (infd == -1) {
+      break;
+    }
+
+    as_rb_conn_t *new_wc = mpf_alloc(mp, sizeof(as_rb_conn_t));
+    rb_conn_init(new_wc, infd, NULL);
+    rb_conn_pool_insert(cp, new_wc);
+    add_wrap_conn_event(new_wc, epfd);
+  }
+}
+
+
+static inline void
+handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *cp) {
+  int n = simple_read_from_client(wc->fd);
+  if (n <= 0) {
+    close_wrap_conn(cp, wc);
+  } else {
+    rb_conn_pool_update_conn_ut(cp, wc);
+    write(wc->fd, "+OK\r\n", 5);
+  }
+}
+
+
+static inline void
+remove_time_out_conn(as_rb_conn_pool_t *cp, int timeout) {
+  as_rb_tree_t ot;
+  ot.root = rb_conn_remove_timeout_conn(cp, timeout);
+  rb_tree_postorder_travel(&ot, recycle_conn);
+}
 
 
 void
@@ -66,20 +88,14 @@ worker_process0(int channel_fd, as_lua_pconf_t *cnf) {
       as_rb_conn_t *wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
-        handle_error(wc, channel_fd, conn_pool);
+        handler_error(wc, channel_fd, &conn_pool);
       } else if (wc->fd == channel_fd) {
-        handle_accept(channel_fd, conn_pool, mem_pool, epfd);
+        handler_accept(channel_fd, &conn_pool, mem_pool, epfd);
       } else if (events[i].events & EPOLLIN) {
-        int n = simple_read_from_client(wc->fd);
-        if (n <= 0) {
-          close_wrap_conn(&conn_pool, wc);
-        } else {
-          rb_conn_pool_update_conn_ut(&conn_pool, wc);
-          write(wc->fd, "+OK\r\n", 5);
-        }
+        handler_read(wc, &conn_pool);
       }
     }
-    remove_time_out_conn(conn_pool, conn_timeout);
+    remove_time_out_conn(&conn_pool, conn_timeout);
   }
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
   mpf_destroy(mem_pool);

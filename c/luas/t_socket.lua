@@ -1,20 +1,18 @@
 local tsocket = require("lm_tsocket")
-local math = require("math")
 
-local tsock = tsocket.get()
-local r = math.random(0, 1)
+coroutine.yield()
 
-if r == 0 then
+while true do
+    local tsock = tsocket.get()
     local n, s, err = tsock:read(1024)
     if err ~= nil then
         return -1
     end
-    print("===")
-    print(s)
-end
 
-local r = "+OK\r\n"
-n, err = tsock:send(r, #r)
-if err ~= nil then
-    return -1
+    local r = "+OK\r\n"
+    n, err = tsock:send(r, #r)
+    if err ~= nil then
+        return -1
+    end
+    coroutine.yield()
 end

@@ -42,7 +42,7 @@ typedef struct {
 } while (0)\
 
 extern int
-rb_conn_init(lua_State *L, as_rb_conn_t *wc, int fd);
+rb_conn_init(as_rb_conn_t *wc, int fd, lua_State *L);
 
 extern int
 rb_conn_close(as_rb_conn_t *wc);

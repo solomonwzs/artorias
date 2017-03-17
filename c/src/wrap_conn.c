@@ -9,7 +9,7 @@
 
 
 int
-rb_conn_init(lua_State *L, as_rb_conn_t *c, int fd) {
+rb_conn_init(as_rb_conn_t *c, int fd, lua_State *L) {
   c->fd = fd;
   c->utime = time(NULL);
   if (L != NULL) {

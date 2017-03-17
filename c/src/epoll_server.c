@@ -200,7 +200,7 @@ epoll_server2(int fd) {
 
           as_rb_conn_t *nwc = mpf_alloc(
               mem_pool, sizeof(as_rb_conn_t));
-          rb_conn_init(L, nwc, infd);
+          rb_conn_init(nwc, infd, L);
           rb_conn_pool_insert(&conn_pool, nwc);
           add_wrap_conn_event(nwc, event, epfd);
         }
