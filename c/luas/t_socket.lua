@@ -1,9 +1,9 @@
 local tsocket = require("lm_tsocket")
 
+local tsock = tsocket.get()
 coroutine.yield()
 
 while true do
-    local tsock = tsocket.get()
     local n, s, err = tsock:read(1024)
     if err ~= nil then
         return -1
