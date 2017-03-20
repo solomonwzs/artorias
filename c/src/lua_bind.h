@@ -38,4 +38,7 @@ lbind_get_lcode_chunk(lua_State *L, const char *filename);
 #define lbind_append_lua_path(_L_, _p_) \
     lbind_append_lua_package_field(_L_, "path", _p_);
 
+extern int
+lbind_reg_integer_value(lua_State *L, const char *field, int value);
+
 #endif

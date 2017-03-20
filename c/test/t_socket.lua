@@ -1,4 +1,4 @@
-local tsocket = require("lm_tsocket")
+local tsocket = require("artorias.socket.tsocket")
 
 local tsock = tsocket.get()
 coroutine.yield()

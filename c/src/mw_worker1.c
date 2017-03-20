@@ -33,10 +33,12 @@
   add_wrap_conn_event(&__cfd_conn, _epfd_);\
 } while (0)
 
-#define init_lua_state(_L_, _mp_, _cnf_) do {\
+#define init_lua_state(_L_, _mp_, _cnf_, _epfd_) do {\
   _L_ = lbind_new_state(_mp_);\
   lbind_init_state(_L_, _mp_);\
-  lbind_append_lua_cpath(_L_, get_cnf_str_val(_cnf_, 1, "cpath"));\
+  lbind_append_lua_cpath(_L_, get_cnf_str_val(_cnf_, 1, "lua_cpath"));\
+  lbind_append_lua_path(_L_, get_cnf_str_val(_cnf_, 1, "lua_path"));\
+  lbind_reg_integer_value(_L_, LRK_SERVER_EPFD, _epfd_);\
   lbind_ref_lcode_chunk(_L_, get_cnf_str_val(_cnf_, 1, WORKER_FILE_NAME));\
 } while (0)
 
@@ -68,13 +70,17 @@ handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
     lbind_get_lcode_chunk(new_wc->T, lfile);
     int ret = lua_resume(new_wc->T, NULL, 0);
-    if (ret != LUA_YIELD) {
+    if (ret == LUA_OK) {
       debug_log("close: %d\n", new_wc->fd);
       rb_conn_close(new_wc);
       mpf_recycle(new_wc);
-    } else {
+    } else if (ret == LUA_YIELD) {
       rb_conn_pool_insert(cp, new_wc);
       add_wrap_conn_event(new_wc, epfd);
+    } else {
+      lb_pop_error_msg(new_wc->T);
+      rb_conn_close(new_wc);
+      mpf_recycle(new_wc);
     }
   }
 }
@@ -114,7 +120,7 @@ worker_process1(int channel_fd, as_lua_pconf_t *cnf) {
 
   init_mem_pool(mem_pool);
   init_epfd(epfd, channel_fd);
-  init_lua_state(L, mem_pool, cnf);
+  init_lua_state(L, mem_pool, cnf, epfd);
 
   while (1) {
     int active_cnt = epoll_wait(epfd, events, 100, 1*1000);

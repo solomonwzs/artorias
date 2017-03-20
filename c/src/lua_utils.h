@@ -11,6 +11,7 @@
 #define LRK_THREAD_TABLE            "as_lrk_001"
 #define LRK_THREAD_LOCAL_VAR_TABLE  "as_lrk_002"
 #define LRK_LCODE_CHUNK_TABLE       "as_lrk_003"
+#define LRK_SERVER_EPFD             "as_lrk_004"
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\
