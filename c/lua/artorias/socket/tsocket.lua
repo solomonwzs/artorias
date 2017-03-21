@@ -6,14 +6,40 @@ local _tsocket = {}
 
 
 function _tsocket:new()
-    local obj = {_socket=tsocket.get()}
+    local sock = tsocket.get()
+    local obj = {_socket=sock}
     self.__index = self
     return setmetatable(obj, self)
 end
 
 
-function _tsocket:read(size)
-    return self._socket:read(size)
+function _tsocket:ready_for_read()
+    return coroutine.yield(tsocket.WAIT_FOR_INPUT)
+end
+
+
+function _tsocket:read()
+    local nbyte = 0
+    local s = ""
+    local err = nil
+    local n, buf
+    repeat
+        n, buf, err = self._socket:read(1024)
+        if err == nil then
+            s = s .. buf
+            nbyte = nbyte + n
+        end
+    until err ~= nil or n == 0
+
+    if err == tsocket.EAGAIN and nbyte ~= 0 then
+        err = nil
+    elseif err == nil and nbyte == 0 then
+        err = "conn close"
+    else
+        err = "errno: " .. err
+    end
+
+    return nbyte, s, err
 end
 
 

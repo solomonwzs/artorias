@@ -7,10 +7,6 @@
 
 #define WORKER_FILE_NAME "worker"
 
-#define H_ACCEPT  0
-#define H_READ    1
-#define H_WRITE   2
-
 #define get_cnf_int_val(_cnf_, _n_, ...) ({\
   as_cnf_return_t __ret = lpconf_get_pconf_value(_cnf_, _n_, ## __VA_ARGS__);\
   __ret.val.i;\
@@ -67,36 +63,49 @@ handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
     as_rb_conn_t *new_wc = mpf_alloc(mp, sizeof(as_rb_conn_t));
     rb_conn_init(new_wc, infd, L);
+    lua_State *T = new_wc->T;
 
     lbind_get_lcode_chunk(new_wc->T, lfile);
-    int ret = lua_resume(new_wc->T, NULL, 0);
-    if (ret == LUA_OK) {
-      debug_log("close: %d\n", new_wc->fd);
-      rb_conn_close(new_wc);
-      mpf_recycle(new_wc);
-    } else if (ret == LUA_YIELD) {
-      rb_conn_pool_insert(cp, new_wc);
-      add_wrap_conn_event(new_wc, epfd);
-    } else {
-      lb_pop_error_msg(new_wc->T);
-      rb_conn_close(new_wc);
-      mpf_recycle(new_wc);
+    int n = lua_gettop(T);
+    int ret = lua_resume(T, NULL, 0);
+    if (ret == LUA_YIELD) {
+      int n_res = lua_gettop(T) - n + 1;
+      if (n_res == 1 && lua_isinteger(T, -1) &&
+          lua_tointeger(T, -1) == LAS_WAIT_FOR_INPUT) {
+        lua_pop(T, 1);
+        rb_conn_pool_insert(cp, new_wc);
+        add_wrap_conn_event(new_wc, epfd);
+        continue;
+      }
+    } else if (ret != LUA_OK) {
+      lb_pop_error_msg(T);
     }
+
+    debug_log("close: %d\n", new_wc->fd);
+    rb_conn_close(new_wc);
+    mpf_recycle(new_wc);
   }
 }
 
 
 static inline void
 handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool) {
-  int ret = lua_resume(wc->T, NULL, 0);
-  if (ret == LUA_OK) {
-    close_wrap_conn(conn_pool, wc);
-  } else if (ret == LUA_YIELD) {
-    rb_conn_pool_update_conn_ut(conn_pool, wc);
-  } else {
-    lb_pop_error_msg(wc->T);
-    close_wrap_conn(conn_pool, wc);
+  lua_State *T = wc->T;
+  lua_pushboolean(T, 1);
+  int n = lua_gettop(T);
+  int ret = lua_resume(T, NULL, 1);
+  if (ret == LUA_YIELD) {
+    int n_res = lua_gettop(T) - n + 1;
+    if (n_res == 1 && lua_isinteger(T, -1) &&
+        lua_tointeger(T, -1) == LAS_WAIT_FOR_INPUT) {
+      lua_pop(T, 1);
+      rb_conn_pool_update_conn_ut(conn_pool, wc);
+      return;
+    }
+  } else if (ret != LUA_OK) {
+    lb_pop_error_msg(T);
   }
+  close_wrap_conn(conn_pool, wc);
 }
 
 

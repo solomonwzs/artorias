@@ -1,18 +1,16 @@
 local tsocket = require("artorias.socket.tsocket")
 
 local tsock = tsocket.get()
-coroutine.yield()
 
-while true do
-    local n, s, err = tsock:read(1024)
+while tsock:ready_for_read() do
+    local n, s, err = tsock:read()
     if err ~= nil then
-        return -1
+        return
     end
 
     local r = "+OK\r\n"
     n, err = tsock:send(r, #r)
     if err ~= nil then
-        return -1
+        return
     end
-    coroutine.yield()
 end

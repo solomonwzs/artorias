@@ -13,6 +13,9 @@
 #define LRK_LCODE_CHUNK_TABLE       "as_lrk_003"
 #define LRK_SERVER_EPFD             "as_lrk_004"
 
+#define LAS_WAIT_FOR_INPUT    0x00
+#define LAS_WAIT_FOR_OUTPUT   0x01
+
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\
       debug_log("lua error stack trackback: %s\n", lua_tostring(_L_, -1));\
