@@ -7,6 +7,7 @@
 #include "bytes.h"
 #include "select_server.h"
 #include "mw_server.h"
+#include "mw_worker.h"
 #include "lua_utils.h"
 #include "lua_bind.h"
 #include "lua_pconf.h"
@@ -59,8 +60,10 @@ server_test(as_lua_pconf_t *cnf) {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  epoll_server2(sock);
+  // epoll_server2(sock);
+  test_worker_process1(sock, cnf);
   // master_workers_server(sock, 2);
+  close(sock);
 }
 
 
@@ -180,8 +183,8 @@ main(int argc, char **argv) {
 
   // lua_pconf_test();
   // mem_pool_test();
-  // server_test(cnf);
-  mw_server_test(cnf);
+  server_test(cnf);
+  // mw_server_test(cnf);
   // rb_tree_test();
   // bytes_test();
   // luas_test();

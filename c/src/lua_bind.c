@@ -132,10 +132,8 @@ lcf_append_lua_package_field(lua_State *L) {
 
   int clen = strlen(cur_path);
   int plen = strlen(path);
-  char *new_path = (char *)lua_newuserdata(L, clen + plen + 1);
-  memcpy(new_path, cur_path, clen);
-  new_path[clen] = ';';
-  memcpy(new_path + clen + 1, path, plen);
+  char *new_path = (char *)lua_newuserdata(L, clen + plen + 2);
+  sprintf(new_path, "%s;%s", cur_path, path);
   lua_pushstring(L, new_path);
 
   lua_setfield(L, -4, f);

@@ -31,7 +31,7 @@ function _tsocket:read()
         end
     until err ~= nil or n == 0
 
-    if err == tsocket.EAGAIN and nbyte ~= 0 then
+    if (err == tsocket.EAGAIN or err == nil) and nbyte ~= 0 then
         err = nil
     elseif err == nil and nbyte == 0 then
         err = "conn close"

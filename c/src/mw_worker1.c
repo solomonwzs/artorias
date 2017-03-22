@@ -1,6 +1,7 @@
 #include "mw_worker.h"
 #include "mem_pool.h"
 #include <sys/epoll.h>
+#include <signal.h>
 #include "server.h"
 #include "lua_bind.h"
 #include "lua_utils.h"
@@ -18,7 +19,7 @@
 })
 
 #define init_mem_pool(_mp_) do {\
-  size_t __fs[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1024};\
+  size_t __fs[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1064};\
   (_mp_) = mpf_new(__fs, sizeof(__fs) / sizeof(__fs[0]));\
 } while (0)
 
@@ -39,12 +40,19 @@
 } while (0)
 
 
+static volatile int keep_running = 1;
+static void
+init_handler(int dummy) {
+  keep_running = 0;
+}
+
+
 static inline void
-handler_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
+handler_error(as_rb_conn_t *wc, int fd, as_rb_conn_pool_t *cp) {
   if (errno != EAGAIN && errno != EWOULDBLOCK) {
     debug_perror("epoll_wait");
   }
-  if (wc->fd == channel_fd) {
+  if (wc->fd == fd) {
     close(wc->fd);
   } else {
     close_wrap_conn(cp, wc);
@@ -53,10 +61,17 @@ handler_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
 
 
 static inline void
-handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
-               int epfd, lua_State *L, const char *lfile) {
+handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
+               int epfd, lua_State *L, const char *lfile, int single_mode) {
+  int (*new_fd_func)(int);
+  if (single_mode) {
+    new_fd_func = new_accept_fd;
+  } else {
+    new_fd_func = recv_fd_from_socket;
+  }
+
   while (1) {
-    int infd = recv_fd_from_socket(channel_fd);
+    int infd = new_fd_func(fd);
     if (infd == -1) {
       break;
     }
@@ -117,8 +132,12 @@ remove_time_out_conn(as_rb_conn_pool_t *cp, int timeout) {
 }
 
 
-void
-worker_process1(int channel_fd, as_lua_pconf_t *cnf) {
+static void
+process(int fd, as_lua_pconf_t *cnf, int single_mode) {
+  if (single_mode) {
+    signal(SIGINT, init_handler);
+  }
+
   as_mem_pool_fixed_t *mem_pool;
   int epfd;
   as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
@@ -128,24 +147,36 @@ worker_process1(int channel_fd, as_lua_pconf_t *cnf) {
   const char *lfile = get_cnf_str_val(cnf, 1, WORKER_FILE_NAME);
 
   init_mem_pool(mem_pool);
-  init_epfd(epfd, channel_fd);
+  init_epfd(epfd, fd);
   init_lua_state(L, mem_pool, cnf, epfd);
 
-  while (1) {
+  while (keep_running) {
     int active_cnt = epoll_wait(epfd, events, 100, 1*1000);
     for (int i = 0; i < active_cnt; ++i) {
       as_rb_conn_t *wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
-        handler_error(wc, channel_fd, &conn_pool);
-      } else if (wc->fd == channel_fd) {
-        handler_accept(channel_fd, &conn_pool, mem_pool, epfd, L, lfile);
+        handler_error(wc, fd, &conn_pool);
+      } else if (wc->fd == fd) {
+        handler_accept(fd, &conn_pool, mem_pool, epfd, L, lfile, single_mode);
       } else if (events[i].events & EPOLLIN) {
         handler_read(wc, &conn_pool);
       }
     }
     remove_time_out_conn(&conn_pool, conn_timeout);
   }
+  lua_close(L);
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
   mpf_destroy(mem_pool);
+}
+
+
+void
+worker_process1(int channel_fd, as_lua_pconf_t *cnf) {
+  process(channel_fd, cnf, 0);
+}
+
+void
+test_worker_process1(int fd, as_lua_pconf_t *cnf) {
+  process(fd, cnf, 1);
 }
