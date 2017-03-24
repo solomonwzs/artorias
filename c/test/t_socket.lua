@@ -9,7 +9,7 @@ while tsock:ready_for_read() do
     end
 
     local r = "+OK\r\n"
-    n, err = tsock:send(r, #r)
+    n, err = tsock:send(r)
     if err ~= nil then
         return
     end

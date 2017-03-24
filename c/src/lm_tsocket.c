@@ -118,6 +118,12 @@ luaopen_lm_tsocket(lua_State *L) {
   lua_pushinteger(L, LAS_WAIT_FOR_OUTPUT);
   lua_setfield(L, -2, "WAIT_FOR_OUTPUT");
 
+  lua_pushinteger(L, LAS_READY_TO_INPUT);
+  lua_setfield(L, -2, "READY_TO_INPUT");
+
+  lua_pushinteger(L, LAS_READY_TO_OUTPUT);
+  lua_setfield(L, -2, "READY_TO_OUTPUT");
+
   lua_pushinteger(L, EAGAIN);
   lua_setfield(L, -2, "EAGAIN");
 

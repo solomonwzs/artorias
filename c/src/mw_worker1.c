@@ -79,12 +79,13 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     as_rb_conn_t *new_wc = mpf_alloc(mp, sizeof(as_rb_conn_t));
     rb_conn_init(new_wc, infd, L);
     lua_State *T = new_wc->T;
+    int n = lua_gettop(T);
 
     lbind_get_lcode_chunk(new_wc->T, lfile);
-    int n = lua_gettop(T);
     int ret = lua_resume(T, NULL, 0);
+
     if (ret == LUA_YIELD) {
-      int n_res = lua_gettop(T) - n + 1;
+      int n_res = lua_gettop(T) - n;
       if (n_res == 1 && lua_isinteger(T, -1) &&
           lua_tointeger(T, -1) == LAS_WAIT_FOR_INPUT) {
         lua_pop(T, 1);
@@ -104,18 +105,67 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
 
 static inline void
-handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool) {
+handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
+             struct epoll_event *event) {
   lua_State *T = wc->T;
-  lua_pushboolean(T, 1);
   int n = lua_gettop(T);
+
+  lua_pushinteger(T, LAS_READY_TO_INPUT);
   int ret = lua_resume(T, NULL, 1);
+
   if (ret == LUA_YIELD) {
-    int n_res = lua_gettop(T) - n + 1;
-    if (n_res == 1 && lua_isinteger(T, -1) &&
-        lua_tointeger(T, -1) == LAS_WAIT_FOR_INPUT) {
+    int n_res = lua_gettop(T) - n;
+    if (n_res == 1 && lua_isinteger(T, -1)){
+      int status = lua_tointeger(T, -1);
       lua_pop(T, 1);
-      rb_conn_pool_update_conn_ut(conn_pool, wc);
-      return;
+      if (status == LAS_WAIT_FOR_INPUT) {
+        rb_conn_pool_update_conn_ut(conn_pool, wc);
+        return;
+      } else if (status == LAS_WAIT_FOR_OUTPUT) {
+        rb_conn_pool_update_conn_ut(conn_pool, wc);
+
+        struct epoll_event e;
+        e.data.fd = wc->fd;
+        e.events = event->events | EPOLLOUT;
+        epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
+
+        return;
+      }
+    }
+  } else if (ret != LUA_OK) {
+    lb_pop_error_msg(T);
+  }
+  close_wrap_conn(conn_pool, wc);
+}
+
+
+static inline void
+handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
+              struct epoll_event *event) {
+  lua_State *T = wc->T;
+  int n = lua_gettop(T);
+
+  lua_pushinteger(T, LAS_READY_TO_OUTPUT);
+  int ret = lua_resume(T, NULL, 1);
+
+  if (ret == LUA_YIELD) {
+    int n_res = lua_gettop(T) - n;
+    if (n_res == 1 && lua_isinteger(T, -1)) {
+      int status = lua_tointeger(T, -1);
+      lua_pop(T, 1);
+      if (status == LAS_WAIT_FOR_INPUT) {
+        rb_conn_pool_update_conn_ut(conn_pool, wc);
+
+        struct epoll_event e;
+        e.data.fd = wc->fd;
+        e.events = EPOLLIN | EPOLLET;
+        epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
+
+        return;
+      } else if (status == LAS_WAIT_FOR_OUTPUT) {
+        rb_conn_pool_update_conn_ut(conn_pool, wc);
+        return;
+      }
     }
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
@@ -155,12 +205,14 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
     for (int i = 0; i < active_cnt; ++i) {
       as_rb_conn_t *wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
-          !(events[i].events & EPOLLIN)) {
+          !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
         handler_error(wc, fd, &conn_pool);
       } else if (wc->fd == fd) {
         handler_accept(fd, &conn_pool, mem_pool, epfd, L, lfile, single_mode);
       } else if (events[i].events & EPOLLIN) {
-        handler_read(wc, &conn_pool);
+        handler_read(wc, &conn_pool, epfd, &events[i]);
+      } else if (events[i].events & EPOLLOUT) {
+        handler_write(wc, &conn_pool, epfd, &events[i]);
       }
     }
     remove_time_out_conn(&conn_pool, conn_timeout);

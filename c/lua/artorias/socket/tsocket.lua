@@ -3,6 +3,7 @@ local base = require("artorias.socket.base")
 
 
 local _tsocket = {}
+local sss = "hello"
 
 
 function _tsocket:new()
@@ -14,7 +15,8 @@ end
 
 
 function _tsocket:ready_for_read()
-    return coroutine.yield(tsocket.WAIT_FOR_INPUT)
+    local status = coroutine.yield(tsocket.WAIT_FOR_INPUT)
+    return status == tsocket.READY_TO_INPUT
 end
 
 
@@ -43,8 +45,25 @@ function _tsocket:read()
 end
 
 
-function _tsocket:send(buf, size)
-    return self._socket:send(buf, size)
+function _tsocket:send(buf)
+    local err = nil
+    local n = 0
+    local nbyte = 0
+    while err == nil and #buf > 0 do
+        n, err = self._socket:send(buf, #buf)
+        if err == nil then
+            nbyte = nbyte + n
+            buf = buf:sub(n + 1)
+        elseif err == tsocket.EAGAIN then
+            local status = coroutine.yield(tsocket.WAIT_FOR_OUTPUT)
+            if status ~= tsocket.READY_TO_OUTPUT then
+                return nbyte, "status error"
+            end
+        else
+            return nbyte, "errno: " .. err
+        end
+    end
+    return nbyte, nil
 end
 
 
