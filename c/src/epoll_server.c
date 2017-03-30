@@ -134,6 +134,7 @@ epoll_server(int fd) {
         infd = events[i].data.fd;
         n = simple_read_from_client(infd);
         if (n <= 0) {
+          debug_log("close: %d\n", infd);
           close(infd);
         } else {
           event.data.fd = infd;

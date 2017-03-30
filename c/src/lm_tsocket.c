@@ -1,5 +1,3 @@
-#include <lua.h>
-#include <lauxlib.h>
 #include <sys/socket.h>
 #include "utils.h"
 #include "lua_utils.h"

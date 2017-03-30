@@ -1,7 +1,7 @@
 #ifndef __LUA_PCONF__
 #define __LUA_PCONF__
 
-#include <lua.h>
+#include "lua_utils.h"
 
 #define LPCNF_TNONE     LUA_TNONE
 #define LPCNF_TNIL      LUA_TNIL

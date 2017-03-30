@@ -1,5 +1,3 @@
-#include <lua.h>
-#include <lauxlib.h>
 #include "lm_counter.h"
 #include "mem_pool.h"
 #include "lua_utils.h"

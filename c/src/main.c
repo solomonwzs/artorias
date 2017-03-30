@@ -14,8 +14,6 @@
 #include "epoll_server.h"
 #include <unistd.h>
 #include <sys/socket.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #define DEFAULT_CONF_FILE "conf/example.lua"
 
@@ -60,9 +58,8 @@ server_test(as_lua_pconf_t *cnf) {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  // epoll_server2(sock);
+  // epoll_server(sock);
   test_worker_process1(sock, cnf);
-  // master_workers_server(sock, 2);
   close(sock);
 }
 
@@ -175,7 +172,7 @@ main(int argc, char **argv) {
   if (argc >= 2) {
     cnf = lpconf_new(argv[1]);
   } else {
-      cnf = lpconf_new(DEFAULT_CONF_FILE);
+    cnf = lpconf_new(DEFAULT_CONF_FILE);
   }
   if (cnf == NULL) {
     exit(1);

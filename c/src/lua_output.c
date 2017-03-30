@@ -1,6 +1,4 @@
 #include <unistd.h>
-#include <lualib.h>
-#include <lauxlib.h>
 #include <sys/socket.h>
 #include "lua_utils.h"
 #include "lua_output.h"

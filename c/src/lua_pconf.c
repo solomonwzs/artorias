@@ -1,6 +1,4 @@
-#include <lauxlib.h>
 #include <stdarg.h>
-
 #include "lua_pconf.h"
 #include "lua_bind.h"
 #include "lua_utils.h"

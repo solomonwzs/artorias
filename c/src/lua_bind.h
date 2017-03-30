@@ -1,7 +1,7 @@
 #ifndef __LUA_BIND__
 #define __LUA_BIND__
 
-#include <lua.h>
+#include "lua_utils.h"
 #include "mem_pool.h"
 
 extern int

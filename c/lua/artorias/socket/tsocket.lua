@@ -45,6 +45,11 @@ function _tsocket:read()
 end
 
 
+function _tsocket:send0(buf)
+    return self._socket:send(buf, #buf)
+end
+
+
 function _tsocket:send(buf)
     local err = nil
     local n = 0
@@ -58,6 +63,8 @@ function _tsocket:send(buf)
             local status = coroutine.yield(tsocket.WAIT_FOR_OUTPUT)
             if status ~= tsocket.READY_TO_OUTPUT then
                 return nbyte, "status error"
+            else
+                err = nil
             end
         else
             return nbyte, "errno: " .. err

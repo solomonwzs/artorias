@@ -125,7 +125,7 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
         rb_conn_pool_update_conn_ut(conn_pool, wc);
 
         struct epoll_event e;
-        e.data.fd = wc->fd;
+        e.data.ptr = wc;
         e.events = event->events | EPOLLOUT;
         epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
 
@@ -157,7 +157,7 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
         rb_conn_pool_update_conn_ut(conn_pool, wc);
 
         struct epoll_event e;
-        e.data.fd = wc->fd;
+        e.data.ptr = wc;
         e.events = EPOLLIN | EPOLLET;
         epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
 

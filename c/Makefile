@@ -1,11 +1,13 @@
 # vim: noet:
 
 .SUFFIXES: .c
+.PHONY: deps
 
 C 			= gcc
-CFLAGS 		= -Wall -fpic -g -c
-LMCFLAGS 	= -fPIC -llua -shared -Wl,-z,defs
-LIB 		= -llua
+CFLAGS 		= -Wall -fpic -g -c -I./deps/lua53/include
+LUA_LIB 	= -L./deps/lua53/lib -llua -Wl,-R./deps/lua53/lib
+LIB 		= $(LUA_LIB) -lm -ldl
+LMCFLAGS 	= -fPIC -shared -Wl,-z,defs $(LUA_LIB)
 MAIN_PATH 	= "src"
 BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
@@ -52,5 +54,5 @@ mem_check: all
 		--track-fds=yes \
 		$(BUILD_PATH)/main
 
-t:
-	@echo "$(MAIN_SRC)"
+deps:
+	@bash install_deps.sh

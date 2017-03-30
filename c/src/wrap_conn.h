@@ -2,9 +2,9 @@
 #define __WRAP_CONN_H__
 
 #include <time.h>
-#include <lua.h>
 #include <stdio.h>
 #include "rb_tree.h"
+#include "lua_utils.h"
 
 typedef void (*as_rb_conn_free_wdata_f)(void *data);
 typedef ssize_t (*as_rb_conn_write_data_f)(void *data, size_t size);

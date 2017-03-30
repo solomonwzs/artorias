@@ -1,16 +1,15 @@
-#include <lualib.h>
-#include <lauxlib.h>
 #include <string.h>
 #include "lua_bind.h"
-#include "lua_utils.h"
 #include "utils.h"
 
 
-#define lbind_checkmetatable(_L_, _idx_, _emsg_) \
-    if (!luaL_getmetatable(_L_, _idx_)) { \
-      lua_pushstring(_L_, _emsg_);\
-      lua_error(_L_);\
-    }
+#define lbind_checkmetatable(_L_, _idx_, _emsg_) do {\
+  luaL_getmetatable(_L_, _idx_);\
+  if (lua_isnil(_L_, -1)) { \
+    lua_pushstring(_L_, _emsg_);\
+    lua_error(_L_);\
+  }\
+} while (0)
 
 
 // [-1, +0, e]

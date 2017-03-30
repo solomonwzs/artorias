@@ -4,3 +4,4 @@ bin/
 c/bin/
 */cscope.*
 vgcore.*
+c/deps/
