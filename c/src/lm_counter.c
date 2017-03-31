@@ -157,11 +157,14 @@ as_lm_counter_functions[] = {
 
 int
 luaopen_lm_counter(lua_State *L) {
-  luaL_newmetatable(L, LM_COUNTER);
-  lua_pushvalue(L, -1);
-  lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, as_lm_counter_methods, 0);
-  luaL_newlib(L, as_lm_counter_functions);
+  // luaL_newmetatable(L, LM_COUNTER);
+  // lua_pushvalue(L, -1);
+  // lua_setfield(L, -2, "__index");
+  // luaL_setfuncs(L, as_lm_counter_methods, 0);
+  // luaL_newlib(L, as_lm_counter_functions);
+
+  aluaL_newmetatable_with_methods(L, LM_COUNTER, as_lm_counter_methods);
+  aluaL_newlib(L, "lm_counter", as_lm_counter_functions);
 
   return 1;
 }

@@ -3,15 +3,6 @@
 #include "utils.h"
 
 
-#define lbind_checkmetatable(_L_, _idx_, _emsg_) do {\
-  luaL_getmetatable(_L_, _idx_);\
-  if (lua_isnil(_L_, -1)) { \
-    lua_pushstring(_L_, _emsg_);\
-    lua_error(_L_);\
-  }\
-} while (0)
-
-
 // [-1, +0, e]
 static int
 lcf_dofile(lua_State *L) {
@@ -81,7 +72,7 @@ lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp) {
   return ret;
 }
 
-
+#ifndef LUA51
 static void *
 lalloc(void *ud, void *ptr, size_t osize, size_t nsize) {
   if (nsize == 0) {
@@ -113,6 +104,12 @@ lbind_new_state(as_mem_pool_fixed_t *mp) {
     return lua_newstate(lalloc, mp);
   }
 }
+#else
+lua_State *
+lbind_new_state(as_mem_pool_fixed_t *mp) {
+  return luaL_newstate();
+}
+#endif
 
 
 // [-2, +0, e]

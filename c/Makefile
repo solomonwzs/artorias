@@ -4,13 +4,23 @@
 .PHONY: deps
 
 C 			= gcc
-CFLAGS 		= -Wall -fpic -g -c -I./deps/lua53/include
-LUA_LIB 	= -L./deps/lua53/lib -llua -Wl,-R./deps/lua53/lib
+
+LUA53_INC 	= ./deps/lua53/include
+LUA53_LIB 	= -L./deps/lua53/lib -llua -Wl,-R./deps/lua53/lib
+
+LUA51_INC 	= ./deps/luajit/include
+LUA51_LIB 	= -L./deps/luajit/lib -lluajit-5.1 -Wl,-R./deps/luajit/lib
+
+LUA_INC 	= $(LUA51_INC)
+LUA_LIB 	= $(LUA51_LIB)
 LIB 		= $(LUA_LIB) -lm -ldl
+CFLAGS 		= -Wall -fpic -g -c -I$(LUA_INC)
 LMCFLAGS 	= -fPIC -shared -Wl,-z,defs $(LUA_LIB)
 MAIN_PATH 	= "src"
 BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
+
+LUA_ADA_OBJ = $(MAIN_PATH)/lua_adapter51.o $(MAIN_PATH)/lua_adapter53.o
 
 ALL_SRC 	= $(wildcard src/*.c)
 LM_SRC 		= $(wildcard src/lm_*.c)
@@ -21,7 +31,7 @@ MAIN_SRC 	= $(filter-out $(LM_SRC), $(ALL_SRC))
 	@$(C) $(CFLAGS) $< -o $@
 
 all:obj pre
-	@$(C) $(MAIN_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
+	@$(C)  $(MAIN_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
 	@echo -e "\033[0;32m[OK]\033[0m main ok"
 
 obj:$(ALL_SRC:%.c=%.o)
@@ -30,10 +40,10 @@ lm:lm_counter lm_tsocket
 	@echo -e "\033[0;32m[OK]\033[0m lua modules ok"
 
 lm_counter:obj
-	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(MAIN_PATH)/mem_pool.o -o $(BUILD_PATH)/$@.so
+	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(MAIN_PATH)/mem_pool.o $(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 lm_tsocket:obj
-	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o -o $(BUILD_PATH)/$@.so
+	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 pre:
 	@mkdir -p $(BUILD_PATH)

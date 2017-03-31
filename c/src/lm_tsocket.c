@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include "utils.h"
 #include "lua_utils.h"
+#include "lua_bind.h"
 #include "mem_pool.h"
 #include "lm_tsocket.h"
 
@@ -8,11 +9,8 @@
 // [-0, +1, e]
 static int
 lcf_tsocket_new(lua_State *L) {
-  int ok = luaL_getmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
-  if (!ok) {
-    lua_pushstring(L, "thread local var table not exist");
-    lua_error(L);
-  }
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
   lua_pushthread(L);
   lua_gettable(L, -2);
   lua_pushstring(L, "fd");
@@ -104,11 +102,14 @@ as_lm_tsocket_functions[] = {
 
 int
 luaopen_lm_tsocket(lua_State *L) {
-  luaL_newmetatable(L, LM_TSOCKET);
-  lua_pushvalue(L, -1);
-  lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, as_lm_tsocket_methods, 0);
-  luaL_newlib(L, as_lm_tsocket_functions);
+  // luaL_newmetatable(L, LM_TSOCKET);
+  // lua_pushvalue(L, -1);
+  // lua_setfield(L, -2, "__index");
+  // luaL_setfuncs(L, as_lm_tsocket_methods, 0);
+  // luaL_newlib(L, as_lm_tsocket_functions);
+
+  aluaL_newmetatable_with_methods(L, LM_TSOCKET, as_lm_tsocket_methods);
+  aluaL_newlib(L, "lm_tsocket", as_lm_tsocket_functions);
 
   lua_pushinteger(L, LAS_WAIT_FOR_INPUT);
   lua_setfield(L, -2, "WAIT_FOR_INPUT");

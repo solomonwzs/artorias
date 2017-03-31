@@ -3,7 +3,6 @@ local base = require("artorias.socket.base")
 
 
 local _tsocket = {}
-local sss = "hello"
 
 
 function _tsocket:new()

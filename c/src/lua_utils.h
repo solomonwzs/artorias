@@ -1,9 +1,7 @@
 #ifndef __LUA_UTILS__
 #define __LUA_UTILS__
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include "lua_adapter.h"
 #include "utils.h"
 
 #define LM_COUNTER "as_lm_000"

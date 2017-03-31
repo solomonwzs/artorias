@@ -82,7 +82,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     int n = lua_gettop(T);
 
     lbind_get_lcode_chunk(new_wc->T, lfile);
-    int ret = lua_resume(T, NULL, 0);
+    int ret = alua_resume(T, 0);
 
     if (ret == LUA_YIELD) {
       int n_res = lua_gettop(T) - n;
@@ -111,7 +111,7 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   int n = lua_gettop(T);
 
   lua_pushinteger(T, LAS_READY_TO_INPUT);
-  int ret = lua_resume(T, NULL, 1);
+  int ret = alua_resume(T, 1);
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
@@ -146,7 +146,7 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   int n = lua_gettop(T);
 
   lua_pushinteger(T, LAS_READY_TO_OUTPUT);
-  int ret = lua_resume(T, NULL, 1);
+  int ret = alua_resume(T, 1);
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
