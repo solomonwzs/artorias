@@ -18,10 +18,6 @@ rb_conn_init(as_rb_conn_t *c, int fd, lua_State *L) {
     c->T = NULL;
   }
 
-  c->w_write = NULL;
-  c->w_free = NULL;
-  c->w_data = NULL;
-
   return 0;
 }
 
@@ -31,9 +27,6 @@ rb_conn_close(as_rb_conn_t *c) {
   close(c->fd);
   if (c->T != NULL) {
     lbind_free_fd_lthread(c->T, c->fd);
-  }
-  if (c->w_data != NULL && c->w_free != NULL) {
-    c->w_free(c->w_data);
   }
   return 0;
 }

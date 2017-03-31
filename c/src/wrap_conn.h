@@ -6,21 +6,12 @@
 #include "rb_tree.h"
 #include "lua_utils.h"
 
-typedef void (*as_rb_conn_free_wdata_f)(void *data);
-typedef ssize_t (*as_rb_conn_write_data_f)(void *data, size_t size);
-
-typedef struct {
-} as_rb_conn_write_stack;
 
 typedef struct {
   as_rb_node_t  ut_idx;
   time_t        utime;
   int           fd;
   lua_State     *T;
-
-  void                    *w_data;
-  as_rb_conn_write_data_f w_write;
-  as_rb_conn_free_wdata_f w_free;
 } as_rb_conn_t;
 
 typedef struct {
