@@ -1,7 +1,7 @@
 #ifndef __LUA_ADAPTER__
 #define __LUA_ADAPTER__
 
-#define LUA51
+// #define LUA51
 #ifdef LUA51
 #   include <luajit-2.0/lua.h>
 #   include <luajit-2.0/lualib.h>

@@ -11,8 +11,8 @@ LUA53_LIB 	= -L./deps/lua53/lib -llua -Wl,-R./deps/lua53/lib
 LUA51_INC 	= ./deps/luajit/include
 LUA51_LIB 	= -L./deps/luajit/lib -lluajit-5.1 -Wl,-R./deps/luajit/lib
 
-LUA_INC 	= $(LUA51_INC)
-LUA_LIB 	= $(LUA51_LIB)
+LUA_INC 	= $(LUA53_INC)
+LUA_LIB 	= $(LUA53_LIB)
 LIB 		= $(LUA_LIB) -lm -ldl
 CFLAGS 		= -Wall -fpic -g -c -I$(LUA_INC)
 LMCFLAGS 	= -fPIC -shared -Wl,-z,defs $(LUA_LIB)
