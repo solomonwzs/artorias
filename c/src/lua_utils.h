@@ -17,6 +17,7 @@
 #define LAS_WAIT_FOR_OUTPUT   0x01
 #define LAS_READY_TO_INPUT    0x02
 #define LAS_READY_TO_OUTPUT   0x03
+#define LAS_SOCKET_CLOSEED    0x04
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\

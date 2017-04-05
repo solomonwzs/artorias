@@ -26,12 +26,6 @@ typedef struct {
 #define rb_conn_pool_delete(_p_, _wc_) \
     rb_tree_delete(&(_p_)->ut_tree, &(_wc_)->ut_idx)
 
-#define rb_conn_set_wfunc(_wc_, _d_, _write_, _free_) do {\
-  (_wc_)->w_data = (_d_);\
-  (_wc_)->w_write = (_write_);\
-  (_wc_)->w_free = (_free_);\
-} while (0)\
-
 extern int
 rb_conn_init(as_rb_conn_t *wc, int fd, lua_State *L);
 

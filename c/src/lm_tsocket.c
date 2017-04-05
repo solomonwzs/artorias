@@ -8,7 +8,7 @@
 
 // [-0, +1, e]
 static int
-lcf_tsocket_new(lua_State *L) {
+lcf_tsocket_get(lua_State *L) {
   lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
                        "thread local var table not exist");
   lua_pushthread(L);
@@ -95,7 +95,7 @@ as_lm_tsocket_methods[] = {
 
 static const struct luaL_Reg
 as_lm_tsocket_functions[] = {
-  {"get", lcf_tsocket_new},
+  {"get", lcf_tsocket_get},
   {NULL, NULL},
 };
 
@@ -122,6 +122,9 @@ luaopen_lm_tsocket(lua_State *L) {
 
   lua_pushinteger(L, LAS_READY_TO_OUTPUT);
   lua_setfield(L, -2, "READY_TO_OUTPUT");
+
+  lua_pushinteger(L, LAS_SOCKET_CLOSEED);
+  lua_setfield(L, -2, "SOCKET_CLOSED");
 
   lua_pushinteger(L, EAGAIN);
   lua_setfield(L, -2, "EAGAIN");

@@ -39,11 +39,27 @@
   lbind_ref_lcode_chunk(_L_, get_cnf_str_val(_cnf_, 1, WORKER_FILE_NAME));\
 } while (0)
 
+#define recycle_conn(_n_) do {\
+  as_rb_conn_t *__wc = container_of(_n_, as_rb_conn_t, ut_idx);\
+  debug_log("close: %d\n", __wc->fd);\
+  close(__wc->fd);\
+  handler_close(__wc);\
+  mpf_recycle(__wc);\
+} while (0)
+
 
 static volatile int keep_running = 1;
 static void
 init_handler(int dummy) {
   keep_running = 0;
+}
+
+
+static inline void
+handler_close(as_rb_conn_t *wc) {
+  lua_State *T = wc->T;
+  lua_pushinteger(T, LAS_SOCKET_CLOSEED);
+  alua_resume(T, 1);
 }
 
 

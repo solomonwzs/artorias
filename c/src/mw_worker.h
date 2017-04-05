@@ -19,13 +19,6 @@
   epoll_ctl((_epfd_), EPOLL_CTL_ADD, (_wc_)->fd, &__e);\
 } while (0)
 
-#define recycle_conn(_n_) do {\
-  as_rb_conn_t *__wc = container_of(_n_, as_rb_conn_t, ut_idx);\
-  debug_log("close: %d\n", __wc->fd);\
-  close(__wc->fd);\
-  mpf_recycle(__wc);\
-} while (0)
-
 
 extern void
 worker_process0(int channel_fd, as_lua_pconf_t *cnf);
