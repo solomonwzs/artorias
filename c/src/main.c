@@ -51,7 +51,10 @@ server_test(as_lua_pconf_t *cnf) {
   as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 1, "tcp_port");
 
   int sock;
-  sock = make_socket(ret.val.i);
+  sock = make_server_socket(ret.val.i);
+  if (sock < 0) {
+    exit(EXIT_FAILURE);
+  }
   set_non_block(sock);
   if (listen(sock, 500) < 0) {
     perror("listen");

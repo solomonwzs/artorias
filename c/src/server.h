@@ -13,7 +13,7 @@ extern int
 simple_write_to_client(int fd, const char *buf, size_t len);
 
 extern int
-make_socket(unsigned port);
+make_server_socket(unsigned port);
 
 extern int
 set_non_block(int fd);

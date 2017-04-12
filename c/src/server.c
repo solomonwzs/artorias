@@ -6,6 +6,17 @@
 #define MAXLEN  256
 
 
+static inline int
+simple_bind_name_to_socket(int sock, uint16_t port) {
+  struct sockaddr_in addr;
+  bzero((char *)&addr, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(port);
+  return bind(sock, (struct sockaddr *)&addr, sizeof(addr));
+}
+
+
 int
 set_non_block(int fd) {
   int flags;
@@ -22,31 +33,42 @@ set_non_block(int fd) {
 
 
 int
-make_socket(unsigned port) {
-  int sock;
-  struct sockaddr_in name;
-
-  sock = socket(AF_INET, SOCK_STREAM, 0);
+make_server_socket(unsigned port) {
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     debug_perror("socket");
-    exit(EXIT_FAILURE);
+    return -1;
   }
 
   int optval = 1;
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval,
              sizeof(int));
 
-  bzero((char *)&name, sizeof(name));
-  name.sin_family = AF_INET;
-  name.sin_port = htons(port);
-  name.sin_addr.s_addr = htonl(INADDR_ANY);
-  if (bind(sock, (struct sockaddr *)&name, sizeof(name)) < 0) {
+  if (simple_bind_name_to_socket(sock, port) < 0) {
     close(sock);
     debug_perror("bind");
-    exit(EXIT_FAILURE);
+    return -1;
   }
 
   return sock;
+}
+
+
+int
+make_client_socket(const char *hostname, unsigned port) {
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) {
+    debug_perror("socket");
+    return -1;
+  }
+
+  if (simple_bind_name_to_socket(sock, 0) < 0) {
+    close(sock);
+    debug_perror("bind");
+    return -1;
+  }
+
+  return 0;
 }
 
 

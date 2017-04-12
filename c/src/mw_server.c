@@ -68,7 +68,10 @@ master_workers_server(as_lua_pconf_t *cnf) {
   ret = lpconf_get_pconf_value(cnf, 1, "n_workers");
   n = ret.val.i;
 
-  fd = make_socket(port);
+  fd = make_server_socket(port);
+  if (fd < 0) {
+    exit(EXIT_FAILURE);
+  }
   set_non_block(fd);
   if (listen(fd, 500) < 0) {
     perror("listen");
