@@ -9,11 +9,24 @@
 static inline int
 simple_bind_name_to_socket(int sock, uint16_t port) {
   struct sockaddr_in addr;
-  bzero((char *)&addr, sizeof(addr));
+  bzero(&addr, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(port);
   return bind(sock, (struct sockaddr *)&addr, sizeof(addr));
+}
+
+
+static inline int
+simple_connect_socket(int sock, const char *hostname, uint16_t port) {
+  struct sockaddr_in addr;
+  bzero(&addr, sizeof(addr));
+  addr.sin_family = AF_INET;
+  if (inet_aton(hostname, &addr.sin_addr) == 0) {
+    return -1;
+  }
+  addr.sin_port = htons(port);
+  return connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 }
 
 
@@ -33,7 +46,7 @@ set_non_block(int fd) {
 
 
 int
-make_server_socket(unsigned port) {
+make_server_socket(uint16_t port) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     debug_perror("socket");
@@ -55,7 +68,7 @@ make_server_socket(unsigned port) {
 
 
 int
-make_client_socket(const char *hostname, unsigned port) {
+make_client_socket(const char *hostname, uint16_t port) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     debug_perror("socket");
@@ -68,7 +81,13 @@ make_client_socket(const char *hostname, unsigned port) {
     return -1;
   }
 
-  return 0;
+  if (simple_connect_socket(sock, hostname, port) < 0) {
+    close(sock);
+    debug_perror("connect");
+    return -1;
+  }
+
+  return sock;
 }
 
 

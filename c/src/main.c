@@ -47,9 +47,21 @@ mw_server_test(as_lua_pconf_t *cnf) {
 
 
 void
+client_test() {
+  char bytes[1024];
+  int sock = make_client_socket("127.0.0.1", 6379);
+  int n = write(sock, "*2\r\n$3\r\nGET\r\n$1\r\na\r\n", 20);
+  debug_log("%d\n", n);
+  n = read(sock, bytes, 1024);
+  bytes[n] = '\0';
+  debug_log("%s\n", bytes);
+  close(sock);
+}
+
+
+void
 server_test(as_lua_pconf_t *cnf) {
   as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 1, "tcp_port");
-
   int sock;
   sock = make_server_socket(ret.val.i);
   if (sock < 0) {
@@ -184,6 +196,7 @@ main(int argc, char **argv) {
   // lua_pconf_test();
   // mem_pool_test();
   server_test(cnf);
+  // client_test();
   // mw_server_test(cnf);
   // rb_tree_test();
   // bytes_test();
