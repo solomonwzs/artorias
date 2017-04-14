@@ -42,8 +42,8 @@
 #define recycle_conn(_n_) do {\
   as_rb_conn_t *__wc = container_of(_n_, as_rb_conn_t, ut_idx);\
   debug_log("close: %d\n", __wc->fd);\
-  close(__wc->fd);\
   handler_close(__wc);\
+  rb_conn_close(__wc);\
   mpf_recycle(__wc);\
 } while (0)
 
@@ -247,6 +247,10 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
       }
     }
     remove_time_out_conn(&conn_pool, conn_timeout);
+    // if (active_cnt == 0) {
+    //   lua_gc(L, LUA_GCCOLLECT, 0);
+    //   lbind_check_metatable_elem_by_tname(L, LRK_THREAD_LOCAL_VAR_TABLE);
+    // }
   }
   lua_close(L);
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);

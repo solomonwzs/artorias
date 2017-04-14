@@ -3,11 +3,13 @@
 #include "mem_pool.h"
 
 
-// [-2,  +1, e]
+// [-3,  +1, e]
 static int
 lcf_socket_new(lua_State *L) {
   as_lm_socket_t *sock;
-  int ot = luaL_checkinteger(L, 1);
+  const char *host = luaL_checkstring(L, 1);
+  uint16_t port = luaL_checkinteger(L, 2);
+  int ot = luaL_checkinteger(L, 3);
 
   lua_pushstring(L, LRK_MEM_POOL);
   lua_gettable(L, LUA_REGISTRYINDEX);

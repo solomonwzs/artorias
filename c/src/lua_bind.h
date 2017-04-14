@@ -5,13 +5,17 @@
 #include "mem_pool.h"
 
 
-#define lbind_checkmetatable(_L_, _idx_, _emsg_) do {\
-  luaL_getmetatable(_L_, _idx_);\
+// [-0, +1, e]
+#define lbind_checkmetatable(_L_, _tname_, _emsg_) do {\
+  luaL_getmetatable(_L_, _tname_);\
   if (lua_isnil(_L_, -1)) { \
     lua_pushstring(_L_, _emsg_);\
     lua_error(_L_);\
   }\
 } while (0)
+
+extern void
+lbind_check_metatable_elem_by_tname(lua_State *L, const char *tname);
 
 extern int
 lbind_dofile(lua_State *L, const char *filename);

@@ -5,6 +5,35 @@
 
 // [-1, +0, e]
 static int
+lcf_check_metatable_elem_by_tname(lua_State *L) {
+  const char *tname = (const char *)lua_touserdata(L, 1);
+  lbind_checkmetatable(L, tname, "no table!");
+  lua_pushnil(L);
+  debug_log("\n");
+  while (lua_next(L, 2) != 0) {
+    debug_log("%s - %s\n",
+              lua_typename(L, lua_type(L, -2)),
+              lua_typename(L, lua_type(L, -1)));
+    lua_pop(L, 1);
+  }
+  return 0;
+}
+
+
+void
+lbind_check_metatable_elem_by_tname(lua_State *L, const char *tname) {
+  lua_pushcfunction(L, lcf_check_metatable_elem_by_tname);
+  lua_pushlightuserdata(L, (void *)tname);
+
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(L);
+  }
+}
+
+
+// [-1, +0, e]
+static int
 lcf_dofile(lua_State *L) {
   const char *filename = (const char *)lua_touserdata(L, -1);
 
@@ -50,7 +79,7 @@ lcf_init_state(lua_State *L) {
 
   luaL_newmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
   lua_pushvalue(L, -1);
-  lua_pushstring(L, "_mode");
+  lua_pushstring(L, "__mode");
   lua_pushstring(L, "k");
   lua_settable(L, -3);
   lua_setmetatable(L, -2);
