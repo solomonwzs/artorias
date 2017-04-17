@@ -108,8 +108,9 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     }
 
     as_rb_conn_t *new_wc = mpf_alloc(mp, sizeof(as_rb_conn_t));
-    rb_conn_init(new_wc, infd, L);
-    lua_State *T = new_wc->T;
+    rb_conn_init(new_wc, infd);
+    lua_State *T = lbind_new_fd_lthread(L, infd);
+    new_wc->T = T;
     int n = lua_gettop(T);
 
     lbind_get_lcode_chunk(new_wc->T, lfile);

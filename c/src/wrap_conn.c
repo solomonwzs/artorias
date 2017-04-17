@@ -9,14 +9,10 @@
 
 
 int
-rb_conn_init(as_rb_conn_t *c, int fd, lua_State *L) {
+rb_conn_init(as_rb_conn_t *c, int fd) {
   c->fd = fd;
   c->utime = time(NULL);
-  if (L != NULL) {
-    c->T = lbind_new_fd_lthread(L, fd);
-  } else {
-    c->T = NULL;
-  }
+  c->T = NULL;
 
   return 0;
 }

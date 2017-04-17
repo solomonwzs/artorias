@@ -27,7 +27,7 @@ typedef struct {
     rb_tree_delete(&(_p_)->ut_tree, &(_wc_)->ut_idx)
 
 extern int
-rb_conn_init(as_rb_conn_t *wc, int fd, lua_State *L);
+rb_conn_init(as_rb_conn_t *wc, int fd);
 
 extern int
 rb_conn_close(as_rb_conn_t *wc);

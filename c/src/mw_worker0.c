@@ -66,7 +66,7 @@ handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     }
 
     as_rb_conn_t *new_wc = mpf_alloc(mp, sizeof(as_rb_conn_t));
-    rb_conn_init(new_wc, infd, NULL);
+    rb_conn_init(new_wc, infd);
     rb_conn_pool_insert(cp, new_wc);
     add_wrap_conn_event(new_wc, epfd);
   }

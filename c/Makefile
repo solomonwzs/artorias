@@ -36,13 +36,16 @@ all:obj pre
 
 obj:$(ALL_SRC:%.c=%.o)
 
-lm:lm_counter lm_tsocket
+lm:lm_counter lm_tsocket lm_socket
 	@echo -e "\033[0;32m[OK]\033[0m lua modules ok"
 
 lm_counter:obj
 	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(MAIN_PATH)/mem_pool.o $(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 lm_tsocket:obj
+	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
+
+lm_socket:obj
 	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 pre:

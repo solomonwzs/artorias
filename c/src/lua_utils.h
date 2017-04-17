@@ -4,8 +4,9 @@
 #include "lua_adapter.h"
 #include "utils.h"
 
-#define LM_COUNTER "as_lm_000"
-#define LM_TSOCKET "as_lm_001"
+#define LM_COUNTER  "as_lm_000"
+#define LM_TSOCKET  "as_lm_001"
+#define LM_SOCKET   "as_lm_002"
 
 #define LRK_MEM_POOL                "as_lrk_000"
 #define LRK_THREAD_TABLE            "as_lrk_001"
