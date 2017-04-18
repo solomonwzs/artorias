@@ -1,6 +1,6 @@
 as_config = {
     ["tcp_port"] = 5555,
-    ["n_workers"] = 2,
+    ["n_workers"] = 4,
     ["conn_timeout"] = 5,
 
     -- ["worker_type"] = 0,

@@ -84,10 +84,22 @@ lcf_tsocket_send(lua_State *L) {
 }
 
 
+// [-0, +1, e]
+static int
+lcf_tsocket_get_fd(lua_State *L) {
+  as_lm_tsocket_t *tsocket = (as_lm_tsocket_t *)luaL_checkudata(
+      L, 1, LM_TSOCKET);
+  lua_pushinteger(L, tsocket->fd);
+
+  return 1;
+}
+
+
 static const struct luaL_Reg
 as_lm_tsocket_methods[] = {
   {"read", lcf_tsocket_read},
   {"send", lcf_tsocket_send},
+  {"get_fd", lcf_tsocket_get_fd},
   {"__tostring", lcf_tsocket_tostring},
   {NULL, NULL},
 };
@@ -110,24 +122,6 @@ luaopen_lm_tsocket(lua_State *L) {
 
   aluaL_newmetatable_with_methods(L, LM_TSOCKET, as_lm_tsocket_methods);
   aluaL_newlib(L, "lm_tsocket", as_lm_tsocket_functions);
-
-  lua_pushinteger(L, LAS_WAIT_FOR_INPUT);
-  lua_setfield(L, -2, "WAIT_FOR_INPUT");
-
-  lua_pushinteger(L, LAS_WAIT_FOR_OUTPUT);
-  lua_setfield(L, -2, "WAIT_FOR_OUTPUT");
-
-  lua_pushinteger(L, LAS_READY_TO_INPUT);
-  lua_setfield(L, -2, "READY_TO_INPUT");
-
-  lua_pushinteger(L, LAS_READY_TO_OUTPUT);
-  lua_setfield(L, -2, "READY_TO_OUTPUT");
-
-  lua_pushinteger(L, LAS_SOCKET_CLOSEED);
-  lua_setfield(L, -2, "SOCKET_CLOSED");
-
-  lua_pushinteger(L, EAGAIN);
-  lua_setfield(L, -2, "EAGAIN");
 
   return 1;
 }

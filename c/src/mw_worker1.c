@@ -39,17 +39,24 @@
   lbind_ref_lcode_chunk(_L_, get_cnf_str_val(_cnf_, 1, WORKER_FILE_NAME));\
 } while (0)
 
+#define conn_close(_wc_) do {\
+  if (_wc_->T != NULL) {\
+    lbind_free_fd_lthread(_wc_->T, _wc_->fd);\
+  }\
+  rb_conn_close(_wc_);\
+} while (0)
+
 #define recycle_conn(_n_) do {\
   as_rb_conn_t *__wc = container_of(_n_, as_rb_conn_t, ut_idx);\
   debug_log("close: %d\n", __wc->fd);\
   handler_close(__wc);\
-  rb_conn_close(__wc);\
+  conn_close(__wc);\
   mpf_recycle(__wc);\
 } while (0)
 
 #define close_wrap_conn(_cp_, _wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
-  rb_conn_close(_wc_);\
+  conn_close(_wc_);\
   rb_conn_pool_delete(_cp_, _wc_);\
   mpf_recycle(_wc_);\
 } while (0)
@@ -74,7 +81,8 @@ static inline void
 handler_close(as_rb_conn_t *wc) {
   lua_State *T = wc->T;
   lua_pushinteger(T, LAS_SOCKET_CLOSEED);
-  alua_resume(T, 1);
+  lua_pushinteger(T, wc->fd);
+  alua_resume(T, 2);
 }
 
 
@@ -130,7 +138,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     }
 
     debug_log("close: %d\n", new_wc->fd);
-    rb_conn_close(new_wc);
+    conn_close(new_wc);
     mpf_recycle(new_wc);
   }
 }
@@ -143,7 +151,8 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   int n = lua_gettop(T);
 
   lua_pushinteger(T, LAS_READY_TO_INPUT);
-  int ret = alua_resume(T, 1);
+  lua_pushinteger(T, wc->fd);
+  int ret = alua_resume(T, 2);
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
@@ -178,7 +187,8 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   int n = lua_gettop(T);
 
   lua_pushinteger(T, LAS_READY_TO_OUTPUT);
-  int ret = alua_resume(T, 1);
+  lua_pushinteger(T, wc->fd);
+  int ret = alua_resume(T, 2);
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;

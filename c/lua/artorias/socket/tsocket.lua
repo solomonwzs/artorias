@@ -1,5 +1,6 @@
 local tsocket = require("lm_tsocket")
-local base = require("artorias.socket.base")
+local base = require("lm_base")
+local socket_base = require("artorias.socket.base")
 
 
 local _tsocket = {}
@@ -14,8 +15,8 @@ end
 
 
 function _tsocket:ready_for_read()
-    local status = coroutine.yield(tsocket.WAIT_FOR_INPUT)
-    return status == tsocket.READY_TO_INPUT
+    local status, fd = coroutine.yield(base.WAIT_FOR_INPUT)
+    return status == base.READY_TO_INPUT and fd == self._socket:get_fd()
 end
 
 
@@ -32,7 +33,7 @@ function _tsocket:read()
         end
     until err ~= nil or n == 0
 
-    if (err == tsocket.EAGAIN or err == nil) and nbyte ~= 0 then
+    if (err == base.EAGAIN or err == nil) and nbyte ~= 0 then
         err = nil
     elseif err == nil and nbyte == 0 then
         err = "conn close"
@@ -58,10 +59,12 @@ function _tsocket:send(buf)
         if err == nil then
             nbyte = nbyte + n
             buf = buf:sub(n + 1)
-        elseif err == tsocket.EAGAIN then
-            local status = coroutine.yield(tsocket.WAIT_FOR_OUTPUT)
-            if status ~= tsocket.READY_TO_OUTPUT then
+        elseif err == base.EAGAIN then
+            local status, fd = coroutine.yield(base.WAIT_FOR_OUTPUT)
+            if status ~= base.READY_TO_OUTPUT then
                 return nbyte, "status error"
+            elseif fd ~= self._socket:get_fd() then
+                return nbyte, "error fd"
             else
                 err = nil
             end
@@ -76,7 +79,7 @@ end
 local _M = {}
 
 
-_M.version = base.version
+_M.version = socket_base.version
 
 
 function _M.get()

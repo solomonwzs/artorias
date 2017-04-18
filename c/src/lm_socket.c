@@ -44,6 +44,45 @@ lcf_socket_new(lua_State *L) {
 }
 
 
+// [-0, +1, e]
+static int
+lcf_socket_get_fd(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+      L, 1, LM_SOCKET);
+  lua_pushinteger(L, sock->conn->fd);
+
+  return 1;
+}
+
+
+// [-0, +0, e]
+static int
+lcf_socket_close(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+      L, 1, LM_SOCKET);
+  if (sock->conn != NULL) {
+    rb_conn_close(sock->conn);
+    mpf_recycle(sock->conn);
+  }
+
+  return 0;
+}
+
+
+// [-0, +0, e]
+static int
+lcf_socket_destroy(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
+
+  if (sock->conn != NULL) {
+    rb_conn_close(sock->conn);
+    mpf_recycle(sock->conn);
+  }
+
+  return 0;
+}
+
+
 static const struct luaL_Reg
 as_lm_socket_functions[] = {
   {"new", lcf_socket_new},
@@ -51,8 +90,18 @@ as_lm_socket_functions[] = {
 };
 
 
+static const struct luaL_Reg
+as_lm_socket_methods[] = {
+  {"get_fd", lcf_socket_get_fd},
+  {"close", lcf_socket_close},
+  {"__gc", lcf_socket_destroy},
+  {NULL, NULL},
+};
+
+
 int
 luaopen_lm_socket(lua_State *L) {
+  aluaL_newmetatable_with_methods(L, LM_SOCKET, as_lm_socket_methods);
   aluaL_newlib(L, "lm_socket", as_lm_socket_functions);
 
   return 1;
