@@ -23,13 +23,13 @@
 #define recycle_conn(_n_) do {\
   as_rb_conn_t *__wc = container_of(_n_, as_rb_conn_t, ut_idx);\
   debug_log("close: %d\n", __wc->fd);\
-  rb_conn_close(__wc);\
+  close(__wc->fd);\
   mpf_recycle(__wc);\
 } while (0)
 
 #define close_wrap_conn(_cp_, _wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
-  rb_conn_close(_wc_);\
+  close(_wc_->fd);\
   rb_conn_pool_delete(_cp_, _wc_);\
   mpf_recycle(_wc_);\
 } while (0)

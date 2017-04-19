@@ -34,7 +34,10 @@ extern lua_State *
 lbind_new_fd_lthread(lua_State *L, int fd);
 
 extern int
-lbind_free_fd_lthread(lua_State *L, int fd);
+lbind_ref_fd_lthread(lua_State *L, int fd);
+
+extern int
+lbind_unref_fd_lthread(lua_State *T, int fd);
 
 extern int
 lbind_ref_lcode_chunk(lua_State *L, const char *filename);

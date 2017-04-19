@@ -13,8 +13,8 @@
 #define SOCKET_LUA_FILE "luas/t_socket.lua"
 
 #define close_wrap_conn(_cp_, _wc_) do {\
-  debug_log("close: %d\n", (_wc_)->fd);\
-  rb_conn_close(_wc_);\
+  debug_log("close: %d\n", _wc_->fd);\
+  close(_wc_->fd);\
   rb_conn_pool_delete(_cp_, _wc_);\
   mpf_recycle(_wc_);\
 } while (0)

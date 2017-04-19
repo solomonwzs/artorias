@@ -18,16 +18,6 @@ rb_conn_init(as_rb_conn_t *c, int fd) {
 }
 
 
-int
-rb_conn_close(as_rb_conn_t *c) {
-  close(c->fd);
-  if (c->T != NULL) {
-    lbind_free_fd_lthread(c->T, c->fd);
-  }
-  return 0;
-}
-
-
 void
 rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *c) {
   rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);

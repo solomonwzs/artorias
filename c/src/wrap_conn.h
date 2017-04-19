@@ -29,9 +29,6 @@ typedef struct {
 extern int
 rb_conn_init(as_rb_conn_t *wc, int fd);
 
-extern int
-rb_conn_close(as_rb_conn_t *wc);
-
 extern void
 rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *wc);
 

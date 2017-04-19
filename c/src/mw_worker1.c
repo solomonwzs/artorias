@@ -41,9 +41,9 @@
 
 #define conn_close(_wc_) do {\
   if (_wc_->T != NULL) {\
-    lbind_free_fd_lthread(_wc_->T, _wc_->fd);\
+    lbind_unref_fd_lthread(_wc_->T, _wc_->fd);\
   }\
-  rb_conn_close(_wc_);\
+  close(_wc_->fd);\
 } while (0)
 
 #define recycle_conn(_n_) do {\
@@ -263,8 +263,8 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
     //   lbind_check_metatable_elem_by_tname(L, LRK_THREAD_LOCAL_VAR_TABLE);
     // }
   }
-  lua_close(L);
   rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
+  lua_close(L);
   mpf_destroy(mem_pool);
 }
 

@@ -1,3 +1,4 @@
+#include <sys/epoll.h>
 #include "lm_socket.h"
 #include "lua_utils.h"
 #include "lua_bind.h"
@@ -12,6 +13,10 @@ lcf_socket_new(lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   uint16_t port = luaL_checkinteger(L, 2);
   int ot = luaL_checkinteger(L, 3);
+
+  lua_pushstring(L, LRK_SERVER_EPFD);
+  lua_gettable(L, LUA_REGISTRYINDEX);
+  int epfd = lua_tointeger(L, -1);
 
   lua_pushstring(L, LRK_MEM_POOL);
   lua_gettable(L, LUA_REGISTRYINDEX);
@@ -38,7 +43,19 @@ lcf_socket_new(lua_State *L) {
   }
 
   rb_conn_init(sock->conn, fd);
+  struct epoll_event e;
+  set_non_block(fd);
+  e.data.ptr = sock->conn;
+  e.events = EPOLLIN | EPOLLET;
+  if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &e) != 0) {
+    mpf_recycle(sock->conn);
+    close(fd);
+    lua_pushstring(L, "epoll error");
+    lua_error(L);
+  }
+
   sock->conn->T = L;
+  lbind_ref_fd_lthread(L, fd);
 
   return 1;
 }
@@ -61,7 +78,7 @@ lcf_socket_close(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
   if (sock->conn != NULL) {
-    rb_conn_close(sock->conn);
+    close(sock->conn->fd);
     mpf_recycle(sock->conn);
   }
 
@@ -75,7 +92,7 @@ lcf_socket_destroy(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   if (sock->conn != NULL) {
-    rb_conn_close(sock->conn);
+    close(sock->conn->fd);
     mpf_recycle(sock->conn);
   }
 
