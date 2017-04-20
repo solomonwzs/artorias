@@ -12,10 +12,10 @@
 
 #define SOCKET_LUA_FILE "luas/t_socket.lua"
 
-#define close_wrap_conn(_cp_, _wc_) do {\
+#define close_wrap_conn(_wc_) do {\
   debug_log("close: %d\n", _wc_->fd);\
   close(_wc_->fd);\
-  rb_conn_pool_delete(_cp_, _wc_);\
+  rb_conn_pool_delete(_wc_);\
   mpf_recycle(_wc_);\
 } while (0)
 
@@ -75,12 +75,12 @@ process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
   int ret = lua_pcall(wc->T, 0, LUA_MULTRET, 0);
   if (ret != LUA_OK){
     lb_pop_error_msg(wc->T);
-    close_wrap_conn(conn_pool, wc);
+    close_wrap_conn(wc);
   } else if (lua_gettop(wc->T) != n && lua_tointeger(wc->T, -1) == -1) {
-    close_wrap_conn(conn_pool, wc);
+    close_wrap_conn(wc);
   } else {
     lua_settop(wc->T, 0);
-    rb_conn_pool_update_conn_ut(conn_pool, wc);
+    rb_conn_update_ut(wc);
   }
 }
 
@@ -138,7 +138,7 @@ epoll_server(int fd) {
           close(infd);
         } else {
           event.data.fd = infd;
-          event.events = events[i].events | EPOLLOUT;
+          event.events = EPOLLOUT | EPOLLET;
           epoll_ctl(epfd, EPOLL_CTL_MOD, infd, &event);
         }
       } else if (events[i].events & EPOLLOUT) {
@@ -206,7 +206,7 @@ epoll_server2(int fd) {
         if (wc->fd == fd) {
           close(wc->fd);
         } else {
-          close_wrap_conn(&conn_pool, wc);
+          close_wrap_conn(wc);
         }
       } else if (wc->fd == fd) {
         while (1) {

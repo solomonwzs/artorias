@@ -27,10 +27,10 @@
   mpf_recycle(__wc);\
 } while (0)
 
-#define close_wrap_conn(_cp_, _wc_) do {\
+#define close_wrap_conn(_wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
   close(_wc_->fd);\
-  rb_conn_pool_delete(_cp_, _wc_);\
+  rb_conn_pool_delete(_wc_);\
   mpf_recycle(_wc_);\
 } while (0)
 
@@ -51,7 +51,7 @@ handler_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
   if (wc->fd == channel_fd) {
     close(wc->fd);
   } else {
-    close_wrap_conn(cp, wc);
+    close_wrap_conn(wc);
   }
 }
 
@@ -77,9 +77,9 @@ static inline void
 handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *cp) {
   int n = simple_read_from_client(wc->fd);
   if (n <= 0) {
-    close_wrap_conn(cp, wc);
+    close_wrap_conn(wc);
   } else {
-    rb_conn_pool_update_conn_ut(cp, wc);
+    rb_conn_update_ut(wc);
     write(wc->fd, "+OK\r\n", 5);
   }
 }

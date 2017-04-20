@@ -1,12 +1,17 @@
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include "lm_socket.h"
 #include "lua_utils.h"
 #include "lua_bind.h"
 #include "mem_pool.h"
 #include "server.h"
 
+#define SOCK_EVENT_IN   0x00
+#define SOCK_EVENT_OUT  0x01
+#define SOCK_EVENT_NONE 0x02
 
-// [-3,  +1, e]
+
+// [-3, +1, e]
 static int
 lcf_socket_new(lua_State *L) {
   as_lm_socket_t *sock;
@@ -46,7 +51,7 @@ lcf_socket_new(lua_State *L) {
   struct epoll_event e;
   set_non_block(fd);
   e.data.ptr = sock->conn;
-  e.events = EPOLLIN | EPOLLET;
+  e.events = EPOLLET;
   if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &e) != 0) {
     mpf_recycle(sock->conn);
     close(fd);
@@ -58,6 +63,94 @@ lcf_socket_new(lua_State *L) {
   lbind_ref_fd_lthread(L, fd);
 
   return 1;
+}
+
+
+// [-2, +0, e]
+static int
+lcf_sock_set_event(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+      L, 1, LM_SOCKET);
+  as_rb_conn_t *conn = sock->conn;
+  if (conn == NULL) {
+    lua_pushstring(L, "conn closed");
+    lua_error(L);
+  }
+  int event = luaL_checkinteger(L, 2);
+
+  lua_pushstring(L, LRK_SERVER_EPFD);
+  lua_gettable(L, LUA_REGISTRYINDEX);
+  int epfd = lua_tointeger(L, -1);
+
+  struct epoll_event e;
+  e.data.ptr = conn;
+  if (event == SOCK_EVENT_IN) {
+    e.events = EPOLLIN | EPOLLET;
+  } else if (event == SOCK_EVENT_OUT) {
+    e.events = EPOLLOUT | EPOLLET;
+  } else {
+    e.events = EPOLLET;
+  }
+  epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &e);
+
+  return 0;
+}
+
+
+// [-1, +2, e]
+static int
+lcf_socket_send(lua_State *L) {
+  size_t len;
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+      L, 1, LM_SOCKET);
+  as_rb_conn_t *conn = sock->conn;
+  if (conn == NULL) {
+    lua_pushstring(L, "conn closed");
+    lua_error(L);
+  }
+
+  const char *buf = lua_tolstring(L, 2, &len);
+  int nbyte = send(conn->fd, buf, len, MSG_NOSIGNAL);
+  if (nbyte < 0) {
+    lua_pushinteger(L, 0);
+    lua_pushinteger(L, errno);
+  } else {
+    lua_pushinteger(L, nbyte);
+    lua_pushnil(L);
+  }
+
+  return 2;
+}
+
+
+// [-1, +3, e]
+static int
+lcf_socket_read(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+      L, 1, LM_SOCKET);
+  as_rb_conn_t *conn = sock->conn;
+  if (conn == NULL) {
+    lua_pushstring(L, "conn closed");
+    lua_error(L);
+  }
+
+  int n = luaL_checkinteger(L, 2);
+  if (n == 0) {
+    n = 1024;
+  }
+
+  char *buf = (char *)lua_newuserdata(L, n);
+  int nbyte = read(conn->fd, buf, n);
+  if (nbyte < 0) {
+    lua_pushinteger(L, 0);
+    lua_pushnil(L);
+    lua_pushinteger(L, errno);
+  } else {
+    lua_pushinteger(L, nbyte);
+    lua_pushlstring(L, buf, nbyte);
+    lua_pushnil(L);
+  }
+  return 3;
 }
 
 
@@ -80,6 +173,7 @@ lcf_socket_close(lua_State *L) {
   if (sock->conn != NULL) {
     close(sock->conn->fd);
     mpf_recycle(sock->conn);
+    sock->conn = NULL;
   }
 
   return 0;
@@ -109,6 +203,9 @@ as_lm_socket_functions[] = {
 
 static const struct luaL_Reg
 as_lm_socket_methods[] = {
+  {"send", lcf_socket_send},
+  {"read", lcf_socket_read},
+  {"set_event", lcf_sock_set_event},
   {"get_fd", lcf_socket_get_fd},
   {"close", lcf_socket_close},
   {"__gc", lcf_socket_destroy},
@@ -120,6 +217,15 @@ int
 luaopen_lm_socket(lua_State *L) {
   aluaL_newmetatable_with_methods(L, LM_SOCKET, as_lm_socket_methods);
   aluaL_newlib(L, "lm_socket", as_lm_socket_functions);
+
+  lua_pushinteger(L, SOCK_EVENT_IN);
+  lua_setfield(L, -2, "SOCK_EVENT_IN");
+
+  lua_pushinteger(L, SOCK_EVENT_OUT);
+  lua_setfield(L, -2, "SOCK_EVENT_OUT");
+
+  lua_pushinteger(L, SOCK_EVENT_NONE);
+  lua_setfield(L, -2, "SOCK_EVENT_NONE");
 
   return 1;
 }

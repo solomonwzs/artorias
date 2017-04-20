@@ -54,10 +54,10 @@
   mpf_recycle(__wc);\
 } while (0)
 
-#define close_wrap_conn(_cp_, _wc_) do {\
+#define close_wrap_conn(_wc_) do {\
   debug_log("close: %d\n", (_wc_)->fd);\
   conn_close(_wc_);\
-  rb_conn_pool_delete(_cp_, _wc_);\
+  rb_conn_pool_delete(_wc_);\
   mpf_recycle(_wc_);\
 } while (0)
 
@@ -94,7 +94,7 @@ handler_error(as_rb_conn_t *wc, int fd, as_rb_conn_pool_t *cp) {
   if (wc->fd == fd) {
     close(wc->fd);
   } else {
-    close_wrap_conn(cp, wc);
+    close_wrap_conn(wc);
   }
 }
 
@@ -160,14 +160,15 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
       int status = lua_tointeger(T, -1);
       lua_pop(T, 1);
       if (status == LAS_WAIT_FOR_INPUT) {
-        rb_conn_pool_update_conn_ut(conn_pool, wc);
+        debug_log("%d\n", wc->fd);
+        rb_conn_update_ut(wc);
         return;
       } else if (status == LAS_WAIT_FOR_OUTPUT) {
-        rb_conn_pool_update_conn_ut(conn_pool, wc);
+        rb_conn_update_ut(wc);
 
         struct epoll_event e;
         e.data.ptr = wc;
-        e.events = event->events | EPOLLOUT;
+        e.events = EPOLLOUT | EPOLLET;
         epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
 
         return;
@@ -176,7 +177,7 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
   }
-  close_wrap_conn(conn_pool, wc);
+  close_wrap_conn(wc);
 }
 
 
@@ -196,7 +197,7 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
       int status = lua_tointeger(T, -1);
       lua_pop(T, 1);
       if (status == LAS_WAIT_FOR_INPUT) {
-        rb_conn_pool_update_conn_ut(conn_pool, wc);
+        rb_conn_update_ut(wc);
 
         struct epoll_event e;
         e.data.ptr = wc;
@@ -205,14 +206,14 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
 
         return;
       } else if (status == LAS_WAIT_FOR_OUTPUT) {
-        rb_conn_pool_update_conn_ut(conn_pool, wc);
+        rb_conn_update_ut(wc);
         return;
       }
     }
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
   }
-  close_wrap_conn(conn_pool, wc);
+  close_wrap_conn(wc);
 }
 
 
