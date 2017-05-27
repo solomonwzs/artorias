@@ -89,6 +89,9 @@ master_workers_server(as_lua_pconf_t *cnf) {
     case 1:
       wp = worker_process1;
       break;
+    case 2:
+      wp = worker_process2;
+      break;
     default:
       wp = worker_process0;
   }

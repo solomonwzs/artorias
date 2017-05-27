@@ -12,7 +12,7 @@ typedef union {
 
 typedef struct as_mem_data_fixed_s {
   as_mem_data_fixed_p_t   p;
-  uint8_t                 d[1];
+  uint8_t                 d[];
 } as_mem_data_fixed_t;
 
 typedef struct as_mem_pool_fixed_field_s {

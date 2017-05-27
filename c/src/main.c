@@ -74,7 +74,7 @@ server_test(as_lua_pconf_t *cnf) {
   }
   // select_server(sock);
   // epoll_server(sock);
-  test_worker_process1(sock, cnf);
+  test_worker_process2(sock, cnf);
   close(sock);
 }
 

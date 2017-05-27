@@ -12,7 +12,6 @@ int
 rb_conn_init(as_rb_conn_t *c, int fd) {
   c->fd = fd;
   c->utime = time(NULL);
-  c->cp = NULL;
   c->T = NULL;
 
   return 0;
@@ -21,24 +20,20 @@ rb_conn_init(as_rb_conn_t *c, int fd) {
 
 void
 rb_conn_pool_insert(as_rb_conn_pool_t *p, as_rb_conn_t *c) {
-  c->cp = p;
   rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);
   rb_tree_insert_case(&p->ut_tree, &c->ut_idx);
 }
 
 
 void
-rb_conn_update_ut(as_rb_conn_t *c) {
+rb_conn_update_ut(as_rb_conn_pool_t *p, as_rb_conn_t *c) {
   time_t now = time(NULL);
   if (now != c->utime) {
-    c->utime = time(NULL);
+    c->utime = now;
 
-    as_rb_conn_pool_t *p = c->cp;
-    if (p != NULL) {
-      rb_tree_delete(&p->ut_tree, &c->ut_idx);
-      rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);
-      rb_tree_insert_case(&p->ut_tree, &c->ut_idx);
-    }
+    rb_tree_delete(&p->ut_tree, &c->ut_idx);
+    rb_tree_insert(&p->ut_tree, &c->ut_idx, node_ut_lt);
+    rb_tree_insert_case(&p->ut_tree, &c->ut_idx);
   }
 }
 

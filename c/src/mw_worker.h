@@ -13,4 +13,10 @@ worker_process1(int channel_fd, as_lua_pconf_t *cnf);
 extern void
 test_worker_process1(int fd, as_lua_pconf_t *cnf);
 
+extern void
+worker_process2(int channel_fd, as_lua_pconf_t *cnf);
+
+extern void
+test_worker_process2(int fd, as_lua_pconf_t *cnf);
+
 #endif
