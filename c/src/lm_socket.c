@@ -34,11 +34,12 @@ lcf_socket_new(lua_State *L) {
   luaL_getmetatable(L, LM_SOCKET);
   lua_setmetatable(L, -2);
 
-  sock->conn = (as_rb_conn_t *)mpf_alloc(mp, sizeof(as_rb_conn_t));
+  sock->conn = (as_wrap_conn_t *)mpf_alloc(mp, sizeof_wrap_conn(as_sl_conn_t));
   if (sock->conn == NULL) {
     lua_pushstring(L, "alloc error");
     lua_error(L);
   }
+  sock->conn->type = AS_WC_SL_CONN;
 
   int fd = make_client_socket(host, port);
   if (fd < 0) {
@@ -47,7 +48,10 @@ lcf_socket_new(lua_State *L) {
     lua_error(L);
   }
 
-  rb_conn_init(sock->conn, fd);
+  as_sl_conn_t *sc = (as_sl_conn_t *)sock->conn->d;
+  sc->T = L;
+  sc->fd = fd;
+
   struct epoll_event e;
   set_non_block(fd);
   e.data.ptr = sock->conn;
@@ -59,7 +63,6 @@ lcf_socket_new(lua_State *L) {
     lua_error(L);
   }
 
-  sock->conn->T = L;
   lbind_ref_fd_lthread(L, fd);
 
   return 1;
@@ -71,8 +74,8 @@ static int
 lcf_sock_set_event(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
-  as_rb_conn_t *conn = sock->conn;
-  if (conn == NULL) {
+  as_wrap_conn_t *wc = sock->conn;
+  if (wc == NULL) {
     lua_pushstring(L, "conn closed");
     lua_error(L);
   }
@@ -83,7 +86,7 @@ lcf_sock_set_event(lua_State *L) {
   int epfd = lua_tointeger(L, -1);
 
   struct epoll_event e;
-  e.data.ptr = conn;
+  e.data.ptr = wc;
   if (event == SOCK_EVENT_IN) {
     e.events = EPOLLIN | EPOLLET;
   } else if (event == SOCK_EVENT_OUT) {
@@ -91,7 +94,9 @@ lcf_sock_set_event(lua_State *L) {
   } else {
     e.events = EPOLLET;
   }
-  epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &e);
+
+  as_sl_conn_t *sc = (as_sl_conn_t *)wc->d;
+  epoll_ctl(epfd, EPOLL_CTL_MOD, sc->fd, &e);
 
   return 0;
 }
@@ -103,14 +108,15 @@ lcf_socket_send(lua_State *L) {
   size_t len;
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
-  as_rb_conn_t *conn = sock->conn;
-  if (conn == NULL) {
+  as_wrap_conn_t *wc = sock->conn;
+  if (wc == NULL) {
     lua_pushstring(L, "conn closed");
     lua_error(L);
   }
 
+  as_sl_conn_t *sc = (as_sl_conn_t *)wc->d;
   const char *buf = lua_tolstring(L, 2, &len);
-  int nbyte = send(conn->fd, buf, len, MSG_NOSIGNAL);
+  int nbyte = send(sc->fd, buf, len, MSG_NOSIGNAL);
   if (nbyte < 0) {
     lua_pushinteger(L, 0);
     lua_pushinteger(L, errno);
@@ -128,8 +134,8 @@ static int
 lcf_socket_read(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
-  as_rb_conn_t *conn = sock->conn;
-  if (conn == NULL) {
+  as_wrap_conn_t *wc = sock->conn;
+  if (wc == NULL) {
     lua_pushstring(L, "conn closed");
     lua_error(L);
   }
@@ -140,7 +146,8 @@ lcf_socket_read(lua_State *L) {
   }
 
   char *buf = (char *)lua_newuserdata(L, n);
-  int nbyte = read(conn->fd, buf, n);
+  as_sl_conn_t *sc = (as_sl_conn_t *)wc->d;
+  int nbyte = read(sc->fd, buf, n);
   if (nbyte < 0) {
     lua_pushinteger(L, 0);
     lua_pushnil(L);
@@ -159,7 +166,7 @@ static int
 lcf_socket_get_fd(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
-  lua_pushinteger(L, sock->conn->fd);
+  lua_pushinteger(L, ((as_sl_conn_t *)sock->conn->d)->fd);
 
   return 1;
 }
@@ -170,9 +177,12 @@ static int
 lcf_socket_close(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
-  if (sock->conn != NULL) {
-    close(sock->conn->fd);
-    mpf_recycle(sock->conn);
+
+  as_wrap_conn_t *wc = sock->conn;
+  if (wc != NULL) {
+    as_sl_conn_t *sc = (as_sl_conn_t *)wc->d;
+    close(sc->fd);
+    mpf_recycle(wc);
     sock->conn = NULL;
   }
 
@@ -185,9 +195,11 @@ static int
 lcf_socket_destroy(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
-  if (sock->conn != NULL) {
-    close(sock->conn->fd);
-    mpf_recycle(sock->conn);
+  as_wrap_conn_t *wc = sock->conn;
+  if (wc != NULL) {
+    as_sl_conn_t *sc = (as_sl_conn_t *)wc->d;
+    close(sc->fd);
+    mpf_recycle(wc);
   }
 
   return 0;

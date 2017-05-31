@@ -4,8 +4,8 @@
 #include "wrap_conn.h"
 
 typedef struct {
-  as_rb_conn_t  *conn;
-  int           ot_secs;
+  as_wrap_conn_t  *conn;
+  int             ot_secs;
 } as_lm_socket_t;
 
 #endif

@@ -51,7 +51,7 @@ init_lua_state(lua_State **L, as_mem_pool_fixed_t *mp, as_lua_pconf_t *cnf,
   lbind_init_state(*L, mp);
   lbind_append_lua_cpath(*L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(*L, get_cnf_str_val(cnf, 1, "lua_path"));
-  lbind_reg_integer_value(*L, LRK_SERVER_EPFD, epfd);\
+  lbind_reg_integer_value(*L, LRK_SERVER_EPFD, epfd);
   lbind_ref_lcode_chunk(*L, get_cnf_str_val(cnf, 1, WORKER_FILE_NAME));
 }
 
@@ -140,9 +140,10 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
     if (ret == LUA_YIELD) {
       int n_res = lua_gettop(T) - n;
-      if (n_res == 1 && lua_isinteger(T, -1) &&
-          lua_tointeger(T, -1) == LAS_WAIT_FOR_INPUT) {
-        lua_pop(T, 1);
+      if (n_res == 2 && lua_isinteger(T, -2) &&
+          lua_tointeger(T, -2) == LAS_WAIT_FOR_INPUT) {
+        lua_pop(T, 2);
+
         rb_conn_pool_insert(cp, new_wc);
         add_wrap_conn_event(new_wc, epfd);
         continue;
@@ -170,9 +171,10 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
-    if (n_res == 1 && lua_isinteger(T, -1)){
-      int status = lua_tointeger(T, -1);
-      lua_pop(T, 1);
+    if (n_res == 2 && lua_isinteger(T, -2)){
+      int status = lua_tointeger(T, -2);
+      lua_pop(T, 2);
+
       if (status == LAS_WAIT_FOR_INPUT) {
         rb_conn_update_ut(conn_pool, wc);
         return;
@@ -206,9 +208,10 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
-    if (n_res == 1 && lua_isinteger(T, -1)) {
-      int status = lua_tointeger(T, -1);
-      lua_pop(T, 1);
+    if (n_res == 2 && lua_isinteger(T, -2)) {
+      int status = lua_tointeger(T, -2);
+      lua_pop(T, 2);
+
       if (status == LAS_WAIT_FOR_INPUT) {
         rb_conn_update_ut(conn_pool, wc);
 

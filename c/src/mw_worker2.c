@@ -18,10 +18,6 @@
   __ret.val.s;\
 })
 
-#define alloc_wrap_conn(_mp_, _type_) \
-    (as_wrap_conn_t *)mpf_alloc(\
-      _mp_, offsetof(as_wrap_conn_t, d) + sizeof(_type_))
-
 #define wrap_conn_fd(_wc_) \
     ((_wc_)->type == AS_WC_RB_CONN ? \
      ((as_rb_conn_t *)(_wc_)->d)->fd : \
@@ -69,7 +65,7 @@ init_lua_state(lua_State **L, as_mem_pool_fixed_t *mp, as_lua_pconf_t *cnf,
   lbind_init_state(*L, mp);
   lbind_append_lua_cpath(*L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(*L, get_cnf_str_val(cnf, 1, "lua_path"));
-  lbind_reg_integer_value(*L, LRK_SERVER_EPFD, epfd);\
+  lbind_reg_integer_value(*L, LRK_SERVER_EPFD, epfd);
   lbind_ref_lcode_chunk(*L, get_cnf_str_val(cnf, 1, WORKER_FILE_NAME));
 }
 
@@ -153,7 +149,8 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
       break;
     }
 
-    as_wrap_conn_t *new_wc = alloc_wrap_conn(mp, as_rb_conn_t);
+    as_wrap_conn_t *new_wc = (as_wrap_conn_t *)mpf_alloc(
+        mp, sizeof_wrap_conn(as_rb_conn_t));
     new_wc->type = AS_WC_RB_CONN;
     as_rb_conn_t *rc = (as_rb_conn_t *)new_wc->d;
 
@@ -167,9 +164,10 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
     if (ret == LUA_YIELD) {
       int n_res = lua_gettop(T) - n;
-      if (n_res == 1 && lua_isinteger(T, -1) &&
-          lua_tointeger(T, -1) == LAS_WAIT_FOR_INPUT) {
-        lua_pop(T, 1);
+      if (n_res == 2 && lua_isinteger(T, -2) &&
+          lua_tointeger(T, -2) == LAS_WAIT_FOR_INPUT) {
+        lua_pop(T, 2);
+
         rb_conn_pool_insert(cp, rc);
         add_wrap_conn_event(new_wc, epfd);
         continue;
@@ -198,9 +196,10 @@ handler_rb_conn_read(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
-    if (n_res == 1 && lua_isinteger(T, -1)){
-      int status = lua_tointeger(T, -1);
-      lua_pop(T, 1);
+    if (n_res == 2 && lua_isinteger(T, -2)){
+      int status = lua_tointeger(T, -2);
+      lua_pop(T, 2);
+
       if (status == LAS_WAIT_FOR_INPUT) {
         rb_conn_update_ut(conn_pool, rc);
         return;
@@ -235,9 +234,10 @@ handler_rb_conn_write(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
 
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
-    if (n_res == 1 && lua_isinteger(T, -1)) {
-      int status = lua_tointeger(T, -1);
-      lua_pop(T, 1);
+    if (n_res == 2 && lua_isinteger(T, -2)) {
+      int status = lua_tointeger(T, -2);
+      lua_pop(T, 2);
+
       if (status == LAS_WAIT_FOR_INPUT) {
         rb_conn_update_ut(conn_pool, rc);
 
@@ -283,7 +283,8 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
 
   init_mem_pool(&mem_pool);
 
-  as_wrap_conn_t *cfd_conn = alloc_wrap_conn(mem_pool, as_sl_conn_t);
+  as_wrap_conn_t *cfd_conn = (as_wrap_conn_t *)mpf_alloc(
+      mem_pool, sizeof_wrap_conn(as_sl_conn_t));
   cfd_conn->type = AS_WC_SL_CONN;
 
   init_epfd(&epfd, cfd_conn, fd);

@@ -30,6 +30,9 @@ typedef struct {
   lua_State *T;
 } as_sl_conn_t;
 
+#define sizeof_wrap_conn(_type_) \
+    (offsetof(as_wrap_conn_t, d) + sizeof(_type_))
+
 #define NULL_RB_CONN_POOL {NULL}
 
 #define rb_conn_pool_init(_p_) \

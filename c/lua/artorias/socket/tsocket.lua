@@ -8,15 +8,16 @@ local _tsocket = {}
 
 function _tsocket:new()
     local sock = tsocket.get()
-    local obj = {_socket=sock}
+    local fd = sock:get_fd()
+    local obj = {_socket=sock, _fd=fd}
     self.__index = self
     return setmetatable(obj, self)
 end
 
 
 function _tsocket:ready_for_read()
-    local status, fd = coroutine.yield(base.WAIT_FOR_INPUT)
-    return status == base.READY_TO_INPUT and fd == self._socket:get_fd()
+    local status, fd = coroutine.yield(base.WAIT_FOR_INPUT, self._fd)
+    return status == base.READY_TO_INPUT and fd == self._fd
 end
 
 
@@ -60,10 +61,10 @@ function _tsocket:send(buf)
             nbyte = nbyte + n
             buf = buf:sub(n + 1)
         elseif err == base.EAGAIN then
-            local status, fd = coroutine.yield(base.WAIT_FOR_OUTPUT)
+            local status, fd = coroutine.yield(base.WAIT_FOR_OUTPUT, self._fd)
             if status ~= base.READY_TO_OUTPUT then
                 return nbyte, "status error"
-            elseif fd ~= self._socket:get_fd() then
+            elseif fd ~= self._fd then
                 return nbyte, "error fd"
             else
                 err = nil
