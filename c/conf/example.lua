@@ -5,8 +5,13 @@ as_config = {
 
     -- ["worker_type"] = 0,
 
-    ["worker_type"] = 1,
+    -- ["worker_type"] = 1,
+    -- ["lua_cpath"] = "./bin/?.so",
+    -- ["lua_path"] = "./lua/?.lua",
+    -- ["worker"] = "./test/t_socket_1.lua",
+
+    ["worker_type"] = 2,
     ["lua_cpath"] = "./bin/?.so",
     ["lua_path"] = "./lua/?.lua",
-    ["worker"] = "./test/t_socket_1.lua",
+    ["worker"] = "./test/t_socket_2.lua",
 }

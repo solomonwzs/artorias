@@ -35,7 +35,6 @@ add_wrap_conn_event(as_wrap_conn_t *wc, int epfd) {
     as_sl_conn_t *sc = (as_sl_conn_t *)wc->d;
     fd = sc->fd;
   }
-  set_non_block(fd);
   e.data.ptr = wc;
   e.events = EPOLLIN | EPOLLET;
   epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &e);
@@ -51,6 +50,8 @@ init_mem_pool(as_mem_pool_fixed_t **mp) {
 
 static inline void
 init_epfd(int *epfd, as_wrap_conn_t *cfd_conn, int cfd) {
+  set_non_block(cfd);
+
   *epfd = epoll_create(1);
   as_sl_conn_t *sc = (as_sl_conn_t *)cfd_conn->d;
   sc->fd = cfd;
@@ -60,7 +61,7 @@ init_epfd(int *epfd, as_wrap_conn_t *cfd_conn, int cfd) {
 
 static inline void
 init_lua_state(lua_State **L, as_mem_pool_fixed_t *mp, as_lua_pconf_t *cnf,
-                int epfd) {
+               int epfd) {
   *L = lbind_new_state(mp);
   lbind_init_state(*L, mp);
   lbind_append_lua_cpath(*L, get_cnf_str_val(cnf, 1, "lua_cpath"));
@@ -148,6 +149,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     if (infd == -1) {
       break;
     }
+    set_non_block(infd);
 
     as_wrap_conn_t *new_wc = (as_wrap_conn_t *)mpf_alloc(
         mp, sizeof_wrap_conn(as_rb_conn_t));
@@ -185,7 +187,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
 static inline void
 handler_rb_conn_read(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
-                     int epfd, struct epoll_event *event) {
+                     int epfd) {
   as_rb_conn_t *rc = (as_rb_conn_t *)wc->d;
   lua_State *T = rc->T;
   int n = lua_gettop(T);
@@ -195,24 +197,21 @@ handler_rb_conn_read(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
   int ret = alua_resume(T, 2);
 
   if (ret == LUA_YIELD) {
+    rb_conn_update_ut(conn_pool, rc);
     int n_res = lua_gettop(T) - n;
-    if (n_res == 2 && lua_isinteger(T, -2)){
+
+    if (n_res == 2 && lua_isinteger(T, -2) && lua_isinteger(T, -1)){
       int status = lua_tointeger(T, -2);
+      int fd = lua_tointeger(T, -1);
       lua_pop(T, 2);
 
-      if (status == LAS_WAIT_FOR_INPUT) {
-        rb_conn_update_ut(conn_pool, rc);
-        return;
-      } else if (status == LAS_WAIT_FOR_OUTPUT) {
-        rb_conn_update_ut(conn_pool, rc);
-
+      if (fd == rc->fd && status == LAS_WAIT_FOR_OUTPUT) {
         struct epoll_event e;
         e.data.ptr = wc;
         e.events = EPOLLOUT | EPOLLET;
         epoll_ctl(epfd, EPOLL_CTL_MOD, rc->fd, &e);
-
-        return;
       }
+      return;
     }
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
@@ -222,8 +221,13 @@ handler_rb_conn_read(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
 
 
 static inline void
+handler_sl_conn_read(as_wrap_conn_t *wc) {
+}
+
+
+static inline void
 handler_rb_conn_write(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
-                      int epfd, struct epoll_event *event) {
+                      int epfd) {
   as_rb_conn_t *rc = (as_rb_conn_t *)wc->d;
   lua_State *T = rc->T;
   int n = lua_gettop(T);
@@ -233,29 +237,31 @@ handler_rb_conn_write(as_wrap_conn_t *wc, as_rb_conn_pool_t *conn_pool,
   int ret = alua_resume(T, 2);
 
   if (ret == LUA_YIELD) {
+    rb_conn_update_ut(conn_pool, rc);
     int n_res = lua_gettop(T) - n;
-    if (n_res == 2 && lua_isinteger(T, -2)) {
+
+    if (n_res == 2 && lua_isinteger(T, -2) && lua_isinteger(T, -1)) {
       int status = lua_tointeger(T, -2);
+      int fd = lua_tointeger(T, -1);
       lua_pop(T, 2);
 
-      if (status == LAS_WAIT_FOR_INPUT) {
-        rb_conn_update_ut(conn_pool, rc);
-
+      if (fd == rc->fd && status == LAS_WAIT_FOR_INPUT) {
         struct epoll_event e;
         e.data.ptr = wc;
         e.events = EPOLLIN | EPOLLET;
         epoll_ctl(epfd, EPOLL_CTL_MOD, rc->fd, &e);
-
-        return;
-      } else if (status == LAS_WAIT_FOR_OUTPUT) {
-        rb_conn_update_ut(conn_pool, rc);
-        return;
       }
+      return;
     }
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
   }
   close_wrap_rb_conn(conn_pool, wc);
+}
+
+
+static inline void
+handler_sl_conn_write(as_wrap_conn_t *wc) {
 }
 
 
@@ -301,11 +307,15 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
         handler_accept(fd, &conn_pool, mem_pool, epfd, L, lfile, single_mode);
       } else if (events[i].events & EPOLLIN) {
         if (wc->type == AS_WC_RB_CONN) {
-          handler_rb_conn_read(wc, &conn_pool, epfd, &events[i]);
+          handler_rb_conn_read(wc, &conn_pool, epfd);
+        } else {
+          handler_sl_conn_read(wc);
         }
       } else if (events[i].events & EPOLLOUT) {
         if (wc->type == AS_WC_RB_CONN) {
-          handler_rb_conn_write(wc, &conn_pool, epfd, &events[i]);
+          handler_rb_conn_write(wc, &conn_pool, epfd);
+        } else {
+          handler_sl_conn_write(wc);
         }
       }
     }

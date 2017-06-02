@@ -22,7 +22,6 @@
 static inline void
 add_wrap_conn_event(as_rb_conn_t *wc, int epfd) {
   struct epoll_event e;
-  set_non_block(wc->fd);
   e.data.ptr = wc;
   e.events = EPOLLIN | EPOLLET;
   epoll_ctl(epfd, EPOLL_CTL_ADD, wc->fd, &e);
@@ -38,6 +37,8 @@ init_mem_pool(as_mem_pool_fixed_t **mp) {
 
 static inline void
 init_epfd(int *epfd, as_rb_conn_t *cfd_conn, int cfd) {
+  set_non_block(cfd);
+
   *epfd = epoll_create(1);
   cfd_conn->fd = cfd;
   add_wrap_conn_event(cfd_conn, *epfd);
@@ -46,7 +47,7 @@ init_epfd(int *epfd, as_rb_conn_t *cfd_conn, int cfd) {
 
 static inline void
 init_lua_state(lua_State **L, as_mem_pool_fixed_t *mp, as_lua_pconf_t *cnf,
-                int epfd) {
+               int epfd) {
   *L = lbind_new_state(mp);
   lbind_init_state(*L, mp);
   lbind_append_lua_cpath(*L, get_cnf_str_val(cnf, 1, "lua_cpath"));
@@ -128,6 +129,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     if (infd == -1) {
       break;
     }
+    set_non_block(infd);
 
     as_rb_conn_t *new_wc = mpf_alloc(mp, sizeof(as_rb_conn_t));
     rb_conn_init(new_wc, infd);
@@ -160,8 +162,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
 
 static inline void
-handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
-             struct epoll_event *event) {
+handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
   lua_State *T = wc->T;
   int n = lua_gettop(T);
 
@@ -170,24 +171,20 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   int ret = alua_resume(T, 2);
 
   if (ret == LUA_YIELD) {
+    rb_conn_update_ut(conn_pool, wc);
     int n_res = lua_gettop(T) - n;
+
     if (n_res == 2 && lua_isinteger(T, -2)){
       int status = lua_tointeger(T, -2);
       lua_pop(T, 2);
 
-      if (status == LAS_WAIT_FOR_INPUT) {
-        rb_conn_update_ut(conn_pool, wc);
-        return;
-      } else if (status == LAS_WAIT_FOR_OUTPUT) {
-        rb_conn_update_ut(conn_pool, wc);
-
+      if (status == LAS_WAIT_FOR_OUTPUT) {
         struct epoll_event e;
         e.data.ptr = wc;
         e.events = EPOLLOUT | EPOLLET;
         epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
-
-        return;
       }
+      return;
     }
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
@@ -197,8 +194,7 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
 
 
 static inline void
-handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
-              struct epoll_event *event) {
+handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
   lua_State *T = wc->T;
   int n = lua_gettop(T);
 
@@ -207,24 +203,21 @@ handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd,
   int ret = alua_resume(T, 2);
 
   if (ret == LUA_YIELD) {
+    rb_conn_update_ut(conn_pool, wc);
     int n_res = lua_gettop(T) - n;
+
     if (n_res == 2 && lua_isinteger(T, -2)) {
       int status = lua_tointeger(T, -2);
       lua_pop(T, 2);
 
       if (status == LAS_WAIT_FOR_INPUT) {
-        rb_conn_update_ut(conn_pool, wc);
-
         struct epoll_event e;
         e.data.ptr = wc;
         e.events = EPOLLIN | EPOLLET;
         epoll_ctl(epfd, EPOLL_CTL_MOD, wc->fd, &e);
 
-        return;
-      } else if (status == LAS_WAIT_FOR_OUTPUT) {
-        rb_conn_update_ut(conn_pool, wc);
-        return;
       }
+      return;
     }
   } else if (ret != LUA_OK) {
     lb_pop_error_msg(T);
@@ -270,9 +263,9 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
       } else if (wc->fd == fd) {
         handler_accept(fd, &conn_pool, mem_pool, epfd, L, lfile, single_mode);
       } else if (events[i].events & EPOLLIN) {
-        handler_read(wc, &conn_pool, epfd, &events[i]);
+        handler_read(wc, &conn_pool, epfd);
       } else if (events[i].events & EPOLLOUT) {
-        handler_write(wc, &conn_pool, epfd, &events[i]);
+        handler_write(wc, &conn_pool, epfd);
       }
     }
     remove_time_out_conn(&conn_pool, conn_timeout);
@@ -296,4 +289,3 @@ void
 test_worker_process1(int fd, as_lua_pconf_t *cnf) {
   process(fd, cnf, 1);
 }
-
