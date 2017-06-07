@@ -73,7 +73,7 @@ lcf_init_state(lua_State *L) {
 
   luaL_openlibs(L);
 
-  luaL_newmetatable(L, LRK_THREAD_TABLE);
+  luaL_newmetatable(L, LRK_FD_THREAD_TABLE);
 
   luaL_newmetatable(L, LRK_LCODE_CHUNK_TABLE);
 
@@ -190,7 +190,7 @@ lcf_new_fd_lthread(lua_State *L) {
   char k[] = {0, 0, 0, 0, 0};
   *((int *)k) = fd;
 
-  lbind_checkmetatable(L, LRK_THREAD_TABLE,
+  lbind_checkmetatable(L, LRK_FD_THREAD_TABLE,
                        "thread table not exist");
   lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
                        "thread local var table not exist");
@@ -237,7 +237,7 @@ lcf_unref_fd_lthread(lua_State *L) {
   char k[] = {0, 0, 0, 0, 0};
   *((int *)k) = fd;
 
-  lbind_checkmetatable(L, LRK_THREAD_TABLE,
+  lbind_checkmetatable(L, LRK_FD_THREAD_TABLE,
                        "thread table not exist");
   lua_pushstring(L, k);
   lua_pushnil(L);
@@ -297,7 +297,7 @@ lcf_ref_fd_lthread(lua_State *T) {
   char k[] = {0, 0, 0, 0, 0};
   *((int *)k) = fd;
 
-  lbind_checkmetatable(T, LRK_THREAD_TABLE,
+  lbind_checkmetatable(T, LRK_FD_THREAD_TABLE,
                        "thread table not exist");
   lua_pushstring(T, k);
   lua_pushthread(T);

@@ -9,7 +9,7 @@
 #define LM_SOCKET   "as_lm_002"
 
 #define LRK_MEM_POOL                "as_lrk_000"
-#define LRK_THREAD_TABLE            "as_lrk_001"
+#define LRK_FD_THREAD_TABLE         "as_lrk_001"
 #define LRK_THREAD_LOCAL_VAR_TABLE  "as_lrk_002"
 #define LRK_LCODE_CHUNK_TABLE       "as_lrk_003"
 #define LRK_SERVER_EPFD             "as_lrk_004"
