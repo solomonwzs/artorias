@@ -13,6 +13,7 @@
 #define LRK_THREAD_LOCAL_VAR_TABLE  "as_lrk_002"
 #define LRK_LCODE_CHUNK_TABLE       "as_lrk_003"
 #define LRK_SERVER_EPFD             "as_lrk_004"
+#define LRK_TID_THREAD_TABLE        "as_lrk_005"
 
 #define LAS_WAIT_FOR_INPUT    0x00
 #define LAS_WAIT_FOR_OUTPUT   0x01

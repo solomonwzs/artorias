@@ -45,8 +45,6 @@
   (_type_ *)((char *)__mptr - offsetof(_type_, _member_));\
 })
 
-#endif
-
 #define binary_search(_arr_, _len_, _key_, _eq_, _lt_) ({\
   typeof(_len_) __left = 0;\
   typeof(_len_) __right = (_len_) - 1;\
@@ -64,3 +62,7 @@
   }\
   __left;\
 })
+
+typedef uint32_t as_tid_t;
+
+#endif

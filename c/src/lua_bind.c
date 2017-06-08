@@ -74,8 +74,8 @@ lcf_init_state(lua_State *L) {
   luaL_openlibs(L);
 
   luaL_newmetatable(L, LRK_FD_THREAD_TABLE);
-
   luaL_newmetatable(L, LRK_LCODE_CHUNK_TABLE);
+  luaL_newmetatable(L, LRK_TID_THREAD_TABLE);
 
   luaL_newmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
   lua_pushvalue(L, -1);
@@ -100,6 +100,7 @@ lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp) {
   }
   return ret;
 }
+
 
 #ifndef LUA51
 static void *
@@ -191,7 +192,7 @@ lcf_new_fd_lthread(lua_State *L) {
   *((int *)k) = fd;
 
   lbind_checkmetatable(L, LRK_FD_THREAD_TABLE,
-                       "thread table not exist");
+                       "fd thread table not exist");
   lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
                        "thread local var table not exist");
   lua_newthread(L);
@@ -230,6 +231,49 @@ lbind_new_fd_lthread(lua_State *L, int fd) {
   }
 }
 
+
+// [-2, +1, e]
+static int
+lcf_new_tid_lthread(lua_State *L) {
+  int fd = lua_tointeger(L, -2);
+  as_tid_t tid = lua_tointeger(L, -1);
+  char k[] = {0, 0, 0, 0, 0};
+  *((as_tid_t *)k) = tid;
+
+  lbind_checkmetatable(L, LRK_TID_THREAD_TABLE,
+                       "tid thread table not exist");
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
+  lua_newthread(L);
+
+  lua_pushstring(L, k);
+  lua_pushvalue(L, -2);
+  lua_settable(L, -5);
+
+  lua_pushvalue(L, -1);
+  lua_newtable(L);
+
+  lua_pushstring(L, "fd");
+  lua_pushinteger(L, fd);
+  lua_settable(L, -3);
+
+  lua_settable(L, -4);
+
+  return 1;
+}
+
+
+// [-0, +0, -]
+lua_State *
+lbind_new_tid_lthread(lua_State *L, as_tid_t tid, int fd) {
+  lua_pushcfunction(L, lcf_new_tid_lthread);
+  lua_pushinteger(L, fd);
+  lua_pushinteger(L, tid);
+
+  return NULL;
+}
+
+
 // [-1, +0, e]
 static int
 lcf_unref_fd_lthread(lua_State *L) {
@@ -238,7 +282,7 @@ lcf_unref_fd_lthread(lua_State *L) {
   *((int *)k) = fd;
 
   lbind_checkmetatable(L, LRK_FD_THREAD_TABLE,
-                       "thread table not exist");
+                       "fd thread table not exist");
   lua_pushstring(L, k);
   lua_pushnil(L);
   lua_settable(L, -3);
@@ -298,7 +342,7 @@ lcf_ref_fd_lthread(lua_State *T) {
   *((int *)k) = fd;
 
   lbind_checkmetatable(T, LRK_FD_THREAD_TABLE,
-                       "thread table not exist");
+                       "fd thread table not exist");
   lua_pushstring(T, k);
   lua_pushthread(T);
   lua_settable(T, -3);

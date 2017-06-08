@@ -33,6 +33,9 @@ lbind_append_lua_package_field(lua_State *L, const char *field,
 extern lua_State *
 lbind_new_fd_lthread(lua_State *L, int fd);
 
+extern lua_State *
+lbind_new_tid_lthread(lua_State *L, as_tid_t tid, int fd);
+
 extern int
 lbind_ref_fd_lthread(lua_State *L, int fd);
 
