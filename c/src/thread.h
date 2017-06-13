@@ -29,11 +29,15 @@ typedef struct {
   lua_State         *T;
   time_t            ct;
   time_t            ut;
+  time_t            et;
   as_rb_node_t      pidx;
   as_rb_tree_t      *pool;
   int               status;
   int               fd;
   as_thread_res_t   *resl;
 } as_thread_t;
+
+extern int
+asthread_init(as_thread_t *t, int fd, lua_State *L);
 
 #endif

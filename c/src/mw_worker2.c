@@ -6,6 +6,7 @@
 #include "lua_bind.h"
 #include "rb_tree.h"
 #include "server.h"
+#include "thread.h"
 
 #define AS_EPTR_TYPE_CFD      0x00
 #define AS_EPTR_TYPE_THREAD   0x01
@@ -39,6 +40,47 @@ init_handler(int dummy) {
 
 
 static void
+handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
+               as_rb_tree_t *io_pool, const char *lfile, int single_mode) {
+  int (*new_fd_func)(int);
+  if (single_mode) {
+    new_fd_func = new_accept_fd;
+  } else {
+    new_fd_func = recv_fd_from_socket;
+  }
+
+  while (1) {
+    int fd = new_fd_func(fd);
+    if (fd == -1) {
+      break;
+    }
+    set_non_block(fd);
+
+    as_epoll_event_ptr_t *eptr = mpf_alloc(
+        mem_pool, sizeof_event_ptr(as_thread_t));
+    eptr->type = AS_EPTR_TYPE_THREAD;
+
+    as_thread_t *th = (as_thread_t *)eptr->d;
+    as_tid_t tid = asthread_init(th, fd, L);
+    if (tid == -1) {
+      mpf_recycle(eptr);
+      continue;
+    }
+
+    lua_State *T = th->T;
+    int n = lua_gettop(T);
+    lbind_get_lcode_chunk(T, lfile);
+    int ret = alua_resume(T, 0);
+    if (ret  == LUA_YIELD) {
+      int n_res = lua_gettop(T) - n;
+      if (n_res == 2 && lua_isinteger(T, -2)) {
+      }
+    }
+  }
+}
+
+
+static void
 process_io(int epfd) {
   struct epoll_event events[100];
   int active_cnt = epoll_wait(epfd, events, 100, 500);
@@ -46,7 +88,7 @@ process_io(int epfd) {
     as_epoll_event_ptr_t *eptr = events[i].data.ptr;
     if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
         !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
-    } else if (events[i].data.ptr) {
+    } else if (eptr->type == AS_EPTR_TYPE_CFD) {
     }
   }
 }

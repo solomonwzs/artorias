@@ -17,7 +17,7 @@ lcf_tsocket_get(lua_State *L) {
   lua_gettable(L, -2);
   int fd = lua_tointeger(L, -1);
 
-  as_lm_tsocket_t *tsocket =  (as_lm_tsocket_t *)lua_newuserdata(
+  as_lm_tsocket_t *tsocket = (as_lm_tsocket_t *)lua_newuserdata(
       L, sizeof(as_lm_tsocket_t));
   tsocket->fd = fd;
 

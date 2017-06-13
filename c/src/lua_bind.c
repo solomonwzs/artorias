@@ -270,7 +270,15 @@ lbind_new_tid_lthread(lua_State *L, as_tid_t tid, int fd) {
   lua_pushinteger(L, fd);
   lua_pushinteger(L, tid);
 
-  return NULL;
+  int ret = lua_pcall(L, 2, 1, 0);
+  if (ret == LUA_OK) {
+    lua_State *T = lua_tothread(L, -1);
+    lua_pop(L, 1);
+    return T;
+  } else {
+    lb_pop_error_msg(L);
+    return NULL;
+  }
 }
 
 
