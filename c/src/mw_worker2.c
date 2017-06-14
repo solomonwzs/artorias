@@ -4,22 +4,25 @@
 #include <stdint.h>
 #include <sys/epoll.h>
 #include "lua_bind.h"
+#include "lua_utils.h"
 #include "rb_tree.h"
 #include "server.h"
 #include "thread.h"
 
-#define AS_EPTR_TYPE_CFD      0x00
-#define AS_EPTR_TYPE_THREAD   0x01
-#define AS_EPTR_TYPE_TRES     0x02
+#define _MAX_EVENTS  100
+
+#define _AS_EPTR_TYPE_CFD      0x00
+#define _AS_EPTR_TYPE_TRES     0x01
+
+typedef union {
+  int   fd;
+  void  *ptr;
+} as_epoll_event_data_t;
 
 typedef struct {
-  int     type;
-  uint8_t d[];
+  int                   type;
+  as_epoll_event_data_t data;
 } as_epoll_event_ptr_t;
-
-
-#define sizeof_event_ptr(_type_) \
-    (offsetof(as_epoll_event_ptr_t, d) + sizeof(_type_))
 
 #define get_cnf_int_val(_cnf_, _n_, ...) ({\
   as_cnf_return_t __ret = lpconf_get_pconf_value(_cnf_, _n_, ## __VA_ARGS__);\
@@ -39,6 +42,40 @@ init_handler(int dummy) {
 }
 
 
+#define _AS_THS_TO_DONOTHING  0x00
+#define _AS_THS_TO_MIO        0x01
+#define _AS_THS_TO_IO         0x02
+#define _AS_THS_TO_SLEEP      0x03
+#define _AS_THS_TO_STOP       0x04
+static int
+thread_res_run(as_thread_res_t *res, const char *lfile) {
+  as_thread_t *th = res->th;
+  if (th->status == AS_TSTATUS_STOP) {
+    return _AS_THS_TO_DONOTHING;
+  }
+
+  lua_State *T = th->T;
+  int n = lua_gettop(T);
+
+  if (th->status == AS_TSTATUS_READY) {
+    lbind_get_lcode_chunk(T, lfile);
+  }
+  int ret = alua_resume(T, 0);
+  if (ret == LUA_YIELD) {
+    int n_res = lua_gettop(T) - n;
+    if (n_res == 4 && lua_isinteger(T, -4) &&
+        lua_tointeger(T, -4) == LAS_YIELD_FOR_IO) {
+      return _AS_THS_TO_MIO;
+    } else if (n_res == 2 && lua_isinteger(T, -2) &&
+               lua_tointeger(T, -2) == LAS_YIELD_FOR_SLEEP) {
+      return _AS_THS_TO_SLEEP;
+    }
+  } else {
+    return _AS_THS_TO_STOP;
+  }
+}
+
+
 static void
 handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
                as_rb_tree_t *io_pool, const char *lfile, int single_mode) {
@@ -50,22 +87,28 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
   }
 
   while (1) {
-    int fd = new_fd_func(fd);
+    int fd = new_fd_func(cfd);
     if (fd == -1) {
       break;
     }
     set_non_block(fd);
 
-    as_epoll_event_ptr_t *eptr = mpf_alloc(
-        mem_pool, sizeof_event_ptr(as_thread_t));
-    eptr->type = AS_EPTR_TYPE_THREAD;
-
-    as_thread_t *th = (as_thread_t *)eptr->d;
+    as_thread_t *th = mpf_alloc(mem_pool, sizeof(as_thread_t));
     as_tid_t tid = asthread_init(th, fd, L);
     if (tid == -1) {
-      mpf_recycle(eptr);
+      mpf_recycle(th);
       continue;
     }
+
+    as_thread_res_t *res = mpf_alloc(mem_pool, sizeof(as_thread_res_t));
+    res->type = AS_TRES_FD;
+    res->th = th;
+    *((int *)res->d) = fd;
+
+    as_dlist_node_t *dln = &(res->node);
+    dln->prev = NULL;
+    dln->next = th->resl;
+    th->resl = dln;
 
     lua_State *T = th->T;
     int n = lua_gettop(T);
@@ -82,13 +125,13 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
 
 static void
 process_io(int epfd) {
-  struct epoll_event events[100];
-  int active_cnt = epoll_wait(epfd, events, 100, 500);
+  struct epoll_event events[_MAX_EVENTS];
+  int active_cnt = epoll_wait(epfd, events, _MAX_EVENTS, 500);
   for (int i = 0; i < active_cnt; ++i) {
     as_epoll_event_ptr_t *eptr = events[i].data.ptr;
     if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
         !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
-    } else if (eptr->type == AS_EPTR_TYPE_CFD) {
+    } else if (eptr->type == _AS_EPTR_TYPE_CFD) {
     }
   }
 }
@@ -115,9 +158,10 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   int conn_timeout = get_cnf_int_val(cnf, 1, "conn_timeout");
   const char *lfile = get_cnf_str_val(cnf, 1, "worker");
 
-  as_epoll_event_ptr_t *cfd_ptr = mpf_alloc(mem_pool, sizeof_event_ptr(int));
-  cfd_ptr->type = AS_EPTR_TYPE_CFD;
-  *((int *)cfd_ptr->d) = cfd;
+  as_epoll_event_ptr_t *cfd_ptr = mpf_alloc(
+      mem_pool, sizeof(as_epoll_event_ptr_t));
+  cfd_ptr->type = _AS_EPTR_TYPE_CFD;
+  cfd_ptr->data.fd = cfd;
 
   event.data.ptr = cfd_ptr;
   event.events = EPOLLIN | EPOLLET;
@@ -129,8 +173,13 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   lbind_reg_integer_value(L, LRK_SERVER_EPFD, epfd);
   lbind_ref_lcode_chunk(L, lfile);
 
+  as_thread_t *stop_threads[_MAX_EVENTS];
   while (keep_running) {
   }
+
+  mpf_recycle(cfd_ptr);
+  lua_close(L);
+  mpf_destroy(mem_pool);
 }
 
 

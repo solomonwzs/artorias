@@ -21,6 +21,9 @@
 #define LAS_READY_TO_OUTPUT   0x03
 #define LAS_SOCKET_CLOSEED    0x04
 
+#define LAS_YIELD_FOR_IO     0x00
+#define LAS_YIELD_FOR_SLEEP  0x01
+
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\
       debug_log("lua error stack trackback: %s\n", lua_tostring(_L_, -1));\
