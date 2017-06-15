@@ -45,6 +45,6 @@ typedef struct as_thread_s {
     (offsetof(as_thread_res_t, d) + sizeof(_type_))
 
 extern int
-asthread_init(as_thread_t *t, int fd, lua_State *L);
+asthread_init(as_thread_t *t, lua_State *L);
 
 #endif

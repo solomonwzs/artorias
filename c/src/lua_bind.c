@@ -235,7 +235,6 @@ lbind_new_fd_lthread(lua_State *L, int fd) {
 // [-2, +1, e]
 static int
 lcf_new_tid_lthread(lua_State *L) {
-  int fd = lua_tointeger(L, -2);
   as_tid_t tid = lua_tointeger(L, -1);
   char k[] = {0, 0, 0, 0, 0};
   *((as_tid_t *)k) = tid;
@@ -252,11 +251,6 @@ lcf_new_tid_lthread(lua_State *L) {
 
   lua_pushvalue(L, -1);
   lua_newtable(L);
-
-  lua_pushstring(L, "fd");
-  lua_pushinteger(L, fd);
-  lua_settable(L, -3);
-
   lua_settable(L, -4);
 
   return 1;
@@ -265,12 +259,11 @@ lcf_new_tid_lthread(lua_State *L) {
 
 // [-0, +0, -]
 lua_State *
-lbind_new_tid_lthread(lua_State *L, as_tid_t tid, int fd) {
+lbind_new_tid_lthread(lua_State *L, as_tid_t tid) {
   lua_pushcfunction(L, lcf_new_tid_lthread);
-  lua_pushinteger(L, fd);
   lua_pushinteger(L, tid);
 
-  int ret = lua_pcall(L, 2, 1, 0);
+  int ret = lua_pcall(L, 1, 1, 0);
   if (ret == LUA_OK) {
     lua_State *T = lua_tothread(L, -1);
     lua_pop(L, 1);

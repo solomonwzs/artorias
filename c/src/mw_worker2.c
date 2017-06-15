@@ -101,7 +101,7 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
     set_non_block(fd);
 
     as_thread_t *th = mpf_alloc(mem_pool, sizeof(as_thread_t));
-    as_tid_t tid = asthread_init(th, fd, L);
+    as_tid_t tid = asthread_init(th, L);
     if (tid == -1) {
       mpf_recycle(th);
       continue;
@@ -118,14 +118,6 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
     th->resl = dln;
 
     lua_State *T = th->T;
-    int n = lua_gettop(T);
-    lbind_get_lcode_chunk(T, lfile);
-    int ret = alua_resume(T, 0);
-    if (ret  == LUA_YIELD) {
-      int n_res = lua_gettop(T) - n;
-      if (n_res == 2 && lua_isinteger(T, -2)) {
-      }
-    }
   }
 }
 
