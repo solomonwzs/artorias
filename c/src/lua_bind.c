@@ -421,7 +421,7 @@ lbind_get_lcode_chunk(lua_State *L, const char *filename) {
 
 // [-2, +0, e]
 static int
-lcf_reg_integer_value(lua_State *L) {
+lcf_reg_value_int(lua_State *L) {
   const char *field = (const char *)lua_touserdata(L, 1);
   int value = lua_tointeger(L, 2);
   lua_pushstring(L, field);
@@ -434,14 +434,47 @@ lcf_reg_integer_value(lua_State *L) {
 
 // [-0, +0, -]
 int
-lbind_reg_integer_value(lua_State *L, const char *field, int value) {
-  lua_pushcfunction(L, lcf_reg_integer_value);
+lbind_reg_value_int(lua_State *L, const char *field, int value) {
+  lua_pushcfunction(L, lcf_reg_value_int);
   lua_pushlightuserdata(L, (void *)field);
   lua_pushinteger(L, value);
 
   int ret = lua_pcall(L, 2, 0, 0);
   if (ret != LUA_OK) {
     lb_pop_error_msg(L);
+  }
+  return ret;
+}
+
+
+// [-2, +0, e]
+static int
+lcf_set_thread_local_var_ptr(lua_State *L) {
+  const char *field = (const char *)lua_touserdata(L, 1);
+
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
+  lua_pushthread(L);
+  lua_gettable(L, -2);
+
+  lua_pushstring(L, field);
+  lua_pushvalue(L, -3);
+  lua_settable(L, -3);
+
+  return 0;
+}
+
+
+// [-0, +0, -]
+int
+lbind_set_thread_local_var_ptr(lua_State *T, const char *field, void *value) {
+  lua_pushcfunction(T, lcf_set_thread_local_var_ptr);
+  lua_pushlightuserdata(T, (void *)field);
+  lua_pushlightuserdata(T, value);
+
+  int ret = lua_pcall(T, 2, 0, 0);
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(T);
   }
   return ret;
 }

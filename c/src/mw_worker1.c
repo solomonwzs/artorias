@@ -52,7 +52,7 @@ init_lua_state(lua_State **L, as_mem_pool_fixed_t *mp, as_lua_pconf_t *cnf,
   lbind_init_state(*L, mp);
   lbind_append_lua_cpath(*L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(*L, get_cnf_str_val(cnf, 1, "lua_path"));
-  lbind_reg_integer_value(*L, LRK_SERVER_EPFD, epfd);
+  lbind_reg_value_int(*L, LRK_SERVER_EPFD, epfd);
   lbind_ref_lcode_chunk(*L, get_cnf_str_val(cnf, 1, WORKER_FILE_NAME));
 }
 

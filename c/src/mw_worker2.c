@@ -107,7 +107,7 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
       continue;
     }
 
-    as_thread_res_t *res = mpf_alloc(mem_pool, sizeof(as_thread_res_t));
+    as_thread_res_t *res = mpf_alloc(mem_pool, sizeof_thread_res(int));
     res->type = AS_TRES_FD;
     res->th = th;
     *((int *)res->d) = fd;
@@ -118,6 +118,7 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
     th->resl = dln;
 
     lua_State *T = th->T;
+    lbind_set_thread_local_var_ptr(T, "mfd", res);
   }
 }
 
@@ -169,7 +170,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   lbind_init_state(L, mem_pool);
   lbind_append_lua_cpath(L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(L, get_cnf_str_val(cnf, 1, "lua_path"));
-  lbind_reg_integer_value(L, LRK_SERVER_EPFD, epfd);
+  lbind_reg_value_int(L, LRK_SERVER_EPFD, epfd);
   lbind_ref_lcode_chunk(L, lfile);
 
   as_thread_t *stop_threads[_MAX_EVENTS];

@@ -51,6 +51,9 @@ lbind_unref_lcode_chunk(lua_State *L, const char *filename);
 extern int
 lbind_get_lcode_chunk(lua_State *L, const char *filename);
 
+extern int
+lbind_set_thread_local_var_ptr(lua_State *T, const char *field, void *value);
+
 #define lbind_append_lua_cpath(_L_, _p_) \
     lbind_append_lua_package_field(_L_, "cpath", _p_);
 
@@ -58,6 +61,6 @@ lbind_get_lcode_chunk(lua_State *L, const char *filename);
     lbind_append_lua_package_field(_L_, "path", _p_);
 
 extern int
-lbind_reg_integer_value(lua_State *L, const char *field, int value);
+lbind_reg_value_int(lua_State *L, const char *field, int value);
 
 #endif
