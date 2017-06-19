@@ -37,14 +37,28 @@ typedef struct as_thread_s {
   as_rb_node_t      pidx;
   as_rb_tree_t      *pool;
   int               status;
-  int               fd;
+  as_thread_res_t   *m_res;
   as_dlist_node_t   *resl;
 } as_thread_t;
+
+typedef struct {
+  int         n;
+  as_thread_t *ths[];
+} as_thread_array_t;
 
 #define sizeof_thread_res(_type_) \
     (offsetof(as_thread_res_t, d) + sizeof(_type_))
 
+#define sizeof_thread_array(_n_) \
+    (offsetof(as_thread_res_t, d) + sizeof(as_thread_t *) * (_n_))
+
 extern int
-asthread_init(as_thread_t *t, lua_State *L);
+asthread_init(as_thread_t *th, lua_State *L);
+
+extern void
+asthread_pool_insert(as_rb_tree_t *pool, as_thread_t *th);
+
+extern void
+asthread_array_add(as_thread_array_t *array, as_thread_t *th);
 
 #endif

@@ -22,6 +22,10 @@
   __ret.val.s;\
 })
 
+#define p_mio(_pools_)    (_pools_)
+#define p_io(_pools_)     (_pools_ + 1)
+#define p_sleep(_pools_)  (_pools_ + 2)
+
 
 static volatile int keep_running = 1;
 static void
@@ -61,9 +65,9 @@ thread_res_run(as_thread_t *th, const char *lfile,
 
       secs = secs < 0 ? _DEFAULT_TIMEOUT_SECS : secs;
       th->et = time(NULL) + secs;
-      int fd = *((int *)res->d);
+      th->status = AS_TSTATUS_RUN;
 
-      *out_status = fd == th->fd ? _AS_THS_TO_MIO : _AS_THS_TO_IO;
+      *out_status = res == th->m_res ? _AS_THS_TO_MIO : _AS_THS_TO_IO;
       *out_res = res;
       *out_io_type = io_type;
       return;
@@ -72,11 +76,17 @@ thread_res_run(as_thread_t *th, const char *lfile,
                lua_tointeger(T, -2) == LAS_YIELD_FOR_SLEEP) {
 
       int secs = lua_tointeger(T, -1);
+
+      th->et = time(NULL) + secs;
+      th->status = AS_TSTATUS_SLEEP;
+
       *out_status = _AS_THS_TO_SLEEP;
       return;
 
     }
   }
+
+  th->status = _AS_THS_TO_STOP;
 
   *out_status = _AS_THS_TO_STOP;
   return;
@@ -85,7 +95,8 @@ thread_res_run(as_thread_t *th, const char *lfile,
 
 static void
 handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
-               as_rb_tree_t *io_pool, const char *lfile, int single_mode) {
+               const char *lfile, as_rb_tree_t th_pools[],
+               as_thread_array_t *stop_threads, int single_mode) {
   int (*new_fd_func)(int);
   if (single_mode) {
     new_fd_func = new_accept_fd;
@@ -117,8 +128,28 @@ handler_accept(int cfd, as_mem_pool_fixed_t *mem_pool, lua_State *L,
     dln->next = th->resl;
     th->resl = dln;
 
+    th->m_res = res;
+
     lua_State *T = th->T;
     lbind_set_thread_local_var_ptr(T, "mfd", res);
+
+    int out_status;
+    as_thread_res_t *out_res;
+    int out_io_type;
+    thread_res_run(th, lfile, &out_status, &out_res, &out_io_type);
+
+    if (out_status == _AS_THS_TO_MIO) {
+      th->pool = p_mio(th_pools);
+      asthread_pool_insert(th->pool, th);
+    } else if (out_status == _AS_THS_TO_IO) {
+      th->pool = p_io(th_pools);
+      asthread_pool_insert(th->pool, th);
+    } else if (out_status == _AS_THS_TO_SLEEP) {
+      th->pool = p_sleep(th_pools);
+      asthread_pool_insert(th->pool, th);
+    } else if (out_status == _AS_THS_TO_STOP) {
+      asthread_array_add(stop_threads, th);
+    }
   }
 }
 
@@ -147,9 +178,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   size_t fs[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1064};
   as_mem_pool_fixed_t *mem_pool = mpf_new(fs, sizeof(fs) / sizeof(fs[0]));
 
-  as_rb_tree_t io_pool = {NULL};
-  as_rb_tree_t sleep_pool = {NULL};
-  as_rb_tree_t cio_pool = {NULL};
+  as_rb_tree_t pools[] = {{NULL}, {NULL}, {NULL}};
 
   int epfd = epoll_create(1);
   struct epoll_event event;
@@ -173,10 +202,13 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   lbind_reg_value_int(L, LRK_SERVER_EPFD, epfd);
   lbind_ref_lcode_chunk(L, lfile);
 
-  as_thread_t *stop_threads[_MAX_EVENTS];
+  as_thread_array_t *stop_threads = mpf_alloc(
+      mem_pool, sizeof_thread_array(_MAX_EVENTS));
   while (keep_running) {
+    stop_threads->n = 0;
   }
 
+  mpf_recycle(stop_threads);
   mpf_recycle(cfd_ptr);
   lua_close(L);
   mpf_destroy(mem_pool);
