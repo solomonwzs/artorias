@@ -21,8 +21,9 @@
 #define LAS_READY_TO_OUTPUT   0x03
 #define LAS_SOCKET_CLOSEED    0x04
 
-#define LAS_YIELD_FOR_IO     0x00
-#define LAS_YIELD_FOR_SLEEP  0x01
+#define LAS_YIELD_FOR_IO      0x00
+#define LAS_YIELD_FOR_SLEEP   0x01
+#define LAS_RESUME_IO         0x02
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\

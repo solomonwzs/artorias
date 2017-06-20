@@ -34,10 +34,10 @@ typedef struct as_thread_s {
   time_t            ct;
   time_t            ut;
   time_t            et;
-  as_rb_node_t      pidx;
+  as_rb_node_t      p_idx;
   as_rb_tree_t      *pool;
   int               status;
-  as_thread_res_t   *m_res;
+  as_thread_res_t   *mfd_res;
   as_dlist_node_t   *resl;
 } as_thread_t;
 
@@ -56,7 +56,10 @@ extern int
 asthread_init(as_thread_t *th, lua_State *L);
 
 extern void
-asthread_pool_insert(as_rb_tree_t *pool, as_thread_t *th);
+asthread_pool_insert(as_thread_t *th);
+
+extern void
+asthread_pool_delete(as_thread_t *th);
 
 extern void
 asthread_array_add(as_thread_array_t *array, as_thread_t *th);

@@ -2,8 +2,8 @@
 #include "thread.h"
 
 
-#define node_et_lt(a, b) (container_of(a, as_thread_t, pidx)->et < \
-                          container_of(b, as_thread_t, pidx)->et)
+#define node_et_lt(a, b) (container_of(a, as_thread_t, p_idx)->et < \
+                          container_of(b, as_thread_t, p_idx)->et)
 
 
 static as_tid_t cur_tid = 0;
@@ -30,10 +30,21 @@ asthread_init(as_thread_t *th, lua_State *L) {
 
 
 void
-asthread_pool_insert(as_rb_tree_t *pool, as_thread_t *th) {
-  rb_tree_insert(pool, &th->pidx, node_et_lt);
-  rb_tree_insert_case(pool, &th->pidx);
+asthread_pool_insert(as_thread_t *th) {
+  as_rb_tree_t *pool = th->pool;
+
+  rb_tree_insert(pool, &th->p_idx, node_et_lt);
+  rb_tree_insert_case(pool, &th->p_idx);
 }
+
+
+void
+asthread_pool_delete(as_thread_t *th) {
+  as_rb_tree_t *pool = th->pool;
+
+  rb_tree_delete(pool, &th->p_idx);
+}
+
 
 void
 asthread_array_add(as_thread_array_t *array, as_thread_t *th) {
