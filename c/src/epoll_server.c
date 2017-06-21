@@ -186,7 +186,7 @@ epoll_server2(int fd) {
   lbind_append_lua_cpath(L, "./bin/?.so");
   lbind_ref_lcode_chunk(L, SOCKET_LUA_FILE);
 
-  as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
+  as_rb_conn_pool_t conn_pool = {NULL};
   int active_cnt;
   int i;
   struct epoll_event events[100];

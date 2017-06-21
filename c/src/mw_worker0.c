@@ -97,7 +97,7 @@ void
 worker_process0(int channel_fd, as_lua_pconf_t *cnf) {
   as_mem_pool_fixed_t *mem_pool;
   int epfd;
-  as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
+  as_rb_conn_pool_t conn_pool = {NULL};
   struct epoll_event events[100];
   int conn_timeout = get_cnf_int_val(cnf, 1, "conn_timeout");
 

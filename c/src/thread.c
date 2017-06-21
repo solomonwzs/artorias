@@ -23,26 +23,48 @@ asthread_init(as_thread_t *th, lua_State *L) {
   th->ct = time(NULL);
   th->ut = th->ct;
   th->status = AS_TSTATUS_READY;
-  th->resl = NULL;
+  th->res_head = NULL;
 
   return cur_tid;
 }
 
 
-void
+int
 asthread_pool_insert(as_thread_t *th) {
   as_rb_tree_t *pool = th->pool;
+  if (pool == NULL) {
+    return -1;
+  }
 
   rb_tree_insert(pool, &th->p_idx, node_et_lt);
   rb_tree_insert_case(pool, &th->p_idx);
+  return 0;
 }
 
 
-void
+int
 asthread_pool_delete(as_thread_t *th) {
   as_rb_tree_t *pool = th->pool;
+  if (pool == NULL) {
+    return -1;
+  }
 
   rb_tree_delete(pool, &th->p_idx);
+  return 0;
+}
+
+
+int
+asthread_res_add(as_thread_t *th, as_thread_res_t *res) {
+  res->node.prev = NULL;
+  res->node.next = th->res_head;
+
+  if (th->res_head != NULL) {
+    th->res_head->prev = &res->node;
+  }
+  th->res_head = &res->node;
+
+  return 0;
 }
 
 

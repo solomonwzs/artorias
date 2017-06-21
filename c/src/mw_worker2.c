@@ -21,16 +21,12 @@
   __ret.val.s;\
 })
 
-#define p_mio(_pools_)    (_pools_)
-#define p_io(_pools_)     (_pools_ + 1)
-#define p_sleep(_pools_)  (_pools_ + 2)
-
 
 typedef struct {
   as_mem_pool_fixed_t   *mem_pool;
-  as_rb_tree_t          *mio_pool;
-  as_rb_tree_t          *io_pool;
-  as_rb_tree_t          *sleep_pool;
+  as_rb_tree_t          mio_pool;
+  as_rb_tree_t          io_pool;
+  as_rb_tree_t          sleep_pool;
   as_thread_array_t     *stop_threads;
   as_thread_res_t       *cfd_res;
   lua_State             *L;
@@ -39,6 +35,13 @@ typedef struct {
   int                   conn_timeout;
   const char            *lfile;
 } _as_mw_worker_ctx_t;
+
+
+static int close_fd(void *ptr) {
+  int *fd = (int *)ptr;
+  close(*fd);
+  return 0;
+}
 
 
 static volatile int keep_running = 1;
@@ -75,7 +78,7 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
       th->et = time(NULL) + secs;
       th->status = AS_TSTATUS_RUN;
 
-      th->pool = res == th->mfd_res ? ctx->mio_pool : ctx->io_pool;
+      th->pool = res == th->mfd_res ? &ctx->mio_pool : &ctx->io_pool;
       asthread_pool_insert(th);
 
       struct epoll_event event;
@@ -95,7 +98,7 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
       th->et = time(NULL) + secs;
       th->status = AS_TSTATUS_SLEEP;
 
-      th->pool = ctx->sleep_pool;
+      th->pool = &ctx->sleep_pool;
       asthread_pool_insert(th);
 
       return;
@@ -104,6 +107,7 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
   }
 
   th->status = AS_TSTATUS_STOP;
+  th->pool = NULL;
   asthread_array_add(ctx->stop_threads, th);
 
   return;
@@ -134,14 +138,9 @@ handler_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
     }
 
     as_thread_res_t *res = mpf_alloc(ctx->mem_pool, sizeof_thread_res(int));
-    res->type = AS_TRES_FD;
+    res->resf = close_fd;
     res->th = th;
     *((int *)res->d) = fd;
-
-    as_dlist_node_t *dln = &(res->node);
-    dln->prev = NULL;
-    dln->next = th->resl;
-    th->resl = dln;
 
     th->mfd_res = res;
 
@@ -154,8 +153,11 @@ handler_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
 
 
 static void
-handler_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+handler_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   as_thread_t *th = res->th;
+  if (th->status == AS_TSTATUS_STOP) {
+    return;
+  }
   asthread_pool_delete(th);
 
   lua_State *T = th->T;
@@ -167,17 +169,64 @@ handler_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 
 static void
+handler_fd_write(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+  as_thread_t *th = res->th;
+  if (th->status == AS_TSTATUS_STOP) {
+    return;
+  }
+  asthread_pool_delete(th);
+
+  lua_State *T = th->T;
+  lua_pushinteger(T, LAS_RESUME_IO);
+  lua_pushlightuserdata(T, res);
+  lua_pushinteger(T, LAS_READY_TO_OUTPUT);
+  thread_resume(th, ctx, 3);
+}
+
+
+static void
+handler_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+  if (res == ctx->cfd_res) {
+    int fd = *((int *)ctx->cfd_res->d);
+    close(fd);
+
+  } else {
+    as_thread_t *th = res->th;
+    if (th->status == AS_TSTATUS_STOP) {
+      return;
+    }
+    asthread_pool_delete(th);
+
+    lua_State *T = th->T;
+    lua_pushinteger(T, LAS_RESUME_IO_ERROR);
+    lua_pushlightuserdata(T, res);
+    lua_pushinteger(T, errno);
+    thread_resume(th, ctx, 3);
+  }
+}
+
+
+static void
 process_io(_as_mw_worker_ctx_t *ctx, int single_mode) {
   struct epoll_event events[_MAX_EVENTS];
   int active_cnt = epoll_wait(ctx->epfd, events, _MAX_EVENTS, 500);
+
   for (int i = 0; i < active_cnt; ++i) {
-    as_thread_res_t *tres = (as_thread_res_t *)events[i].data.ptr;
+    as_thread_res_t *res = (as_thread_res_t *)events[i].data.ptr;
+
     if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
         !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
-    } else if (tres == ctx->cfd_res) {
+      handler_fd_error(ctx, res);
+
+    } else if (res == ctx->cfd_res) {
       handler_accept(ctx, single_mode);
+
     } else if (events[i].events & EPOLLIN) {
-      handler_read(ctx, tres);
+      handler_fd_read(ctx, res);
+
+    } else if (events[i].events & EPOLLOUT) {
+      handler_fd_write(ctx, res);
+
     }
   }
 }
@@ -192,6 +241,9 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
 
   _as_mw_worker_ctx_t ctx;
   ctx.cfd = cfd;
+  ctx.mio_pool.root = NULL;
+  ctx.io_pool.root = NULL;
+  ctx.sleep_pool.root = NULL;
 
   size_t fs[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1064};
   ctx.mem_pool = mpf_new(fs, sizeof(fs) / sizeof(fs[0]));
@@ -201,7 +253,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   ctx.lfile = get_cnf_str_val(cnf, 1, "worker");
 
   ctx.cfd_res = mpf_alloc(ctx.mem_pool, sizeof_thread_res(int));
-  ctx.cfd_res->type = AS_TRES_FD;
+  ctx.cfd_res->resf = NULL;
   ctx.cfd_res->th = NULL;
   *((int *)ctx.cfd_res->d) = cfd;
 
@@ -212,10 +264,11 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   event.events = EPOLLIN | EPOLLET;
   epoll_ctl(ctx.epfd, EPOLL_CTL_ADD, cfd, &event);
 
-  lbind_init_state(ctx.L, ctx.mem_pool);
+  lbind_init_state(ctx.L);
   lbind_append_lua_cpath(ctx.L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(ctx.L, get_cnf_str_val(cnf, 1, "lua_path"));
   lbind_reg_value_int(ctx.L, LRK_SERVER_EPFD, ctx.epfd);
+  lbind_reg_value_ptr(ctx.L, LRK_MEM_POOL, ctx.mem_pool);
   lbind_ref_lcode_chunk(ctx.L, ctx.lfile);
 
   ctx.stop_threads = mpf_alloc(ctx.mem_pool, sizeof_thread_array(_MAX_EVENTS));

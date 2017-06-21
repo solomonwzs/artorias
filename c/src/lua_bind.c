@@ -67,10 +67,6 @@ lbind_dofile(lua_State *L, const char *filename) {
 // [-1, +0, e]
 static int
 lcf_init_state(lua_State *L) {
-  lua_pushstring(L, LRK_MEM_POOL);
-  lua_pushvalue(L, 1);
-  lua_settable(L, LUA_REGISTRYINDEX);
-
   luaL_openlibs(L);
 
   luaL_newmetatable(L, LRK_FD_THREAD_TABLE);
@@ -90,10 +86,8 @@ lcf_init_state(lua_State *L) {
 
 // [-0, +0, -]
 int
-lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp) {
+lbind_init_state(lua_State *L) {
   lua_pushcfunction(L, lcf_init_state);
-  lua_pushlightuserdata(L, (void *)mp);
-
   int ret = lua_pcall(L, 1, 0, 0);
   if (ret != LUA_OK) {
     lb_pop_error_msg(L);
@@ -421,11 +415,11 @@ lbind_get_lcode_chunk(lua_State *L, const char *filename) {
 
 // [-2, +0, e]
 static int
-lcf_reg_value_int(lua_State *L) {
+lcf_reg_value(lua_State *L) {
   const char *field = (const char *)lua_touserdata(L, 1);
-  int value = lua_tointeger(L, 2);
+
   lua_pushstring(L, field);
-  lua_pushinteger(L, value);
+  lua_pushvalue(L, -2);
   lua_settable(L, LUA_REGISTRYINDEX);
 
   return 0;
@@ -435,9 +429,24 @@ lcf_reg_value_int(lua_State *L) {
 // [-0, +0, -]
 int
 lbind_reg_value_int(lua_State *L, const char *field, int value) {
-  lua_pushcfunction(L, lcf_reg_value_int);
+  lua_pushcfunction(L, lcf_reg_value);
   lua_pushlightuserdata(L, (void *)field);
   lua_pushinteger(L, value);
+
+  int ret = lua_pcall(L, 2, 0, 0);
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(L);
+  }
+  return ret;
+}
+
+
+// [-0, +0, -]
+int
+lbind_reg_value_ptr(lua_State *L, const char *field, void *value) {
+  lua_pushcfunction(L, lcf_reg_value);
+  lua_pushlightuserdata(L, (void *)field);
+  lua_pushlightuserdata(L, value);
 
   int ret = lua_pcall(L, 2, 0, 0);
   if (ret != LUA_OK) {

@@ -49,10 +49,11 @@ static inline void
 init_lua_state(lua_State **L, as_mem_pool_fixed_t *mp, as_lua_pconf_t *cnf,
                int epfd) {
   *L = lbind_new_state(mp);
-  lbind_init_state(*L, mp);
+  lbind_init_state(*L);
   lbind_append_lua_cpath(*L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(*L, get_cnf_str_val(cnf, 1, "lua_path"));
   lbind_reg_value_int(*L, LRK_SERVER_EPFD, epfd);
+  lbind_reg_value_ptr(*L, LRK_MEM_POOL, mp);
   lbind_ref_lcode_chunk(*L, get_cnf_str_val(cnf, 1, WORKER_FILE_NAME));
 }
 
@@ -242,7 +243,7 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
 
   as_mem_pool_fixed_t *mem_pool;
   int epfd;
-  as_rb_conn_pool_t conn_pool = NULL_RB_CONN_POOL;
+  as_rb_conn_pool_t conn_pool = {NULL};
   as_rb_conn_t cfd_conn;
   struct epoll_event events[100];
   int conn_timeout = get_cnf_int_val(cnf, 1, "conn_timeout");

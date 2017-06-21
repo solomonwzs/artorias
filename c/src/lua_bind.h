@@ -21,7 +21,7 @@ extern int
 lbind_dofile(lua_State *L, const char *filename);
 
 extern int
-lbind_init_state(lua_State *L, as_mem_pool_fixed_t *mp);
+lbind_init_state(lua_State *L);
 
 extern lua_State *
 lbind_new_state(as_mem_pool_fixed_t *mp);
@@ -62,5 +62,8 @@ lbind_set_thread_local_var_ptr(lua_State *T, const char *field, void *value);
 
 extern int
 lbind_reg_value_int(lua_State *L, const char *field, int value);
+
+extern int
+lbind_reg_value_ptr(lua_State *L, const char *field, void *value);
 
 #endif

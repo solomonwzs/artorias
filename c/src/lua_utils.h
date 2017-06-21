@@ -24,6 +24,7 @@
 #define LAS_YIELD_FOR_IO      0x00
 #define LAS_YIELD_FOR_SLEEP   0x01
 #define LAS_RESUME_IO         0x02
+#define LAS_RESUME_IO_ERROR   0x03
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\
