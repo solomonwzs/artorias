@@ -182,7 +182,7 @@ epoll_server2(int fd) {
   add_wrap_conn_event(&wfd, listen_event, epfd);
 
   lua_State *L = lbind_new_state(mem_pool);
-  lbind_init_state(L, mem_pool);
+  lbind_init_state(L);
   lbind_append_lua_cpath(L, "./bin/?.so");
   lbind_ref_lcode_chunk(L, SOCKET_LUA_FILE);
 

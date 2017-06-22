@@ -73,8 +73,8 @@ server_test(as_lua_pconf_t *cnf) {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  // epoll_server(sock);
-  test_worker_process1(sock, cnf);
+  epoll_server(sock);
+  // test_worker_process1(sock, cnf);
   close(sock);
 }
 
@@ -143,7 +143,7 @@ luas_test() {
   as_mem_pool_fixed_t *mem_pool = mpf_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
   lua_State *L = lbind_new_state(mem_pool);
-  lbind_init_state(L, mem_pool);
+  lbind_init_state(L);
   lbind_append_lua_cpath(L, "./bin/?.so");
 
   const char *lfilename = "luas/t_counter.lua";

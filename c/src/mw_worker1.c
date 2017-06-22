@@ -103,7 +103,7 @@ init_handler(int dummy) {
 
 
 static inline void
-handler_error(as_rb_conn_t *wc, int fd, as_rb_conn_pool_t *cp) {
+handle_error(as_rb_conn_t *wc, int fd, as_rb_conn_pool_t *cp) {
   if (errno != EAGAIN && errno != EWOULDBLOCK) {
     debug_perror("epoll_wait");
   }
@@ -116,8 +116,8 @@ handler_error(as_rb_conn_t *wc, int fd, as_rb_conn_pool_t *cp) {
 
 
 static inline void
-handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
-               int epfd, lua_State *L, const char *lfile, int single_mode) {
+handle_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
+              int epfd, lua_State *L, const char *lfile, int single_mode) {
   int (*new_fd_func)(int);
   if (single_mode) {
     new_fd_func = new_accept_fd;
@@ -163,7 +163,7 @@ handler_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
 
 static inline void
-handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
+handle_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
   lua_State *T = wc->T;
   int n = lua_gettop(T);
 
@@ -195,7 +195,7 @@ handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
 
 
 static inline void
-handler_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
+handle_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
   lua_State *T = wc->T;
   int n = lua_gettop(T);
 
@@ -260,13 +260,13 @@ process(int fd, as_lua_pconf_t *cnf, int single_mode) {
       as_rb_conn_t *wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
-        handler_error(wc, fd, &conn_pool);
+        handle_error(wc, fd, &conn_pool);
       } else if (wc->fd == fd) {
-        handler_accept(fd, &conn_pool, mem_pool, epfd, L, lfile, single_mode);
+        handle_accept(fd, &conn_pool, mem_pool, epfd, L, lfile, single_mode);
       } else if (events[i].events & EPOLLIN) {
-        handler_read(wc, &conn_pool, epfd);
+        handle_read(wc, &conn_pool, epfd);
       } else if (events[i].events & EPOLLOUT) {
-        handler_write(wc, &conn_pool, epfd);
+        handle_write(wc, &conn_pool, epfd);
       }
     }
     remove_time_out_conn(&conn_pool, conn_timeout);

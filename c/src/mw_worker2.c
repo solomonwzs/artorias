@@ -21,6 +21,14 @@
   __ret.val.s;\
 })
 
+#define extract_thread(_ctx_, _res_) do {\
+  if ((_res_)->th->status == AS_TSTATUS_STOP) {\
+    return;\
+  }\
+  asthread_pool_delete((_res_)->th);\
+  epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, *((int *)(_res_)->d), NULL);\
+} while(0)
+
 
 typedef struct {
   as_mem_pool_fixed_t   *mem_pool;
@@ -115,7 +123,7 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
 
 
 static void
-handler_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
+handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
   int (*new_fd_func)(int);
   if (single_mode) {
     new_fd_func = new_accept_fd;
@@ -153,55 +161,51 @@ handler_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
 
 
 static void
-handler_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
-  as_thread_t *th = res->th;
-  if (th->status == AS_TSTATUS_STOP) {
-    return;
-  }
-  asthread_pool_delete(th);
+handle_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+  extract_thread(ctx, res);
 
-  lua_State *T = th->T;
+  lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_RESUME_IO);
   lua_pushlightuserdata(T, res);
   lua_pushinteger(T, LAS_READY_TO_INPUT);
-  thread_resume(th, ctx, 3);
+  thread_resume(res->th, ctx, 3);
 }
 
 
 static void
-handler_fd_write(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
-  as_thread_t *th = res->th;
-  if (th->status == AS_TSTATUS_STOP) {
-    return;
-  }
-  asthread_pool_delete(th);
+handle_fd_write(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+  extract_thread(ctx, res);
 
-  lua_State *T = th->T;
+  lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_RESUME_IO);
   lua_pushlightuserdata(T, res);
   lua_pushinteger(T, LAS_READY_TO_OUTPUT);
-  thread_resume(th, ctx, 3);
+  thread_resume(res->th, ctx, 3);
 }
 
 
 static void
-handler_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+handle_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   if (res == ctx->cfd_res) {
     int fd = *((int *)ctx->cfd_res->d);
     close(fd);
 
   } else {
-    as_thread_t *th = res->th;
-    if (th->status == AS_TSTATUS_STOP) {
-      return;
-    }
-    asthread_pool_delete(th);
+    extract_thread(ctx, res);
 
-    lua_State *T = th->T;
+    lua_State *T = res->th->T;
     lua_pushinteger(T, LAS_RESUME_IO_ERROR);
     lua_pushlightuserdata(T, res);
     lua_pushinteger(T, errno);
-    thread_resume(th, ctx, 3);
+    thread_resume(res->th, ctx, 3);
+  }
+}
+
+
+static void
+process_stop_threads(_as_mw_worker_ctx_t *ctx) {
+  for (int i = 0; ctx->stop_threads->n; ++i) {
+    // as_thread_t *th = ctx->stop_threads->ths[i];
   }
 }
 
@@ -216,16 +220,16 @@ process_io(_as_mw_worker_ctx_t *ctx, int single_mode) {
 
     if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
         !(events[i].events & EPOLLIN || events[i].events & EPOLLOUT)) {
-      handler_fd_error(ctx, res);
+      handle_fd_error(ctx, res);
 
     } else if (res == ctx->cfd_res) {
-      handler_accept(ctx, single_mode);
+      handle_accept(ctx, single_mode);
 
     } else if (events[i].events & EPOLLIN) {
-      handler_fd_read(ctx, res);
+      handle_fd_read(ctx, res);
 
     } else if (events[i].events & EPOLLOUT) {
-      handler_fd_write(ctx, res);
+      handle_fd_write(ctx, res);
 
     }
   }
@@ -276,6 +280,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
     ctx.stop_threads->n = 0;
 
     process_io(&ctx, single_mode);
+    process_stop_threads(&ctx);
   }
 
   mpf_recycle(ctx.stop_threads);

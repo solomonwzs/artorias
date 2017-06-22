@@ -44,7 +44,7 @@
 
 
 static inline void
-handler_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
+handle_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
   if (errno != EAGAIN && errno != EWOULDBLOCK) {
     debug_perror("epoll_wait");
   }
@@ -57,8 +57,8 @@ handler_error(as_rb_conn_t *wc, int channel_fd, as_rb_conn_pool_t *cp) {
 
 
 static inline void
-handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
-               int epfd) {
+handle_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
+              int epfd) {
   while (1) {
     int infd = recv_fd_from_socket(channel_fd);
     if (infd == -1) {
@@ -74,7 +74,7 @@ handler_accept(int channel_fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
 
 
 static inline void
-handler_read(as_rb_conn_t *wc, as_rb_conn_pool_t *cp) {
+handle_read(as_rb_conn_t *wc, as_rb_conn_pool_t *cp) {
   int n = simple_read_from_client(wc->fd);
   if (n <= 0) {
     close_wrap_conn(cp, wc);
@@ -110,11 +110,11 @@ worker_process0(int channel_fd, as_lua_pconf_t *cnf) {
       as_rb_conn_t *wc = (as_rb_conn_t *)events[i].data.ptr;
       if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
-        handler_error(wc, channel_fd, &conn_pool);
+        handle_error(wc, channel_fd, &conn_pool);
       } else if (wc->fd == channel_fd) {
-        handler_accept(channel_fd, &conn_pool, mem_pool, epfd);
+        handle_accept(channel_fd, &conn_pool, mem_pool, epfd);
       } else if (events[i].events & EPOLLIN) {
-        handler_read(wc, &conn_pool);
+        handle_read(wc, &conn_pool);
       }
     }
     remove_time_out_conn(&conn_pool, conn_timeout);
