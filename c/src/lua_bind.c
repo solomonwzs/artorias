@@ -228,7 +228,7 @@ lbind_new_fd_lthread(lua_State *L, int fd) {
 
 // [-2, +1, e]
 static int
-lcf_new_tid_lthread(lua_State *L) {
+lcf_ref_tid_lthread(lua_State *L) {
   as_tid_t tid = lua_tointeger(L, -1);
   char k[] = {0, 0, 0, 0, 0};
   *((as_tid_t *)k) = tid;
@@ -253,8 +253,8 @@ lcf_new_tid_lthread(lua_State *L) {
 
 // [-0, +0, -]
 lua_State *
-lbind_new_tid_lthread(lua_State *L, as_tid_t tid) {
-  lua_pushcfunction(L, lcf_new_tid_lthread);
+lbind_ref_tid_lthread(lua_State *L, as_tid_t tid) {
+  lua_pushcfunction(L, lcf_ref_tid_lthread);
   lua_pushinteger(L, tid);
 
   int ret = lua_pcall(L, 1, 1, 0);
@@ -266,6 +266,37 @@ lbind_new_tid_lthread(lua_State *L, as_tid_t tid) {
     lb_pop_error_msg(L);
     return NULL;
   }
+}
+
+
+// [-1, +0, e]
+static int
+lcf_unref_tid_lthread(lua_State *L) {
+  as_tid_t tid = lua_tointeger(L, -1);
+  char k[] = {0, 0, 0, 0, 0};
+  *((as_tid_t *)k) = tid;
+
+  lbind_checkmetatable(L, LRK_TID_THREAD_TABLE,
+                       "tid thread table not exist");
+  lua_pushstring(L, k);
+  lua_pushnil(L);
+  lua_settable(L, -3);
+
+  return 0;
+}
+
+
+// [-0, +0, -]
+int
+lbind_unref_tid_lthread(lua_State *L, as_tid_t tid) {
+  lua_pushcfunction(L, lcf_unref_tid_lthread);
+  lua_pushinteger(L, tid);
+
+  int ret = lua_pcall(L, 1, 0, 0);
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(L);
+  }
+  return ret;
 }
 
 

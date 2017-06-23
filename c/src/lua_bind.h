@@ -34,7 +34,10 @@ extern lua_State *
 lbind_new_fd_lthread(lua_State *L, int fd);
 
 extern lua_State *
-lbind_new_tid_lthread(lua_State *L, as_tid_t tid);
+lbind_ref_tid_lthread(lua_State *L, as_tid_t tid);
+
+extern int
+lbind_unref_tid_lthread(lua_State *L, as_tid_t tid);
 
 extern int
 lbind_ref_fd_lthread(lua_State *L, int fd);

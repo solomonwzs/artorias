@@ -205,7 +205,12 @@ handle_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 static void
 process_stop_threads(_as_mw_worker_ctx_t *ctx) {
   for (int i = 0; ctx->stop_threads->n; ++i) {
-    // as_thread_t *th = ctx->stop_threads->ths[i];
+    as_thread_t *th = ctx->stop_threads->ths[i];
+    as_thread_res_t *mfd_res = th->mfd_res;
+
+    asthread_free(th);
+    mpf_recycle(th);
+    mpf_recycle(mfd_res);
   }
 }
 

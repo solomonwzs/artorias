@@ -58,6 +58,9 @@ extern int
 asthread_init(as_thread_t *th, lua_State *L);
 
 extern int
+asthread_free(as_thread_t *th);
+
+extern int
 asthread_pool_insert(as_thread_t *th);
 
 extern int

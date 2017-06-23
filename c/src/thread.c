@@ -12,7 +12,7 @@ static as_tid_t cur_tid = 0;
 int
 asthread_init(as_thread_t *th, lua_State *L) {
   cur_tid += 1;
-  lua_State *T = lbind_new_tid_lthread(L, cur_tid);
+  lua_State *T = lbind_ref_tid_lthread(L, cur_tid);
   if (T == NULL) {
     cur_tid -= 1;
     return -1;
@@ -26,6 +26,29 @@ asthread_init(as_thread_t *th, lua_State *L) {
   th->res_head = NULL;
 
   return cur_tid;
+}
+
+
+int
+asthread_free(as_thread_t *th) {
+  lbind_unref_tid_lthread(th->T, th->tid);
+
+  as_thread_res_t *res = th->mfd_res;
+  if (res->resf != NULL) {
+    res->resf(res->d);
+    res->resf = NULL;
+  }
+
+  as_dlist_node_t *dln = th->res_head;
+  while (dln != NULL) {
+    as_thread_res_t *res = container_of(dln, as_thread_res_t, node);
+    if (res->resf != NULL) {
+      res->resf(res->d);
+      res->resf = NULL;
+    }
+  }
+
+  return 0;
 }
 
 
