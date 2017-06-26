@@ -68,6 +68,9 @@ extern void
 rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n);
 
 extern void
+rb_tree_remove_subtree(as_rb_tree_t *t, as_rb_node_t *sub);
+
+extern void
 rb_tree_insert_to_most_left(as_rb_node_t **root, as_rb_node_t *n);
 
 extern void

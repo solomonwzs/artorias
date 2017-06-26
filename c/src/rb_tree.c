@@ -167,42 +167,67 @@ rb_tree_delete_case(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *fa) {
 
 
 static void inline
-swap_and_remove_ori_node(as_rb_tree_t *t, as_rb_node_t *ori, as_rb_node_t *sub) {
+swap_node_with_leaf(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *leaf) {
   as_rb_node_t *fa;
   as_rb_node_t *rc;
-  char color = sub->color;
+  char color = leaf->color;
 
-  if ((fa = ori->parent) == NULL) {
-    t->root = sub;
+  if ((fa = n->parent) == NULL) {
+    t->root = leaf;
   } else {
-    if (ori == fa->left) {
-      fa->left = sub;
+    if (n == fa->left) {
+      fa->left = leaf;
     } else {
-      fa->right = sub;
+      fa->right = leaf;
     }
   }
 
-  rc = sub->right;
-  fa = sub->parent;
-  if (fa == ori) {
-    fa = sub;
+  rc = leaf->right;
+  fa = leaf->parent;
+  if (fa == n) {
+    fa = leaf;
   } else {
     if (rc != NULL) {
       rc->parent = fa;
     }
     fa->left = rc;
-    sub->right = ori->right;
-    ori->right->parent = sub;
+    leaf->right = n->right;
+    n->right->parent = leaf;
   }
 
-  sub->parent = ori->parent;
-  sub->color = ori->color;
-  sub->left = ori->left;
-  ori->left->parent = sub;
+  leaf->parent = n->parent;
+  leaf->color = n->color;
+  leaf->left = n->left;
+  n->left->parent = leaf;
 
   if (color == BLACK) {
     rb_tree_delete_case(t, rc, fa);
   }
+}
+
+
+static void inline
+swap_node_with_subtree(as_rb_tree_t *t, as_rb_node_t *n, as_rb_node_t *sub) {
+    as_rb_node_t *gf = n->parent;
+
+    if (gf == NULL) {
+      t->root = sub;
+      sub->color = BLACK;
+      sub->parent = NULL;
+    } else {
+      if (n == gf->left) {
+        gf->left = sub;
+      } else {
+        gf->right = sub;
+      }
+      sub->parent = gf;
+
+      if (n->color == RED || sub->color == RED) {
+        sub->color = BLACK;
+      } else {
+        rb_tree_delete_case(t, sub, gf);
+      }
+    }
 }
 
 
@@ -237,14 +262,11 @@ rb_tree_delete(as_rb_tree_t *t, as_rb_node_t *n) {
   if (n->left == NULL || n->right == NULL) {
     remove_node_has_one_child(t, n);
   } else {
-    as_rb_node_t *ori = n;
-    as_rb_node_t *left;
-
-    n = n->right;
-    while ((left = n->left) != NULL) {
-      n = n->left;
+    as_rb_node_t *leaf = n->right;
+    while (leaf->left != NULL) {
+      leaf = leaf->left;
     }
-    swap_and_remove_ori_node(t, ori, n);
+    swap_node_with_leaf(t, n, leaf);
   }
 }
 
@@ -320,4 +342,23 @@ rb_tree_insert_to_most_right(as_rb_node_t **root, as_rb_node_t *n) {
     ptr = &(*ptr)->right;
   }
   *ptr = n;
+}
+
+
+void
+rb_tree_remove_subtree(as_rb_tree_t *tree, as_rb_node_t *sub) {
+  as_rb_node_t *fa = sub->parent;
+  if (fa == NULL) {
+    tree->root = NULL;
+  } else if (sub == fa->left) {
+    as_rb_node_t *sil = fa->right;
+    swap_node_with_subtree(tree, fa, sil);
+    rb_tree_insert_to_most_left(&sil, fa);
+    rb_tree_insert_case(tree, fa);
+  } else {
+    as_rb_node_t *sil = fa->left;
+    swap_node_with_subtree(tree, fa, sil);
+    rb_tree_insert_to_most_right(&sil, fa);
+    rb_tree_insert_case(tree, fa);
+  }
 }

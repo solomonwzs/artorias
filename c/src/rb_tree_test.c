@@ -42,51 +42,6 @@ rb_tree_print(node *n) {
   printf("}");
 }
 
-
-static as_rb_node_t *
-rb_tree_remove_subtree(as_rb_tree_t *t, unsigned x) {
-  if (t->root == NULL) {
-    return NULL;
-  }
-
-  as_rb_node_t *ret;
-  as_rb_node_t *n;
-  as_rb_node_t **m;
-  if (to_node(t->root)->i < x) {
-    ret = n = t->root;
-    while (n->right != NULL && to_node(n->right)->i < x) {
-      n = n->right;
-    }
-    t->root = n->right;
-    if (n->right != NULL) {
-      n->right->parent = NULL;
-      n->right->color = BLACK;
-    }
-    n->right = NULL;
-    return ret;
-  } else {
-    m = &t->root;
-    while ((*m)->left != NULL &&
-           (((*m)->color == BLACK &&
-             ((*m)->right == NULL || (*m)->right->color == BLACK)) ||
-            to_node((*m)->left)->i >= x)) {
-      m = &(*m)->left;
-    }
-    if ((ret = (*m)->left) != NULL) {
-      ret->parent = NULL;
-      n = (*m);
-      *m = (*m)->right;
-      if ((*m) != NULL) {
-        (*m)->color = BLACK;
-        (*m)->parent = n->parent;
-        rb_tree_insert_to_most_left(m, n);
-        rb_tree_insert_case(t, n);
-      }
-    }
-    return ret;
-  }
-}
-
 #define print_node(_x_, _i_, _j_) \
     printf("(%d, %d, %d)", to_node(_x_)->i, (_i_), (_j_))
 
@@ -109,14 +64,16 @@ rb_tree_test() {
     m->i = arr[i];
     rb_tree_insert(tree, &m->r, node_lt);
     rb_tree_insert_case(tree, &m->r);
-    rb_tree_print(to_node(tree->root));
-    printf("\n");
+    // rb_tree_print(to_node(tree->root));
+    // printf("\n");
   }
 
-  as_rb_node_t *st = rb_tree_remove_subtree(tree, 20);
   rb_tree_print(to_node(tree->root));
   printf("\n");
-  rb_tree_print(to_node(st));
+  as_rb_node_t *sub = &ns[5].r;
+  // rb_tree_remove_subtree(tree, sub);
+  rb_tree_delete(tree, sub);
+  rb_tree_print(to_node(tree->root));
   printf("\n");
 
   // for (int i = 0; i < n; ++i) {

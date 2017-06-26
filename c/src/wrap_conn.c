@@ -48,7 +48,6 @@ rb_conn_remove_timeout_conn(as_rb_conn_pool_t *p, unsigned secs) {
   time_t now = time(NULL);
   as_rb_node_t *ret;
   as_rb_node_t *n;
-  as_rb_node_t **m;
   if (now - to_rb_conn(ut->root)->utime > secs) {
     ret = n = ut->root;
     while (n->right != NULL && now - to_rb_conn(n->right)->utime > secs) {
@@ -62,23 +61,13 @@ rb_conn_remove_timeout_conn(as_rb_conn_pool_t *p, unsigned secs) {
     n->right = NULL;
     return ret;
   } else {
-    m = &ut->root;
-    while ((*m)->left != NULL &&
-           (((*m)->color == BLACK &&
-             ((*m)->right == NULL || (*m)->right->color == BLACK)) ||
-            now - to_rb_conn((*m)->left)->utime <= secs)) {
-      m = &(*m)->left;
+    ret = ut->root->left;
+    while (ret != NULL && now - to_rb_conn(ret)->utime <= secs) {
+      ret = ret->left;
     }
-    if ((ret = (*m)->left) != NULL) {
-      ret->parent = NULL;
-      n = (*m);
-      *m = (*m)->right;
-      if ((*m) != NULL) {
-        (*m)->color = BLACK;
-        (*m)->parent = n->parent;
-        rb_tree_insert_to_most_left(m, n);
-        rb_tree_insert_case(ut, n);
-      }
+
+    if (ret != NULL) {
+      rb_tree_remove_subtree(ut, ret);
     }
     return ret;
   }
