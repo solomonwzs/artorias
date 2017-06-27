@@ -16,7 +16,7 @@
 
 struct as_thread_s;
 
-typedef int (*as_thread_res_free_f)(void *);
+typedef int (*as_thread_res_free_f)(void *d, void *f_ptr);
 
 typedef struct as_dlist_node_s {
   struct as_dlist_node_s  *next;
@@ -25,8 +25,8 @@ typedef struct as_dlist_node_s {
 
 typedef struct {
   as_thread_res_free_f  resf;
-  struct as_thread_s    *th;
   as_dlist_node_t       node;
+  struct as_thread_s    *th;
   uint8_t               d[];
 } as_thread_res_t;
 
@@ -61,7 +61,7 @@ extern int
 asthread_init(as_thread_t *th, lua_State *L);
 
 extern int
-asthread_free(as_thread_t *th);
+asthread_free(as_thread_t *th, void *f_ptr);
 
 extern int
 asthread_pool_insert(as_thread_t *th);

@@ -29,20 +29,14 @@ asthread_init(as_thread_t *th, lua_State *L) {
 
 
 int
-asthread_free(as_thread_t *th) {
+asthread_free(as_thread_t *th, void *f_ptr) {
   lbind_unref_tid_lthread(th->T, th->tid);
-
-  as_thread_res_t *res = th->mfd_res;
-  if (res->resf != NULL) {
-    res->resf(res->d);
-    res->resf = NULL;
-  }
 
   as_dlist_node_t *dln = th->res_head;
   while (dln != NULL) {
     as_thread_res_t *res = container_of(dln, as_thread_res_t, node);
     if (res->resf != NULL) {
-      res->resf(res->d);
+      res->resf(res->d, f_ptr);
       res->resf = NULL;
     }
   }
@@ -95,6 +89,7 @@ asthread_array_add(as_thread_array_t *array, as_thread_t *th) {
   *(array->ths + array->n) = th;
   array->n += 1;
 }
+
 
 as_rb_node_t *
 asthread_remove_timeout_threads(as_rb_tree_t *pool) {

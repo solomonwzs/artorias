@@ -44,8 +44,8 @@ typedef struct {
 } _as_mw_worker_ctx_t;
 
 
-static int close_fd(void *ptr) {
-  int *fd = (int *)ptr;
+static int close_fd(void *d, void *f_ptr) {
+  int *fd = (int *)d;
   close(*fd);
   return 0;
 }
@@ -55,6 +55,46 @@ static volatile int keep_running = 1;
 static void
 init_handler(int dummy) {
   keep_running = 0;
+}
+
+
+static inline void
+th_yield_for_io(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
+  lua_State *T = th->T;
+
+  as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(T, -3);
+  int io_type = lua_tointeger(T, -2);
+  int secs = lua_tointeger(T, -1);
+  lua_pop(T, 4);
+
+  secs = secs < 0 ? ctx->conn_timeout : secs;
+  th->et = time(NULL) + secs;
+  th->status = AS_TSTATUS_RUN;
+
+  th->pool = &ctx->io_pool;
+  asthread_pool_insert(th);
+
+  struct epoll_event event;
+  event.data.ptr = res;
+  event.events = io_type == LAS_WAIT_FOR_INPUT ?
+      EPOLLIN | EPOLLET :
+      EPOLLOUT | EPOLLET;
+  epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, 0, &event);
+}
+
+
+static inline void
+th_yield_for_sleep(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
+  lua_State *T = th->T;
+
+  int secs = lua_tointeger(T, -1);
+  lua_pop(T, 2);
+
+  th->et = time(NULL) + secs;
+  th->status = AS_TSTATUS_SLEEP;
+
+  th->pool = &ctx->sleep_pool;
+  asthread_pool_insert(th);
 }
 
 
@@ -77,37 +117,13 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
     if (n_res == 4 && lua_isinteger(T, -4) &&
         lua_tointeger(T, -4) == LAS_YIELD_FOR_IO) {
 
-      as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(T, -3);
-      int io_type = lua_tointeger(T, -2);
-      int secs = lua_tointeger(T, -1);
-
-      secs = secs < 0 ? ctx->conn_timeout : secs;
-      th->et = time(NULL) + secs;
-      th->status = AS_TSTATUS_RUN;
-
-      th->pool = &ctx->io_pool;
-      asthread_pool_insert(th);
-
-      struct epoll_event event;
-      event.data.ptr = res;
-      event.events = io_type == LAS_WAIT_FOR_INPUT ?
-          EPOLLIN | EPOLLET :
-          EPOLLOUT | EPOLLET;
-      epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, 0, &event);
-
+      th_yield_for_io(th, ctx);
       return;
 
     } else if (n_res == 2 && lua_isinteger(T, -2) &&
                lua_tointeger(T, -2) == LAS_YIELD_FOR_SLEEP) {
 
-      int secs = lua_tointeger(T, -1);
-
-      th->et = time(NULL) + secs;
-      th->status = AS_TSTATUS_SLEEP;
-
-      th->pool = &ctx->sleep_pool;
-      asthread_pool_insert(th);
-
+      th_yield_for_sleep(th, ctx);
       return;
 
     }
@@ -150,6 +166,7 @@ handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
     *((int *)res->d) = fd;
 
     th->mfd_res = res;
+    asthread_res_add(th, res);
 
     lua_State *T = th->T;
     lbind_set_thread_local_var_ptr(T, "mfd", res);
@@ -207,14 +224,14 @@ process_stop_threads(_as_mw_worker_ctx_t *ctx) {
     as_thread_t *th = ctx->stop_threads->ths[i];
     as_thread_res_t *mfd_res = th->mfd_res;
 
-    asthread_free(th);
+    asthread_free(th, NULL);
     mpf_recycle(th);
     mpf_recycle(mfd_res);
   }
 }
 
 
-static void inline
+static inline void
 p_io_timeout_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
   as_thread_t *th = rb_node_to_thread(n);
   if (th->status == AS_TSTATUS_STOP) {
@@ -222,6 +239,7 @@ p_io_timeout_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
   }
 
   lua_State *T = th->T;
+  lua_pushinteger(T, LAS_RESUME_IO_TIMEOUT);
 }
 
 
