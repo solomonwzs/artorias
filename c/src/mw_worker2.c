@@ -32,7 +32,6 @@
 
 typedef struct {
   as_mem_pool_fixed_t   *mem_pool;
-  as_rb_tree_t          mio_pool;
   as_rb_tree_t          io_pool;
   as_rb_tree_t          sleep_pool;
   as_thread_array_t     *stop_threads;
@@ -86,7 +85,7 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
       th->et = time(NULL) + secs;
       th->status = AS_TSTATUS_RUN;
 
-      th->pool = res == th->mfd_res ? &ctx->mio_pool : &ctx->io_pool;
+      th->pool = &ctx->io_pool;
       asthread_pool_insert(th);
 
       struct epoll_event event;
@@ -215,6 +214,23 @@ process_stop_threads(_as_mw_worker_ctx_t *ctx) {
 }
 
 
+static void inline
+p_io_timeout_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
+  as_thread_t *th = rb_node_to_thread(n);
+  if (th->status == AS_TSTATUS_STOP) {
+    return;
+  }
+
+  lua_State *T = th->T;
+}
+
+
+static void
+process_io_timeout_threads(_as_mw_worker_ctx_t *ctx) {
+  as_rb_node_t *timeout_tr = asthread_remove_timeout_threads(&ctx->io_pool);
+}
+
+
 static void
 process_io(_as_mw_worker_ctx_t *ctx, int single_mode) {
   struct epoll_event events[_MAX_EVENTS];
@@ -250,7 +266,6 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
 
   _as_mw_worker_ctx_t ctx;
   ctx.cfd = cfd;
-  ctx.mio_pool.root = NULL;
   ctx.io_pool.root = NULL;
   ctx.sleep_pool.root = NULL;
 

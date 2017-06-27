@@ -54,6 +54,9 @@ typedef struct {
 #define sizeof_thread_array(_n_) \
     (offsetof(as_thread_res_t, d) + sizeof(as_thread_t *) * (_n_))
 
+#define rb_node_to_thread(_n_) \
+    ((as_thread_t *)(container_of(_n_, as_thread_t, p_idx)))
+
 extern int
 asthread_init(as_thread_t *th, lua_State *L);
 
@@ -71,5 +74,8 @@ asthread_array_add(as_thread_array_t *array, as_thread_t *th);
 
 extern int
 asthread_res_add(as_thread_t *th, as_thread_res_t *res);
+
+extern as_rb_node_t*
+asthread_remove_timeout_threads(as_rb_tree_t *pool);
 
 #endif

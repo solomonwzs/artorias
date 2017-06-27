@@ -1,7 +1,6 @@
 #include "lua_bind.h"
 #include "thread.h"
 
-
 #define node_et_lt(a, b) (container_of(a, as_thread_t, p_idx)->et < \
                           container_of(b, as_thread_t, p_idx)->et)
 
@@ -95,4 +94,37 @@ void
 asthread_array_add(as_thread_array_t *array, as_thread_t *th) {
   *(array->ths + array->n) = th;
   array->n += 1;
+}
+
+as_rb_node_t *
+asthread_remove_timeout_threads(as_rb_tree_t *pool) {
+  if (pool->root == NULL) {
+    return NULL;
+  }
+
+  time_t now = time(NULL);
+  as_rb_node_t *ret;
+  as_rb_node_t *n;
+  if (now >= rb_node_to_thread(pool->root)->et) {
+    ret = n = pool->root;
+    while (n->right != NULL && now >= rb_node_to_thread(n->right)->et) {
+      n = n->right;
+    }
+    pool->root = n->right;
+    if (pool->root != NULL) {
+      pool->root->parent = NULL;
+      pool->root->color = BLACK;
+    }
+    n->right = NULL;
+  } else {
+    ret = pool->root->left;
+    while (ret != NULL && rb_node_to_thread(ret)->et > now) {
+      ret = ret->left;
+    }
+    if (ret != NULL) {
+      rb_tree_remove_subtree(pool, ret);
+    }
+  }
+
+  return ret;
 }
