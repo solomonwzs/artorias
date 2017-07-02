@@ -89,7 +89,7 @@ static inline void
 remove_time_out_conn(as_rb_conn_pool_t *cp, int timeout) {
   as_rb_tree_t ot;
   ot.root = rb_conn_remove_timeout_conn(cp, timeout);
-  rb_tree_postorder_travel(&ot, recycle_conn);
+  rb_tree_postorder_travel(ot.root, recycle_conn);
 }
 
 
@@ -119,6 +119,6 @@ worker_process0(int channel_fd, as_lua_pconf_t *cnf) {
     }
     remove_time_out_conn(&conn_pool, conn_timeout);
   }
-  rb_tree_postorder_travel(&conn_pool.ut_tree, recycle_conn);
+  rb_tree_postorder_travel(conn_pool.ut_tree.root, recycle_conn);
   mpf_destroy(mem_pool);
 }

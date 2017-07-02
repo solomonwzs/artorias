@@ -39,8 +39,8 @@ typedef struct {
   __ptr;\
 })
 
-#define rb_tree_postorder_travel(_t_, _func_, ...) do {\
-  as_rb_node_t *__tn = (_t_)->root;\
+#define rb_tree_postorder_travel(_tn_, _func_, ...) do {\
+  as_rb_node_t *__tn = (_tn_);\
   while (__tn != NULL) {\
     if (__tn->left != NULL) {\
       __tn = __tn->left;\

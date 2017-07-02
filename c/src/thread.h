@@ -57,6 +57,9 @@ typedef struct {
 #define rb_node_to_thread(_n_) \
     ((as_thread_t *)(container_of(_n_, as_thread_t, p_idx)))
 
+#define dl_node_to_res(_n_) \
+    ((as_thread_res_t *)(container_of(_n_, as_thread_res_t, node)))
+
 extern int
 asthread_init(as_thread_t *th, lua_State *L);
 

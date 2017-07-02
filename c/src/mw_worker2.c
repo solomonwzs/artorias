@@ -11,6 +11,9 @@
 
 #define _MAX_EVENTS           100
 
+#define _FD_IDLE  0x00
+#define _FD_WAIT  0x01
+
 #define get_cnf_int_val(_cnf_, _n_, ...) ({\
   as_cnf_return_t __ret = lpconf_get_pconf_value(_cnf_, _n_, ## __VA_ARGS__);\
   __ret.val.i;\
@@ -21,12 +24,12 @@
   __ret.val.s;\
 })
 
-#define extract_thread(_ctx_, _res_) do {\
-  if ((_res_)->th->status == AS_TSTATUS_STOP) {\
+#define extract_thread(_th_, _ctx_) do {\
+  if ((_th_)->status == AS_TSTATUS_STOP) {\
     return;\
   }\
-  asthread_pool_delete((_res_)->th);\
-  epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, *((int *)(_res_)->d), NULL);\
+  asthread_pool_delete(_th_);\
+  remove_th_res_from_epfd(_th_, _ctx_);\
 } while(0)
 
 
@@ -43,18 +46,41 @@ typedef struct {
   const char            *lfile;
 } _as_mw_worker_ctx_t;
 
-
-static int close_fd(void *d, void *f_ptr) {
-  int *fd = (int *)d;
-  close(*fd);
-  return 0;
-}
+typedef struct {
+  int fd;
+  int status;
+} _as_mw_worker_fd_t;
 
 
 static volatile int keep_running = 1;
 static void
 init_handler(int dummy) {
   keep_running = 0;
+}
+
+
+static int
+close_fd(void *d, void *f_ptr) {
+  _as_mw_worker_fd_t *rfd = (_as_mw_worker_fd_t *)d;
+  close(rfd->fd);
+  return 0;
+}
+
+
+static inline void
+remove_th_res_from_epfd(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
+  as_dlist_node_t *dn = th->res_head;
+  while (dn != NULL) {
+    as_thread_res_t *res = dl_node_to_res(dn);
+    _as_mw_worker_fd_t *rfd = (_as_mw_worker_fd_t *)res->d;
+
+    if (rfd->status == _FD_WAIT) {
+      rfd->status = _FD_IDLE;
+      epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, rfd->fd, NULL);
+    }
+
+    dn = dn->next;
+  }
 }
 
 
@@ -74,12 +100,15 @@ th_yield_for_io(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
   th->pool = &ctx->io_pool;
   asthread_pool_insert(th);
 
+  _as_mw_worker_fd_t *rfd = (_as_mw_worker_fd_t *)res->d;
+  rfd->status = _FD_WAIT;
+
   struct epoll_event event;
   event.data.ptr = res;
   event.events = io_type == LAS_WAIT_FOR_INPUT ?
       EPOLLIN | EPOLLET :
       EPOLLOUT | EPOLLET;
-  epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, 0, &event);
+  epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, rfd->fd, &event);
 }
 
 
@@ -160,10 +189,12 @@ handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
       continue;
     }
 
-    as_thread_res_t *res = mpf_alloc(ctx->mem_pool, sizeof_thread_res(int));
+    as_thread_res_t *res = mpf_alloc(
+        ctx->mem_pool, sizeof_thread_res(_as_mw_worker_fd_t));
     res->resf = close_fd;
     res->th = th;
-    *((int *)res->d) = fd;
+    ((_as_mw_worker_fd_t *)res->d)->fd = fd;
+    ((_as_mw_worker_fd_t *)res->d)->status = _FD_IDLE;
 
     th->mfd_res = res;
     asthread_res_add(th, res);
@@ -178,7 +209,11 @@ handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
 
 static void
 handle_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
-  extract_thread(ctx, res);
+  if (res->th->status == AS_TSTATUS_STOP) {
+    return;
+  }
+  asthread_pool_delete(res->th);
+  remove_th_res_from_epfd(res->th, ctx);
 
   lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_RESUME_IO);
@@ -190,7 +225,11 @@ handle_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 static void
 handle_fd_write(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
-  extract_thread(ctx, res);
+  if (res->th->status == AS_TSTATUS_STOP) {
+    return;
+  }
+  asthread_pool_delete(res->th);
+  remove_th_res_from_epfd(res->th, ctx);
 
   lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_RESUME_IO);
@@ -207,7 +246,11 @@ handle_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
     close(fd);
 
   } else {
-    extract_thread(ctx, res);
+    if (res->th->status == AS_TSTATUS_STOP) {
+      return;
+    }
+    asthread_pool_delete(res->th);
+    remove_th_res_from_epfd(res->th, ctx);
 
     lua_State *T = res->th->T;
     lua_pushinteger(T, LAS_RESUME_IO_ERROR);
@@ -237,15 +280,18 @@ p_io_timeout_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
   if (th->status == AS_TSTATUS_STOP) {
     return;
   }
+  remove_th_res_from_epfd(th, ctx);
 
   lua_State *T = th->T;
   lua_pushinteger(T, LAS_RESUME_IO_TIMEOUT);
+  thread_resume(th, ctx, 1);
 }
 
 
 static void
-process_io_timeout_threads(_as_mw_worker_ctx_t *ctx) {
+process_io_timeout(_as_mw_worker_ctx_t *ctx) {
   as_rb_node_t *timeout_tr = asthread_remove_timeout_threads(&ctx->io_pool);
+  rb_tree_postorder_travel(timeout_tr, p_io_timeout_thread, ctx);
 }
 
 
@@ -318,6 +364,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
     ctx.stop_threads->n = 0;
 
     process_io(&ctx, single_mode);
+    process_io_timeout(&ctx);
     process_stop_threads(&ctx);
   }
 

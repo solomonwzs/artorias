@@ -86,7 +86,7 @@ rb_tree_test() {
   //   printf("\n");
   // }
 
-  // rb_tree_postorder_travel(tree, print_node, 1, 2);
+  // rb_tree_postorder_travel(tree->root, print_node, 1, 2);
 
   mpf_recycle(tree);
   mpf_recycle(ns);
