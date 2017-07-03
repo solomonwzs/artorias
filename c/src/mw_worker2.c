@@ -200,7 +200,7 @@ handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
     asthread_res_add(th, res);
 
     lua_State *T = th->T;
-    lbind_set_thread_local_var_ptr(T, "mfd", res);
+    lbind_set_thread_local_var_ptr(T, "th", th);
 
     thread_resume(th, ctx, 0);
   }
@@ -321,6 +321,27 @@ process_io(_as_mw_worker_ctx_t *ctx, int single_mode) {
 }
 
 
+static inline void
+p_sleep_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
+  as_thread_t *th = rb_node_to_thread(n);
+  if (th->status == AS_TSTATUS_STOP) {
+    return;
+  }
+
+  lua_State *T = th->T;
+  lua_pushinteger(T, LAS_RESUME_SLEEP);
+  thread_resume(th, ctx, 1);
+}
+
+
+static void
+process_sleep(_as_mw_worker_ctx_t *ctx) {
+  as_rb_node_t *timeout_tr = asthread_remove_timeout_threads(
+      &ctx->sleep_pool);
+  rb_tree_postorder_travel(timeout_tr, p_sleep_thread, ctx);
+}
+
+
 static void
 process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   set_non_block(cfd);
@@ -365,6 +386,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
 
     process_io(&ctx, single_mode);
     process_io_timeout(&ctx);
+    process_sleep(&ctx);
     process_stop_threads(&ctx);
   }
 
