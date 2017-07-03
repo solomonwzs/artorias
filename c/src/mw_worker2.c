@@ -1,5 +1,4 @@
 #include "mw_worker.h"
-#include "mem_pool.h"
 #include <signal.h>
 #include <stdint.h>
 #include <sys/epoll.h>
@@ -7,7 +6,6 @@
 #include "lua_utils.h"
 #include "rb_tree.h"
 #include "server.h"
-#include "thread.h"
 
 #define _MAX_EVENTS           100
 
@@ -33,25 +31,6 @@
 } while(0)
 
 
-typedef struct {
-  as_mem_pool_fixed_t   *mem_pool;
-  as_rb_tree_t          io_pool;
-  as_rb_tree_t          sleep_pool;
-  as_thread_array_t     *stop_threads;
-  as_thread_res_t       *cfd_res;
-  lua_State             *L;
-  int                   epfd;
-  int                   cfd;
-  int                   conn_timeout;
-  const char            *lfile;
-} _as_mw_worker_ctx_t;
-
-typedef struct {
-  int fd;
-  int status;
-} _as_mw_worker_fd_t;
-
-
 static volatile int keep_running = 1;
 static void
 init_handler(int dummy) {
@@ -61,18 +40,18 @@ init_handler(int dummy) {
 
 static int
 close_fd(void *d, void *f_ptr) {
-  _as_mw_worker_fd_t *rfd = (_as_mw_worker_fd_t *)d;
+  as_mw_worker_fd_t *rfd = (as_mw_worker_fd_t *)d;
   close(rfd->fd);
   return 0;
 }
 
 
 static inline void
-remove_th_res_from_epfd(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
+remove_th_res_from_epfd(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   as_dlist_node_t *dn = th->res_head;
   while (dn != NULL) {
     as_thread_res_t *res = dl_node_to_res(dn);
-    _as_mw_worker_fd_t *rfd = (_as_mw_worker_fd_t *)res->d;
+    as_mw_worker_fd_t *rfd = (as_mw_worker_fd_t *)res->d;
 
     if (rfd->status == _FD_WAIT) {
       rfd->status = _FD_IDLE;
@@ -85,7 +64,7 @@ remove_th_res_from_epfd(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
 
 
 static inline void
-th_yield_for_io(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
+th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   lua_State *T = th->T;
 
   as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(T, -3);
@@ -100,7 +79,7 @@ th_yield_for_io(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
   th->pool = &ctx->io_pool;
   asthread_pool_insert(th);
 
-  _as_mw_worker_fd_t *rfd = (_as_mw_worker_fd_t *)res->d;
+  as_mw_worker_fd_t *rfd = (as_mw_worker_fd_t *)res->d;
   rfd->status = _FD_WAIT;
 
   struct epoll_event event;
@@ -113,7 +92,7 @@ th_yield_for_io(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
 
 
 static inline void
-th_yield_for_sleep(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
+th_yield_for_sleep(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   lua_State *T = th->T;
 
   int secs = lua_tointeger(T, -1);
@@ -128,7 +107,7 @@ th_yield_for_sleep(as_thread_t *th, _as_mw_worker_ctx_t *ctx) {
 
 
 static void
-thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
+thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
   if (th->status == AS_TSTATUS_STOP) {
     return;
   }
@@ -167,7 +146,7 @@ thread_resume(as_thread_t *th, _as_mw_worker_ctx_t *ctx, int nargs) {
 
 
 static void
-handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
+handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
   int (*new_fd_func)(int);
   if (single_mode) {
     new_fd_func = new_accept_fd;
@@ -190,11 +169,11 @@ handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
     }
 
     as_thread_res_t *res = mpf_alloc(
-        ctx->mem_pool, sizeof_thread_res(_as_mw_worker_fd_t));
+        ctx->mem_pool, sizeof_thread_res(as_mw_worker_fd_t));
     res->resf = close_fd;
     res->th = th;
-    ((_as_mw_worker_fd_t *)res->d)->fd = fd;
-    ((_as_mw_worker_fd_t *)res->d)->status = _FD_IDLE;
+    ((as_mw_worker_fd_t *)res->d)->fd = fd;
+    ((as_mw_worker_fd_t *)res->d)->status = _FD_IDLE;
 
     th->mfd_res = res;
     asthread_res_add(th, res);
@@ -208,7 +187,7 @@ handle_accept(_as_mw_worker_ctx_t *ctx, int single_mode) {
 
 
 static void
-handle_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+handle_fd_read(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   if (res->th->status == AS_TSTATUS_STOP) {
     return;
   }
@@ -224,7 +203,7 @@ handle_fd_read(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 
 static void
-handle_fd_write(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+handle_fd_write(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   if (res->th->status == AS_TSTATUS_STOP) {
     return;
   }
@@ -240,7 +219,7 @@ handle_fd_write(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 
 static void
-handle_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
+handle_fd_error(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   if (res == ctx->cfd_res) {
     int fd = *((int *)ctx->cfd_res->d);
     close(fd);
@@ -262,7 +241,7 @@ handle_fd_error(_as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 
 static void
-process_stop_threads(_as_mw_worker_ctx_t *ctx) {
+process_stop_threads(as_mw_worker_ctx_t *ctx) {
   for (int i = 0; ctx->stop_threads->n; ++i) {
     as_thread_t *th = ctx->stop_threads->ths[i];
     as_thread_res_t *mfd_res = th->mfd_res;
@@ -275,7 +254,7 @@ process_stop_threads(_as_mw_worker_ctx_t *ctx) {
 
 
 static inline void
-p_io_timeout_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
+p_io_timeout_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   as_thread_t *th = rb_node_to_thread(n);
   if (th->status == AS_TSTATUS_STOP) {
     return;
@@ -289,14 +268,14 @@ p_io_timeout_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
 
 
 static void
-process_io_timeout(_as_mw_worker_ctx_t *ctx) {
+process_io_timeout(as_mw_worker_ctx_t *ctx) {
   as_rb_node_t *timeout_tr = asthread_remove_timeout_threads(&ctx->io_pool);
   rb_tree_postorder_travel(timeout_tr, p_io_timeout_thread, ctx);
 }
 
 
 static void
-process_io(_as_mw_worker_ctx_t *ctx, int single_mode) {
+process_io(as_mw_worker_ctx_t *ctx, int single_mode) {
   struct epoll_event events[_MAX_EVENTS];
   int active_cnt = epoll_wait(ctx->epfd, events, _MAX_EVENTS, 500);
 
@@ -322,7 +301,7 @@ process_io(_as_mw_worker_ctx_t *ctx, int single_mode) {
 
 
 static inline void
-p_sleep_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
+p_sleep_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   as_thread_t *th = rb_node_to_thread(n);
   if (th->status == AS_TSTATUS_STOP) {
     return;
@@ -335,7 +314,7 @@ p_sleep_thread(as_rb_node_t *n, _as_mw_worker_ctx_t *ctx) {
 
 
 static void
-process_sleep(_as_mw_worker_ctx_t *ctx) {
+process_sleep(as_mw_worker_ctx_t *ctx) {
   as_rb_node_t *timeout_tr = asthread_remove_timeout_threads(
       &ctx->sleep_pool);
   rb_tree_postorder_travel(timeout_tr, p_sleep_thread, ctx);
@@ -349,7 +328,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
     signal(SIGINT, init_handler);
   }
 
-  _as_mw_worker_ctx_t ctx;
+  as_mw_worker_ctx_t ctx;
   ctx.cfd = cfd;
   ctx.io_pool.root = NULL;
   ctx.sleep_pool.root = NULL;
@@ -376,8 +355,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   lbind_init_state(ctx.L);
   lbind_append_lua_cpath(ctx.L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(ctx.L, get_cnf_str_val(cnf, 1, "lua_path"));
-  lbind_reg_value_int(ctx.L, LRK_SERVER_EPFD, ctx.epfd);
-  lbind_reg_value_ptr(ctx.L, LRK_MEM_POOL, ctx.mem_pool);
+  lbind_reg_value_ptr(ctx.L, LRK_WORKER_CTX, &ctx);
   lbind_ref_lcode_chunk(ctx.L, ctx.lfile);
 
   ctx.stop_threads = mpf_alloc(ctx.mem_pool, sizeof_thread_array(_MAX_EVENTS));
