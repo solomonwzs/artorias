@@ -12,19 +12,24 @@
 #define AS_TSTATUS_SLEEP  0x02
 #define AS_TSTATUS_STOP   0x03
 
-#define AS_TRES_FD  0x00
+#define AS_RSTATUS_IDLE   0x00
+#define AS_RSTATUS_EPFD   0x01
 
 struct as_thread_s;
+struct as_thread_res_s;
 
-typedef int (*as_thread_res_free_f)(void *d, void *f_ptr);
+typedef int (*as_thread_res_free_f)(struct as_thread_res_s *res, void *f_ptr);
+typedef int (*as_thread_res_fd_f)(struct as_thread_res_s *res);
 
 typedef struct as_dlist_node_s {
   struct as_dlist_node_s  *next;
   struct as_dlist_node_s  *prev;
 } as_dlist_node_t;
 
-typedef struct {
-  as_thread_res_free_f  resf;
+typedef struct as_thread_res_s {
+  as_thread_res_free_f  freef;
+  as_thread_res_fd_f    fdf;
+  int                   status;
   as_dlist_node_t       node;
   struct as_thread_s    *th;
   uint8_t               d[];
@@ -60,6 +65,9 @@ typedef struct {
 #define dl_node_to_res(_n_) \
     ((as_thread_res_t *)(container_of(_n_, as_thread_res_t, node)))
 
+#define resd_to_res(_n_) \
+    ((as_thread_res_t *)(container_of(_n_, as_thread_res_t, d)))
+
 extern int
 asthread_init(as_thread_t *th, lua_State *L);
 
@@ -77,6 +85,9 @@ asthread_array_add(as_thread_array_t *array, as_thread_t *th);
 
 extern int
 asthread_res_add(as_thread_t *th, as_thread_res_t *res);
+
+extern int
+asthread_res_del(as_thread_t *th, as_thread_res_t *res);
 
 extern as_rb_node_t*
 asthread_remove_timeout_threads(as_rb_tree_t *pool);

@@ -19,11 +19,6 @@ typedef struct {
   const char            *lfile;
 } as_mw_worker_ctx_t;
 
-typedef struct {
-  int fd;
-  int status;
-} as_mw_worker_fd_t;
-
 
 extern void
 worker_process0(int channel_fd, as_lua_pconf_t *cnf);

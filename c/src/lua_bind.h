@@ -17,6 +17,9 @@
 extern void
 lbind_check_metatable_elem_by_tname(lua_State *L, const char *tname);
 
+extern void
+lbind_check_metatable_elem(lua_State *L, int idx);
+
 extern int
 lbind_dofile(lua_State *L, const char *filename);
 

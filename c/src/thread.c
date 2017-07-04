@@ -35,9 +35,12 @@ asthread_free(as_thread_t *th, void *f_ptr) {
   as_dlist_node_t *dln = th->res_head;
   while (dln != NULL) {
     as_thread_res_t *res = container_of(dln, as_thread_res_t, node);
-    if (res->resf != NULL) {
-      res->resf(res->d, f_ptr);
-      res->resf = NULL;
+    dln = dln->next;
+
+    if (res->freef != NULL) {
+      debug_log("free: %d\n", res->fdf(res));
+      res->freef(res, f_ptr);
+      res->freef = NULL;
     }
   }
 
@@ -79,6 +82,26 @@ asthread_res_add(as_thread_t *th, as_thread_res_t *res) {
     th->res_head->prev = &res->node;
   }
   th->res_head = &res->node;
+
+  return 0;
+}
+
+
+int
+asthread_res_del(as_thread_t *th, as_thread_res_t *res) {
+  if (res->node.prev == NULL) {
+    th->res_head = res->node.next;
+  }
+
+  as_dlist_node_t *prev = res->node.prev;
+  as_dlist_node_t *next = res->node.next;
+
+  if (prev != NULL) {
+    prev->next = next;
+  }
+  if (next != NULL) {
+    next->prev = prev;
+  }
 
   return 0;
 }

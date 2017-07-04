@@ -1,18 +1,22 @@
-local tsocket = require("artorias.socket.tsocket")
 local lm_socket = require("lm_socket")
 
-local tsock = tsocket.get()
-local sock = lm_socket.new("127.0.0.1", 6379, 0)
+local msock = lm_socket.get_msock()
 
-while tsock:ready_for_read() do
-    local n, s, err = tsock:read()
-    if err ~= nil then
+local typ, res, io = coroutine.yield(lm_socket.YIELD_FOR_IO,
+    msock:get_res(), lm_socket.WAIT_FOR_INPUT, 15)
+while typ == lm_socket.RESUME_IO and res == msock:get_res() and
+io == lm_socket.READY_TO_INPUT do
+    local n, s, err = msock:read(0)
+    if err ~= nil or (err == nil and n == 0) then
         break
     end
 
     local r = "+OK\r\n"
-    n, err = tsock:send(r)
+    n, err = msock:send(r)
     if err ~= nil then
         break
     end
+
+    local typ, res, io = coroutine.yield(lm_socket.YIELD_FOR_IO,
+        msock:get_res(), lm_socket.WAIT_FOR_INPUT, 15)
 end

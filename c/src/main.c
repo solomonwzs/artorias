@@ -73,8 +73,8 @@ server_test(as_lua_pconf_t *cnf) {
     exit(EXIT_FAILURE);
   }
   // select_server(sock);
-  epoll_server(sock);
-  // test_worker_process1(sock, cnf);
+  // epoll_server(sock);
+  test_worker_process2(sock, cnf);
   close(sock);
 }
 
@@ -201,6 +201,14 @@ main(int argc, char **argv) {
   // rb_tree_test();
   // bytes_test();
   // luas_test();
+
+  // as_thread_res_t *res = malloc(256);
+  // as_thread_t **th = &res->th;
+  // debug_log("%x\n", res);
+  // debug_log("%x\n", res->d);
+  // debug_log("%x\n", &res->d);
+  // debug_log("%x\n", container_of(th, as_thread_res_t, th));
+  // free(res);
 
   lpconf_destroy(cnf);
   return 0;

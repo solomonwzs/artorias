@@ -7,10 +7,7 @@
 #include "rb_tree.h"
 #include "server.h"
 
-#define _MAX_EVENTS           100
-
-#define _FD_IDLE  0x00
-#define _FD_WAIT  0x01
+#define _MAX_EVENTS   100
 
 #define get_cnf_int_val(_cnf_, _n_, ...) ({\
   as_cnf_return_t __ret = lpconf_get_pconf_value(_cnf_, _n_, ## __VA_ARGS__);\
@@ -39,10 +36,16 @@ init_handler(int dummy) {
 
 
 static int
-close_fd(void *d, void *f_ptr) {
-  as_mw_worker_fd_t *rfd = (as_mw_worker_fd_t *)d;
-  close(rfd->fd);
+res_free_f(as_thread_res_t *res, void *f_ptr) {
+  int *fd = (int *)res->d;
+  close(*fd);
   return 0;
+}
+
+
+static int
+res_fd_f(as_thread_res_t *res) {
+  return *(int *)res->d;
 }
 
 
@@ -51,11 +54,10 @@ remove_th_res_from_epfd(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   as_dlist_node_t *dn = th->res_head;
   while (dn != NULL) {
     as_thread_res_t *res = dl_node_to_res(dn);
-    as_mw_worker_fd_t *rfd = (as_mw_worker_fd_t *)res->d;
 
-    if (rfd->status == _FD_WAIT) {
-      rfd->status = _FD_IDLE;
-      epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, rfd->fd, NULL);
+    if (res->status == AS_RSTATUS_EPFD) {
+      res->status = AS_RSTATUS_IDLE;
+      epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, res->fdf(res), NULL);
     }
 
     dn = dn->next;
@@ -79,15 +81,16 @@ th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   th->pool = &ctx->io_pool;
   asthread_pool_insert(th);
 
-  as_mw_worker_fd_t *rfd = (as_mw_worker_fd_t *)res->d;
-  rfd->status = _FD_WAIT;
-
   struct epoll_event event;
   event.data.ptr = res;
   event.events = io_type == LAS_WAIT_FOR_INPUT ?
       EPOLLIN | EPOLLET :
       EPOLLOUT | EPOLLET;
-  epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, rfd->fd, &event);
+  if (epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, res->fdf(res), &event) == 0) {
+    res->status = AS_RSTATUS_EPFD;
+  } else {
+    debug_perror("epoll_ctr");
+  }
 }
 
 
@@ -168,12 +171,14 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
       continue;
     }
 
-    as_thread_res_t *res = mpf_alloc(
-        ctx->mem_pool, sizeof_thread_res(as_mw_worker_fd_t));
-    res->resf = close_fd;
+    as_thread_res_t *res = mpf_alloc(ctx->mem_pool, sizeof_thread_res(int));
+    res->freef = res_free_f;
+    res->fdf = res_fd_f;
     res->th = th;
-    ((as_mw_worker_fd_t *)res->d)->fd = fd;
-    ((as_mw_worker_fd_t *)res->d)->status = _FD_IDLE;
+    res->status = AS_RSTATUS_IDLE;
+    *(int *)res->d = fd;
+
+    res = resd_to_res(&res->d);
 
     th->mfd_res = res;
     asthread_res_add(th, res);
@@ -242,7 +247,7 @@ handle_fd_error(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 static void
 process_stop_threads(as_mw_worker_ctx_t *ctx) {
-  for (int i = 0; ctx->stop_threads->n; ++i) {
+  for (int i = 0; i < ctx->stop_threads->n; ++i) {
     as_thread_t *th = ctx->stop_threads->ths[i];
     as_thread_res_t *mfd_res = th->mfd_res;
 
@@ -341,7 +346,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   ctx.lfile = get_cnf_str_val(cnf, 1, "worker");
 
   ctx.cfd_res = mpf_alloc(ctx.mem_pool, sizeof_thread_res(int));
-  ctx.cfd_res->resf = NULL;
+  ctx.cfd_res->freef = NULL;
   ctx.cfd_res->th = NULL;
   *((int *)ctx.cfd_res->d) = cfd;
 
