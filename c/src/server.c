@@ -149,11 +149,11 @@ new_accept_fd(int fd) {
 
   size = sizeof(in_addr);
   infd = accept(fd, (struct sockaddr *)&in_addr, &size);
-  if (infd >= 0) {
-    debug_log("Server: connect from host %s, port %d.\n",
-              inet_ntoa(in_addr.sin_addr),
-              ntohs(in_addr.sin_port));
-  }
+  // if (infd >= 0) {
+  //   debug_log("Server: connect from host %s, port %d.\n",
+  //             inet_ntoa(in_addr.sin_addr),
+  //             ntohs(in_addr.sin_port));
+  // }
   return infd;
 }
 

@@ -38,7 +38,6 @@ asthread_free(as_thread_t *th, void *f_ptr) {
     dln = dln->next;
 
     if (res->freef != NULL) {
-      debug_log("free: %d\n", res->fdf(res));
       res->freef(res, f_ptr);
       res->freef = NULL;
     }

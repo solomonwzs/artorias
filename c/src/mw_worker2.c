@@ -116,6 +116,7 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
   }
 
   lua_State *T = th->T;
+  // debug_log("r: %d - %p\n", th->tid, T);
   int n = lua_gettop(T) - nargs;
 
   if (th->status == AS_TSTATUS_READY) {
@@ -138,6 +139,8 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
       return;
 
     }
+  } else if (ret != LUA_OK) {
+    lb_pop_error_msg(T);
   }
 
   th->status = AS_TSTATUS_STOP;
@@ -177,8 +180,6 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     res->th = th;
     res->status = AS_RSTATUS_IDLE;
     *(int *)res->d = fd;
-
-    res = resd_to_res(&res->d);
 
     th->mfd_res = res;
     asthread_res_add(th, res);
@@ -341,7 +342,6 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   size_t fs[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1064};
   ctx.mem_pool = mpf_new(fs, sizeof(fs) / sizeof(fs[0]));
 
-  ctx.L = lbind_new_state(ctx.mem_pool);
   ctx.conn_timeout = get_cnf_int_val(cnf, 1, "conn_timeout");
   ctx.lfile = get_cnf_str_val(cnf, 1, "worker");
 
@@ -357,6 +357,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   event.events = EPOLLIN | EPOLLET;
   epoll_ctl(ctx.epfd, EPOLL_CTL_ADD, cfd, &event);
 
+  ctx.L = lbind_new_state(ctx.mem_pool);
   lbind_init_state(ctx.L);
   lbind_append_lua_cpath(ctx.L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(ctx.L, get_cnf_str_val(cnf, 1, "lua_path"));
@@ -371,6 +372,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
     process_io_timeout(&ctx);
     process_sleep(&ctx);
     process_stop_threads(&ctx);
+    // lua_gc(ctx.L, LUA_GCCOLLECT, 0);
   }
 
   mpf_recycle(ctx.stop_threads);

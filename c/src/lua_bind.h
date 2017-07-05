@@ -72,4 +72,7 @@ lbind_reg_value_int(lua_State *L, const char *field, int value);
 extern int
 lbind_reg_value_ptr(lua_State *L, const char *field, void *value);
 
+extern void
+lbind_scan_stack_elem(lua_State *L);
+
 #endif

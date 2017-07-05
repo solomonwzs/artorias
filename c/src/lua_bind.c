@@ -3,13 +3,34 @@
 #include "utils.h"
 
 
+void
+lbind_scan_stack_elem(lua_State *L) {
+  debug_log("stack: %p(%d)\n", L, lua_gettop(L));
+  for (int i = 1; i <= lua_gettop(L); ++i) {
+    switch (lua_type(L, i)) {
+      case LUA_TSTRING:
+        debug_log("%d: [%s]\n", i, lua_tostring(L, i));
+        break;
+      case LUA_TNUMBER:
+        debug_log("%d: [%f]\n", i, lua_tonumber(L, i));
+        break;
+      case LUA_TLIGHTUSERDATA:
+        debug_log("%d: [%p]\n", i, lua_touserdata(L, i));
+        break;
+      default:
+        debug_log("%d: %s\n", i, lua_typename(L, lua_type(L, i)));
+    }
+  }
+}
+
+
 // [-1, +0, e]
 static int
 lcf_check_metatable_elem_by_tname(lua_State *L) {
   const char *tname = (const char *)lua_touserdata(L, 1);
   lbind_checkmetatable(L, tname, "no table!");
   lua_pushnil(L);
-  debug_log("\n");
+  debug_log("table: \n");
   while (lua_next(L, 2) != 0) {
     debug_log("%s - %s\n",
               lua_typename(L, lua_type(L, -2)),
@@ -36,7 +57,7 @@ lbind_check_metatable_elem_by_tname(lua_State *L, const char *tname) {
 static int
 lcf_check_metatable_elem(lua_State *L) {
   lua_pushnil(L);
-  debug_log("\n");
+  debug_log("table: \n");
   while (lua_next(L, 1) != 0) {
     debug_log("%s - %s\n",
               lua_typename(L, lua_type(L, -2)),
@@ -218,7 +239,7 @@ lcf_new_fd_lthread(lua_State *L) {
                        "thread local var table not exist");
   lua_newthread(L);
 
-  lua_pushstring(L, k);
+  lua_pushlstring(L, k, 5);
   lua_pushvalue(L, -2);
   lua_settable(L, -5);
 
@@ -266,7 +287,7 @@ lcf_ref_tid_lthread(lua_State *L) {
                        "thread local var table not exist");
   lua_newthread(L);
 
-  lua_pushstring(L, k);
+  lua_pushlstring(L, k, 5);
   lua_pushvalue(L, -2);
   lua_settable(L, -5);
 
@@ -305,7 +326,7 @@ lcf_unref_tid_lthread(lua_State *L) {
 
   lbind_checkmetatable(L, LRK_TID_THREAD_TABLE,
                        "tid thread table not exist");
-  lua_pushstring(L, k);
+  lua_pushlstring(L, k, 5);
   lua_pushnil(L);
   lua_settable(L, -3);
 

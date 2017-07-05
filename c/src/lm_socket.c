@@ -49,7 +49,7 @@ lcf_socket_tostring(lua_State *L) {
 }
 
 
-// [-1, +3, e]
+// [-2, +3, e]
 static int
 lcf_socket_read(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
@@ -135,7 +135,7 @@ lcf_socket_read(lua_State *L) {
 // }
 
 
-// [-1, +2, e]
+// [-2, +2, e]
 static int
 lcf_socket_send(lua_State *L) {
   size_t len;
@@ -162,7 +162,7 @@ lcf_socket_send(lua_State *L) {
 }
 
 
-// [-0, +1, e]
+// [-1, +1, e]
 static int
 lcf_socket_get_res(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
@@ -173,7 +173,7 @@ lcf_socket_get_res(lua_State *L) {
 }
 
 
-// [-0, +0, e]
+// [-1, +0, e]
 static int
 lcf_socket_close(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
