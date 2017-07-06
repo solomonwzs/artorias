@@ -73,7 +73,20 @@ asthread_pool_delete(as_thread_t *th) {
 
 
 int
-asthread_res_add(as_thread_t *th, as_thread_res_t *res) {
+asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
+                  as_thread_res_fd_f fdf) {
+  res->status = AS_RSTATUS_IDLE;
+  res->freef = freef;
+  res->fdf = fdf;
+
+  return 0;
+}
+
+
+int
+asthread_res_add_to_th(as_thread_res_t *res, as_thread_t *th) {
+  res->th = th;
+
   res->node.prev = NULL;
   res->node.next = th->res_head;
 
@@ -87,7 +100,7 @@ asthread_res_add(as_thread_t *th, as_thread_res_t *res) {
 
 
 int
-asthread_res_del(as_thread_t *th, as_thread_res_t *res) {
+asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th) {
   if (res->node.prev == NULL) {
     th->res_head = res->node.next;
   }

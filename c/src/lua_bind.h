@@ -14,6 +14,15 @@
   }\
 } while (0)
 
+// [-0, +1, e]
+#define lbind_checkregvalue(_L_, _field_, _type_, _emsg_) do {\
+  lua_pushstring(_L_, _field_);\
+  if (lua_gettable(_L_, LUA_REGISTRYINDEX) != (_type_)) {\
+    lua_pushstring(_L_, _emsg_);\
+    lua_error(_L_);\
+  }\
+} while (0)
+
 extern void
 lbind_check_metatable_elem_by_tname(lua_State *L, const char *tname);
 

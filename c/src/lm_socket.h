@@ -1,7 +1,6 @@
 #ifndef __LUA_MODULE_SOCKET__
 #define __LUA_MODULE_SOCKET__
 
-#include "wrap_conn.h"
 #include "thread.h"
 
 #define LM_SOCK_TYPE_SYSTEM   0x00

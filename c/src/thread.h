@@ -84,10 +84,14 @@ extern void
 asthread_array_add(as_thread_array_t *array, as_thread_t *th);
 
 extern int
-asthread_res_add(as_thread_t *th, as_thread_res_t *res);
+asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
+                  as_thread_res_fd_f fdf);
 
 extern int
-asthread_res_del(as_thread_t *th, as_thread_res_t *res);
+asthread_res_add_to_th(as_thread_res_t *res, as_thread_t *th);
+
+extern int
+asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th);
 
 extern as_rb_node_t*
 asthread_remove_timeout_threads(as_rb_tree_t *pool);

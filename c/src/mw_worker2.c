@@ -175,14 +175,11 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     }
 
     as_thread_res_t *res = mpf_alloc(ctx->mem_pool, sizeof_thread_res(int));
-    res->freef = res_free_f;
-    res->fdf = res_fd_f;
-    res->th = th;
-    res->status = AS_RSTATUS_IDLE;
+    asthread_res_init(res, res_free_f, res_fd_f);
+    asthread_res_add_to_th(res, th);
     *(int *)res->d = fd;
 
     th->mfd_res = res;
-    asthread_res_add(th, res);
 
     lua_State *T = th->T;
     lbind_set_thread_local_var_ptr(T, "th", th);
