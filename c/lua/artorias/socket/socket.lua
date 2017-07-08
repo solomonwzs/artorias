@@ -49,7 +49,29 @@ end
 
 
 function _socket:send(buf)
-    return self._socket:send(buf)
+    local err = nil
+    local n = 0
+    local nbyte = 0
+    local typ, res, io
+    while err == nil and #buf > 0 do
+        n, err = self._socket:send(buf)
+        if err == nil then
+            nbyte = nbyte + n
+            buf = buf:sub(n + 1)
+        elseif err == base.EAGAIN then
+            typ, res, io = coroutine.yield(base.YIELD_FOR_IO, self._res,
+                base.WAIT_FOR_OUTPUT, 15)
+            if typ ~= base.RESUME_IO or res ~= self._res
+                or io ~= base.READY_TO_OUTPUT then
+                return nbyte, "status error"
+            else
+                err = nil
+            end
+        else
+            return nbyte, "error: " .. err
+        end
+    end
+    return nbyte, nil
 end
 
 
