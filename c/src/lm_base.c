@@ -33,26 +33,26 @@ int
 luaopen_lm_base(lua_State *L) {
   aluaL_newlib(L, "lm_base", as_lm_base_functions);
 
-  lua_pushinteger(L, LAS_YIELD_FOR_IO);
-  lua_setfield(L, -2, "YIELD_FOR_IO");
+  lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
+  lua_setfield(L, -2, "S_YIELD_FOR_IO");
 
-  lua_pushinteger(L, LAS_RESUME_IO);
-  lua_setfield(L, -2, "RESUME_IO");
+  lua_pushinteger(L, LAS_S_RESUME_IO);
+  lua_setfield(L, -2, "S_RESUME_IO");
 
-  lua_pushinteger(L, LAS_WAIT_FOR_INPUT);
-  lua_setfield(L, -2, "WAIT_FOR_INPUT");
+  lua_pushinteger(L, LAS_S_WAIT_FOR_INPUT);
+  lua_setfield(L, -2, "S_WAIT_FOR_INPUT");
 
-  lua_pushinteger(L, LAS_WAIT_FOR_OUTPUT);
-  lua_setfield(L, -2, "WAIT_FOR_OUTPUT");
+  lua_pushinteger(L, LAS_S_WAIT_FOR_OUTPUT);
+  lua_setfield(L, -2, "S_WAIT_FOR_OUTPUT");
 
-  lua_pushinteger(L, LAS_READY_TO_INPUT);
-  lua_setfield(L, -2, "READY_TO_INPUT");
+  lua_pushinteger(L, LAS_S_READY_TO_INPUT);
+  lua_setfield(L, -2, "S_READY_TO_INPUT");
 
-  lua_pushinteger(L, LAS_READY_TO_OUTPUT);
+  lua_pushinteger(L, LAS_S_READY_TO_OUTPUT);
   lua_setfield(L, -2, "READY_TO_OUTPUT");
 
   lua_pushinteger(L, EAGAIN);
-  lua_setfield(L, -2, "EAGAIN");
+  lua_setfield(L, -2, "E_EAGAIN");
 
   return 1;
 }

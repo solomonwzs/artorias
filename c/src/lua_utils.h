@@ -16,18 +16,17 @@
 #define LRK_SERVER_EPFD             "as_lrk_005"
 #define LRK_MEM_POOL                "as_lrk_006"
 
-#define LAS_WAIT_FOR_INPUT    0x00
-#define LAS_WAIT_FOR_OUTPUT   0x01
-#define LAS_READY_TO_INPUT    0x02
-#define LAS_READY_TO_OUTPUT   0x03
-#define LAS_SOCKET_CLOSEED    0x04
-
-#define LAS_YIELD_FOR_IO      0x00
-#define LAS_YIELD_FOR_SLEEP   0x01
-#define LAS_RESUME_IO         0x02
-#define LAS_RESUME_IO_ERROR   0x03
-#define LAS_RESUME_IO_TIMEOUT 0x04
-#define LAS_RESUME_SLEEP      0x05
+#define LAS_S_WAIT_FOR_INPUT    0x00
+#define LAS_S_WAIT_FOR_OUTPUT   0x01
+#define LAS_S_READY_TO_INPUT    0x02
+#define LAS_S_READY_TO_OUTPUT   0x03
+#define LAS_S_SOCKET_CLOSEED    0x04
+#define LAS_S_YIELD_FOR_IO      0x05
+#define LAS_S_YIELD_FOR_SLEEP   0x06
+#define LAS_S_RESUME_IO         0x07
+#define LAS_S_RESUME_IO_ERROR   0x08
+#define LAS_S_RESUME_IO_TIMEOUT 0x09
+#define LAS_S_RESUME_SLEEP      0x0a
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\

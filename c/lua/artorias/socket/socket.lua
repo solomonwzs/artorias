@@ -16,14 +16,19 @@ end
 
 
 function _socket:ready_for_read(timeout)
-    local typ, res, io = coroutine.yield(base.YIELD_FOR_IO, self._res,
-        base.WAIT_FOR_INPUT, timeout)
-    return typ == base.RESUME_IO and res == self._res
-    and io == base.READY_TO_INPUT
+    local typ, res, io = coroutine.yield(base.S_YIELD_FOR_IO, self._res,
+        base.S_WAIT_FOR_INPUT, timeout)
+    return typ == base.S_RESUME_IO and res == self._res
+    and io == base.S_READY_TO_INPUT
 end
 
 
-function _socket:read()
+function _socket:read(n)
+    return self._socket:read(n)
+end
+
+
+function _socket:read_all()
     local nbyte = 0
     local s = ""
     local err = nil
@@ -36,7 +41,7 @@ function _socket:read()
         end
     until err ~= nil or n == 0
 
-    if (err == base.EAGAIN or err == nil) and nbyte ~= 0 then
+    if (err == base.E_EAGAIN or err == nil) and nbyte ~= 0 then
         err = nil
     elseif err == nil and nbyte == 0 then
         err = "conn close"
@@ -58,11 +63,11 @@ function _socket:send(buf)
         if err == nil then
             nbyte = nbyte + n
             buf = buf:sub(n + 1)
-        elseif err == base.EAGAIN then
-            typ, res, io = coroutine.yield(base.YIELD_FOR_IO, self._res,
-                base.WAIT_FOR_OUTPUT, 15)
-            if typ ~= base.RESUME_IO or res ~= self._res
-                or io ~= base.READY_TO_OUTPUT then
+        elseif err == base.E_EAGAIN then
+            typ, res, io = coroutine.yield(base.S_YIELD_FOR_IO, self._res,
+                base.S_WAIT_FOR_OUTPUT, 15)
+            if typ ~= base.S_RESUME_IO or res ~= self._res
+                or io ~= base.S_READY_TO_OUTPUT then
                 return nbyte, "status error"
             else
                 err = nil

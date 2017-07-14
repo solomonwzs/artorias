@@ -83,7 +83,7 @@ th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
 
   struct epoll_event event;
   event.data.ptr = res;
-  event.events = io_type == LAS_WAIT_FOR_INPUT ?
+  event.events = io_type == LAS_S_WAIT_FOR_INPUT ?
       EPOLLIN | EPOLLET :
       EPOLLOUT | EPOLLET;
   if (epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, res->fdf(res), &event) == 0) {
@@ -127,13 +127,13 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
   if (ret == LUA_YIELD) {
     int n_res = lua_gettop(T) - n;
     if (n_res == 4 && lua_isinteger(T, -4) &&
-        lua_tointeger(T, -4) == LAS_YIELD_FOR_IO) {
+        lua_tointeger(T, -4) == LAS_S_YIELD_FOR_IO) {
 
       th_yield_for_io(th, ctx);
       return;
 
     } else if (n_res == 2 && lua_isinteger(T, -2) &&
-               lua_tointeger(T, -2) == LAS_YIELD_FOR_SLEEP) {
+               lua_tointeger(T, -2) == LAS_S_YIELD_FOR_SLEEP) {
 
       th_yield_for_sleep(th, ctx);
       return;
@@ -198,9 +198,9 @@ handle_fd_read(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   remove_th_res_from_epfd(res->th, ctx);
 
   lua_State *T = res->th->T;
-  lua_pushinteger(T, LAS_RESUME_IO);
+  lua_pushinteger(T, LAS_S_RESUME_IO);
   lua_pushlightuserdata(T, res);
-  lua_pushinteger(T, LAS_READY_TO_INPUT);
+  lua_pushinteger(T, LAS_S_READY_TO_INPUT);
   thread_resume(res->th, ctx, 3);
 }
 
@@ -214,9 +214,9 @@ handle_fd_write(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   remove_th_res_from_epfd(res->th, ctx);
 
   lua_State *T = res->th->T;
-  lua_pushinteger(T, LAS_RESUME_IO);
+  lua_pushinteger(T, LAS_S_RESUME_IO);
   lua_pushlightuserdata(T, res);
-  lua_pushinteger(T, LAS_READY_TO_OUTPUT);
+  lua_pushinteger(T, LAS_S_READY_TO_OUTPUT);
   thread_resume(res->th, ctx, 3);
 }
 
@@ -235,7 +235,7 @@ handle_fd_error(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
     remove_th_res_from_epfd(res->th, ctx);
 
     lua_State *T = res->th->T;
-    lua_pushinteger(T, LAS_RESUME_IO_ERROR);
+    lua_pushinteger(T, LAS_S_RESUME_IO_ERROR);
     lua_pushlightuserdata(T, res);
     lua_pushinteger(T, errno);
     thread_resume(res->th, ctx, 3);
@@ -265,7 +265,7 @@ p_io_timeout_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   remove_th_res_from_epfd(th, ctx);
 
   lua_State *T = th->T;
-  lua_pushinteger(T, LAS_RESUME_IO_TIMEOUT);
+  lua_pushinteger(T, LAS_S_RESUME_IO_TIMEOUT);
   thread_resume(th, ctx, 1);
 }
 
@@ -311,7 +311,7 @@ p_sleep_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   }
 
   lua_State *T = th->T;
-  lua_pushinteger(T, LAS_RESUME_SLEEP);
+  lua_pushinteger(T, LAS_S_RESUME_SLEEP);
   thread_resume(th, ctx, 1);
 }
 

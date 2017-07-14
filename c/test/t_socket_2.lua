@@ -7,7 +7,7 @@ local err = nil
 local r = "+OK\r\n"
 
 while msock:ready_for_read(15) do
-    n, s, err = msock:read(0)
+    n, s, err = msock:read(1024)
     if err ~= nil or (err == nil and n == 0) then
         break
     end

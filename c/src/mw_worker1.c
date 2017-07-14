@@ -70,7 +70,7 @@ conn_close(as_rb_conn_t *wc) {
 static inline void
 handler_close(as_rb_conn_t *wc) {
   lua_State *T = wc->T;
-  lua_pushinteger(T, LAS_SOCKET_CLOSEED);
+  lua_pushinteger(T, LAS_S_SOCKET_CLOSEED);
   lua_pushinteger(T, wc->fd);
   alua_resume(T, 2);
 }
@@ -144,7 +144,7 @@ handle_accept(int fd, as_rb_conn_pool_t *cp, as_mem_pool_fixed_t *mp,
     if (ret == LUA_YIELD) {
       int n_res = lua_gettop(T) - n;
       if (n_res == 2 && lua_isinteger(T, -2) &&
-          lua_tointeger(T, -2) == LAS_WAIT_FOR_INPUT) {
+          lua_tointeger(T, -2) == LAS_S_WAIT_FOR_INPUT) {
         lua_pop(T, 2);
 
         rb_conn_pool_insert(cp, new_wc);
@@ -167,7 +167,7 @@ handle_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
   lua_State *T = wc->T;
   int n = lua_gettop(T);
 
-  lua_pushinteger(T, LAS_READY_TO_INPUT);
+  lua_pushinteger(T, LAS_S_READY_TO_INPUT);
   lua_pushinteger(T, wc->fd);
   int ret = alua_resume(T, 2);
 
@@ -179,7 +179,7 @@ handle_read(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
       int status = lua_tointeger(T, -2);
       lua_pop(T, 2);
 
-      if (status == LAS_WAIT_FOR_OUTPUT) {
+      if (status == LAS_S_WAIT_FOR_OUTPUT) {
         struct epoll_event e;
         e.data.ptr = wc;
         e.events = EPOLLOUT | EPOLLET;
@@ -199,7 +199,7 @@ handle_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
   lua_State *T = wc->T;
   int n = lua_gettop(T);
 
-  lua_pushinteger(T, LAS_READY_TO_OUTPUT);
+  lua_pushinteger(T, LAS_S_READY_TO_OUTPUT);
   lua_pushinteger(T, wc->fd);
   int ret = alua_resume(T, 2);
 
@@ -211,7 +211,7 @@ handle_write(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool, int epfd) {
       int status = lua_tointeger(T, -2);
       lua_pop(T, 2);
 
-      if (status == LAS_WAIT_FOR_INPUT) {
+      if (status == LAS_S_WAIT_FOR_INPUT) {
         struct epoll_event e;
         e.data.ptr = wc;
         e.events = EPOLLIN | EPOLLET;

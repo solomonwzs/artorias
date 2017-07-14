@@ -11,6 +11,12 @@
 #define SOCK_EVENT_OUT  0x01
 #define SOCK_EVENT_NONE 0x02
 
+typedef struct {
+  const char  *buf;
+  size_t      len;
+  int         idx;
+} _send_ctx_t;
+
 
 static int
 res_free_f(as_thread_res_t *res, void *f_ptr) {
@@ -143,7 +149,6 @@ lcf_socket_read(lua_State *L) {
 // [-2, +2, e]
 static int
 lcf_socket_send(lua_State *L) {
-  size_t len;
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
@@ -152,6 +157,7 @@ lcf_socket_send(lua_State *L) {
     lua_error(L);
   }
 
+  size_t len;
   const char *buf = lua_tolstring(L, 2, &len);
   int fd = res->fdf(res);
   int nbyte = send(fd, buf, len, MSG_NOSIGNAL);
@@ -164,6 +170,52 @@ lcf_socket_send(lua_State *L) {
   }
 
   return 2;
+}
+
+
+static int
+k_socket_send_all(lua_State *L, int status, lua_KContext ctx) {
+  return 1;
+}
+
+
+// [-2, +1, e]
+static int
+lcf_socket_send_all(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
+
+  as_thread_res_t *res = sock->res;
+  if (res == NULL) {
+    lua_pushstring(L, "conn closed");
+    lua_error(L);
+  }
+
+  size_t len;
+  const char *buf = lua_tolstring(L, 2, &len);
+  int fd = res->fdf(res);
+  int nbyte = send(fd, buf, len, MSG_NOSIGNAL);
+  if (nbyte < 0) {
+    lua_pushinteger(L, errno);
+  } else if (nbyte == len) {
+    lua_pushnil(L);
+  } else {
+    lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
+                        "no worker ctx");
+    as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
+
+    _send_ctx_t *c = mpf_alloc(ctx->mem_pool, sizeof(_send_ctx_t));
+    c->buf = buf;
+    c->len = len;
+    c->idx = len - nbyte;
+
+    lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
+    lua_pushlightuserdata(L, res);
+    lua_pushinteger(L, LAS_S_WAIT_FOR_OUTPUT);
+    lua_pushinteger(L, 15);
+    return  lua_yieldk(L, 0, (lua_KContext)c, k_socket_send_all);
+  }
+
+  return 1;
 }
 
 
@@ -210,6 +262,7 @@ as_lm_socket_functions[] = {
 static const struct luaL_Reg
 as_lm_socket_methods[] = {
   {"send", lcf_socket_send},
+  {"send_all", lcf_socket_send_all},
   {"read", lcf_socket_read},
   {"close", lcf_socket_close},
   {"get_res", lcf_socket_get_res},
