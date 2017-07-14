@@ -12,9 +12,10 @@
 #define SOCK_EVENT_NONE 0x02
 
 typedef struct {
-  const char  *buf;
-  size_t      len;
-  int         idx;
+  as_thread_res_t *res;
+  const char      *buf;
+  size_t          len;
+  size_t          idx;
 } _send_ctx_t;
 
 
@@ -111,7 +112,7 @@ lcf_socket_tostring(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
 
-  int fd = sock->res->fdf(sock->res);
+  int fd = sock->res != NULL ? sock->res->fdf(sock->res) : -1;
   lua_pushfstring(L, "(addr: %p, fd: %d)", sock->res, fd);
 
   return 1;
@@ -128,7 +129,15 @@ lcf_socket_read(lua_State *L) {
     n = 1024;
   }
 
-  int fd = sock->res->fdf(sock->res);
+  as_thread_res_t *res = sock->res;
+  if (res == NULL) {
+    lua_pushinteger(L, 0);
+    lua_pushnil(L);
+    lua_pushinteger(L, EBADFD);
+    return 3;
+  }
+
+  int fd = res->fdf(sock->res);
   char *buf = (char *)lua_newuserdata(L, n);
 
   int nbyte = read(fd, buf, n);
@@ -153,12 +162,19 @@ lcf_socket_send(lua_State *L) {
 
   as_thread_res_t *res = sock->res;
   if (res == NULL) {
-    lua_pushstring(L, "conn closed");
-    lua_error(L);
+    lua_pushinteger(L, 0);
+    lua_pushinteger(L, EBADFD);
+    return 2;
   }
 
   size_t len;
   const char *buf = lua_tolstring(L, 2, &len);
+  if (buf == NULL) {
+    lua_pushinteger(L, 0);
+    lua_pushinteger(L, EINVAL);
+    return 2;
+  }
+
   int fd = res->fdf(res);
   int nbyte = send(fd, buf, len, MSG_NOSIGNAL);
   if (nbyte < 0) {
@@ -174,48 +190,77 @@ lcf_socket_send(lua_State *L) {
 
 
 static int
-k_socket_send_all(lua_State *L, int status, lua_KContext ctx) {
-  return 1;
+k_socket_send_all(lua_State *L, int status, lua_KContext c) {
+  as_thread_res_t *res = NULL;
+  _send_ctx_t *ctx = (_send_ctx_t *)c;
+
+  if (status == LUA_OK) {
+    res = ctx->res;
+  } else if (status == LUA_YIELD) {
+    // int type = luaL_checkinteger(L, 1);
+    // as_thread_res_t *rres = (as_thread_res_t *)lua_touserdata(L, 2);
+    // int io = luaL_checkinteger(L, 3);
+    res = (as_thread_res_t *)lua_touserdata(L, 2);
+  }
+
+  int fd = res->fdf(res);
+  while (1) {
+    const char *buf = ctx->buf + ctx->idx;
+    size_t len = ctx->len - ctx->idx;
+    ssize_t nbyte = send(fd, buf, len, MSG_NOSIGNAL);
+    if (nbyte == len) {
+      lua_pushinteger(L, ctx->len);
+      lua_pushnil(L);
+      break;
+    } else if (nbyte == -1 && errno != EAGAIN) {
+      lua_pushinteger(L, ctx->idx);
+      lua_pushinteger(L, errno);
+    } else if (nbyte == -1) {
+      lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
+      lua_pushlightuserdata(L, res);
+      lua_pushinteger(L, LAS_S_WAIT_FOR_OUTPUT);
+      lua_pushinteger(L, 15);
+      return lua_yieldk(L, 4, (lua_KContext)ctx, k_socket_send_all);
+    } else {
+      ctx->idx += nbyte;
+    }
+  }
+
+  return 2;
 }
 
 
-// [-2, +1, e]
+// [-2, +2, e]
 static int
 lcf_socket_send_all(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
   if (res == NULL) {
-    lua_pushstring(L, "conn closed");
-    lua_error(L);
+    lua_pushinteger(L, 0);
+    lua_pushinteger(L, EBADFD);
+    return 2;
   }
 
   size_t len;
   const char *buf = lua_tolstring(L, 2, &len);
-  int fd = res->fdf(res);
-  int nbyte = send(fd, buf, len, MSG_NOSIGNAL);
-  if (nbyte < 0) {
-    lua_pushinteger(L, errno);
-  } else if (nbyte == len) {
-    lua_pushnil(L);
-  } else {
-    lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
-                        "no worker ctx");
-    as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
-
-    _send_ctx_t *c = mpf_alloc(ctx->mem_pool, sizeof(_send_ctx_t));
-    c->buf = buf;
-    c->len = len;
-    c->idx = len - nbyte;
-
-    lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
-    lua_pushlightuserdata(L, res);
-    lua_pushinteger(L, LAS_S_WAIT_FOR_OUTPUT);
-    lua_pushinteger(L, 15);
-    return  lua_yieldk(L, 0, (lua_KContext)c, k_socket_send_all);
+  if (buf == NULL) {
+    lua_pushinteger(L, 0);
+    lua_pushinteger(L, EINVAL);
+    return 2;
   }
 
-  return 1;
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
+                      "no worker ctx");
+  as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
+
+  _send_ctx_t *c = mpf_alloc(ctx->mem_pool, sizeof(_send_ctx_t));
+  c->res = res;
+  c->buf = buf;
+  c->len = len;
+  c->idx = 0;
+
+  return k_socket_send_all(L, LUA_OK, (lua_KContext)c);
 }
 
 

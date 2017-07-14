@@ -16,8 +16,8 @@ end
 
 
 function _tsocket:ready_for_read()
-    local status, fd = coroutine.yield(base.S_WAIT_FOR_INPUT, self._fd)
-    return status == base.S_READY_TO_INPUT and fd == self._fd
+    local status, fd = coroutine.yield(base.S.WAIT_FOR_INPUT, self._fd)
+    return status == base.S.READY_TO_INPUT and fd == self._fd
 end
 
 
@@ -34,7 +34,7 @@ function _tsocket:read()
         end
     until err ~= nil or n == 0
 
-    if (err == base.E_EAGAIN or err == nil) and nbyte ~= 0 then
+    if (err == base.E.EAGAIN or err == nil) and nbyte ~= 0 then
         err = nil
     elseif err == nil and nbyte == 0 then
         err = "conn close"
@@ -60,10 +60,10 @@ function _tsocket:send(buf)
         if err == nil then
             nbyte = nbyte + n
             buf = buf:sub(n + 1)
-        elseif err == base.E_EAGAIN then
-            local status, fd = coroutine.yield(base.S_WAIT_FOR_OUTPUT,
+        elseif err == base.E.EAGAIN then
+            local status, fd = coroutine.yield(base.S.WAIT_FOR_OUTPUT,
                 self._fd)
-            if status ~= base.S_READY_TO_OUTPUT then
+            if status ~= base.S.READY_TO_OUTPUT then
                 return nbyte, "status error"
             elseif fd ~= self._fd then
                 return nbyte, "error fd"

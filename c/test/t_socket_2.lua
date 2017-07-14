@@ -12,7 +12,8 @@ while msock:ready_for_read(15) do
         break
     end
 
-    n, err = msock:send(r)
+    -- n, err = msock:send(r)
+    n, err = msock:send_all(r)
     if err ~= nil then
         break
     end
