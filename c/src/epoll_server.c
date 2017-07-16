@@ -41,32 +41,6 @@ init_handler(int dummy) {
 }
 
 
-// static void
-// process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
-//                 as_mem_pool_fixed_t *mem_pool, lua_State *L) {
-//   as_bytes_t buf;
-//   bytes_init(&buf, mem_pool);
-//   int n = bytes_read_from_fd(&buf, wc->fd);
-//   // int n = simple_read_from_client(wc->fd);
-//   if (n <= 0) {
-//     close_wrap_conn(L, conn_pool, wc);
-//   } else {
-//     rb_conn_pool_update_conn_ut(conn_pool, wc);
-//     send(wc->fd, "+OK\r\n", 5, MSG_NOSIGNAL);
-//
-//     // loutput_redis_ok(L, wc->fd);
-//
-//     // as_bytes_t buf = NULL_AS_BYTES;
-//     // bytes_append(&buf, "1234", 4, mem_pool);
-//     // bytes_append(&buf, "abcde", 5, mem_pool);
-//     // bytes_write_to_fd(wc->fd, &buf, buf.used);
-//     // bytes_destroy(&buf);
-//   }
-//   // bytes_print(&buf);
-//   bytes_destroy(&buf);
-// }
-
-
 static void
 process_in_data(as_rb_conn_t *wc, as_rb_conn_pool_t *conn_pool,
                 as_mem_pool_fixed_t *mem_pool, lua_State *L) {
@@ -143,14 +117,17 @@ epoll_server(int fd) {
         }
       } else if (events[i].events & EPOLLOUT) {
         infd = events[i].data.fd;
-        char msg[5000];
-        memset(msg, 'a', 5000);
-        msg[0] = '+';
-        msg[4997] = '-';
-        msg[4998] = '\r';
-        msg[4999] = '\n';
 
-        n = simple_write_to_client(infd, msg, 5000);
+#define SND_SIZE 100000
+
+        char msg[SND_SIZE];
+        memset(msg, 'a', SND_SIZE);
+        msg[0] = '+';
+        msg[SND_SIZE - 3] = '-';
+        msg[SND_SIZE - 2] = '\r';
+        msg[SND_SIZE - 1] = '\n';
+
+        n = simple_write_to_client(infd, msg, SND_SIZE);
         debug_log("%d\n", n);
         if (n <= 0) {
           close(infd);

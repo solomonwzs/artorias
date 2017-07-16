@@ -4,7 +4,12 @@ local msock = socket.get_msock()
 local n = 0
 local s = ""
 local err = nil
-local r = "+OK\r\n"
+
+local r = ""
+for i = 1, 100000 do
+    r = r .. '0'
+end
+r = "+" .. r .. "\r\n"
 
 while msock:ready_for_read(15) do
     n, s, err = msock:read(1024)

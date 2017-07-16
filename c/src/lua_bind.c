@@ -7,18 +7,24 @@ void
 lbind_scan_stack_elem(lua_State *L) {
   debug_log("stack: %p(%d)\n", L, lua_gettop(L));
   for (int i = 1; i <= lua_gettop(L); ++i) {
-    switch (lua_type(L, i)) {
-      case LUA_TSTRING:
-        debug_log("%d: [%s]\n", i, lua_tostring(L, i));
-        break;
-      case LUA_TNUMBER:
-        debug_log("%d: [%f]\n", i, lua_tonumber(L, i));
-        break;
-      case LUA_TLIGHTUSERDATA:
-        debug_log("%d: [%p]\n", i, lua_touserdata(L, i));
-        break;
-      default:
-        debug_log("%d: %s\n", i, lua_typename(L, lua_type(L, i)));
+    int type = lua_type(L, i);
+    if (type == LUA_TSTRING) {
+      size_t len;
+      const char *str = lua_tolstring(L, i, &len);
+      if (len < 16) {
+        debug_log("%d: [%s]\n", i, str);
+      } else {
+        char buf[17];
+        memcpy(buf, str, 16);
+        buf[16] = '\0';
+        debug_log("%d: [%s...(%ld)]\n", i, buf, len);
+      }
+    } else if (type == LUA_TNUMBER) {
+      debug_log("%d: [%f]\n", i, lua_tonumber(L, i));
+    } else if (type == LUA_TLIGHTUSERDATA) {
+      debug_log("%d: [%p]\n", i, lua_touserdata(L, i));
+    } else {
+      debug_log("%d: %s\n", i, lua_typename(L, lua_type(L, i)));
     }
   }
 }

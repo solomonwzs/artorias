@@ -200,7 +200,9 @@ k_socket_send_all(lua_State *L, int status, lua_KContext c) {
     // int type = luaL_checkinteger(L, 1);
     // as_thread_res_t *rres = (as_thread_res_t *)lua_touserdata(L, 2);
     // int io = luaL_checkinteger(L, 3);
-    res = (as_thread_res_t *)lua_touserdata(L, 2);
+    res = (as_thread_res_t *)lua_touserdata(L, -2);
+
+    lua_pop(L, 3);
   }
 
   int fd = res->fdf(res);
