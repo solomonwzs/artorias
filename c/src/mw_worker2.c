@@ -248,11 +248,10 @@ static void
 process_stop_threads(as_mw_worker_ctx_t *ctx) {
   for (int i = 0; i < ctx->stop_threads->n; ++i) {
     as_thread_t *th = ctx->stop_threads->ths[i];
-    as_thread_res_t *mfd_res = th->mfd_res;
 
     asthread_free(th, NULL);
+    mpf_recycle(th->mfd_res);
     mpf_recycle(th);
-    mpf_recycle(mfd_res);
   }
 }
 
@@ -325,6 +324,23 @@ process_sleep(as_mw_worker_ctx_t *ctx) {
 }
 
 
+static inline void
+r_thread_from_pool(as_rb_node_t *n) {
+  as_thread_t *th = rb_node_to_thread(n);
+
+  asthread_free(th, NULL);
+  mpf_recycle(th->mfd_res);
+  mpf_recycle(th);
+}
+
+
+static void
+recycle_threads_from_pool(as_mw_worker_ctx_t *ctx) {
+  rb_tree_postorder_travel(ctx->io_pool.root, r_thread_from_pool);
+  rb_tree_postorder_travel(ctx->sleep_pool.root, r_thread_from_pool);
+}
+
+
 static void
 process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   set_non_block(cfd);
@@ -372,6 +388,9 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
     process_stop_threads(&ctx);
     // lua_gc(ctx.L, LUA_GCCOLLECT, 0);
   }
+
+  process_stop_threads(&ctx);
+  recycle_threads_from_pool(&ctx);
 
   mpf_recycle(ctx.stop_threads);
   mpf_recycle(ctx.cfd_res);

@@ -15,7 +15,7 @@ LUA_INC 	= $(LUA53_INC)
 LUA_LIB 	= $(LUA53_LIB)
 LIB 		= $(LUA_LIB) -lm -ldl
 CFLAGS 		= -Wall -fpic -g -c -I$(LUA_INC)
-LMCFLAGS 	= -fPIC -shared -Wl,-z,defs $(LUA_LIB)
+LMCFLAGS 	= -g -fPIC -shared -Wl,-z,defs $(LUA_LIB)
 MAIN_PATH 	= "src"
 BUILD_PATH 	= "bin"
 VALGRIND 	= valgrind
@@ -62,7 +62,8 @@ clean:
 run: all lm
 	@$(BUILD_PATH)/main "conf/example.lua"
 
-mem_check: all
+mem_check: all lm
+	LD_PRELOAD="/home/solomon/workspace/go/artorias/c/bin/lm_socket.so" \
 	$(VALGRIND) \
 		--tool=memcheck \
 		--leak-check=yes \

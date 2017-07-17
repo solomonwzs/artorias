@@ -16,6 +16,8 @@
 #define LRK_SERVER_EPFD             "as_lrk_005"
 #define LRK_MEM_POOL                "as_lrk_006"
 
+#define LAS_D_TIMOUT_SECS       15
+
 #define LAS_S_WAIT_FOR_INPUT    0x00
 #define LAS_S_WAIT_FOR_OUTPUT   0x01
 #define LAS_S_READY_TO_INPUT    0x02

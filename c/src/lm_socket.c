@@ -121,7 +121,7 @@ lcf_socket_tostring(lua_State *L) {
 
 // [-2, +3, e]
 static int
-lcf_socket_read(lua_State *L) {
+lcf_socket_read0(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
   int n = luaL_checkinteger(L, 2);
@@ -157,7 +157,7 @@ lcf_socket_read(lua_State *L) {
 
 // [-2, +2, e]
 static int
-lcf_socket_send(lua_State *L) {
+lcf_socket_send0(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
@@ -190,19 +190,95 @@ lcf_socket_send(lua_State *L) {
 
 
 static int
-k_socket_send_all(lua_State *L, int status, lua_KContext c) {
+k_socket_read(lua_State *L, int status, lua_KContext c) {
+  as_thread_res_t *res = NULL;
+  if (status == LUA_YIELD) {
+    int type = luaL_checkinteger(L, -3);
+    if (type == LAS_S_RESUME_IO_TIMEOUT) {
+      lua_pushinteger(L, 0);
+      lua_pushnil(L);
+      lua_pushinteger(L, ETIMEDOUT);
+      return 3;
+    } else {
+      res = (as_thread_res_t *)lua_touserdata(L, -2);
+      lua_pop(L, 3);
+    }
+  } else {
+    lua_pushstring(L, "read error");
+    lua_error(L);
+  }
+
+  int n = luaL_checkinteger(L, 2);
+  if (n <= 0) {
+    n = 1024;
+  }
+
+  int fd = res->fdf(res);
+  char *buf = (char *)lua_newuserdata(L, n);
+  int nbyte = read(fd, buf, n);
+  if (nbyte < 0) {
+    lua_pushinteger(L, 0);
+    lua_pushnil(L);
+    lua_pushinteger(L, errno);
+  } else {
+    lua_pushinteger(L, nbyte);
+    lua_pushlstring(L, buf, nbyte);
+    lua_pushnil(L);
+  }
+
+  return 3;
+}
+
+
+// [-3, +3, e]
+static int
+lcf_socket_read(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+      L, 1, LM_SOCKET);
+  int timeout = luaL_checkinteger(L, 3);
+  if (timeout < 0) {
+    timeout = LAS_D_TIMOUT_SECS;
+  }
+
+  as_thread_res_t *res = sock->res;
+  if (res == NULL) {
+    lua_pushinteger(L, 0);
+    lua_pushnil(L);
+    lua_pushinteger(L, EBADFD);
+    return 3;
+  }
+
+  lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
+  lua_pushlightuserdata(L, res);
+  lua_pushinteger(L, LAS_S_WAIT_FOR_INPUT);
+  lua_pushinteger(L, timeout);
+  return lua_yieldk(L, 4, (lua_KContext)NULL, k_socket_read);
+}
+
+
+static int
+k_socket_send(lua_State *L, int status, lua_KContext c) {
   as_thread_res_t *res = NULL;
   _send_ctx_t *ctx = (_send_ctx_t *)c;
 
   if (status == LUA_OK) {
     res = ctx->res;
   } else if (status == LUA_YIELD) {
-    // int type = luaL_checkinteger(L, 1);
+    int type = luaL_checkinteger(L, 1);
     // as_thread_res_t *rres = (as_thread_res_t *)lua_touserdata(L, 2);
     // int io = luaL_checkinteger(L, 3);
-    res = (as_thread_res_t *)lua_touserdata(L, -2);
 
-    lua_pop(L, 3);
+    if (type == LAS_S_RESUME_IO_TIMEOUT) {
+      lua_pushinteger(L, ctx->idx);
+      lua_pushinteger(L, ETIMEDOUT);
+      return 2;
+    } else {
+      res = (as_thread_res_t *)lua_touserdata(L, -2);
+      lua_pop(L, 3);
+    }
+  } else {
+    lua_pushstring(L, "send error");
+    lua_error(L);
   }
 
   int fd = res->fdf(res);
@@ -221,20 +297,21 @@ k_socket_send_all(lua_State *L, int status, lua_KContext c) {
       lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
       lua_pushlightuserdata(L, res);
       lua_pushinteger(L, LAS_S_WAIT_FOR_OUTPUT);
-      lua_pushinteger(L, 15);
-      return lua_yieldk(L, 4, (lua_KContext)ctx, k_socket_send_all);
+      lua_pushinteger(L, LAS_D_TIMOUT_SECS);
+      return lua_yieldk(L, 4, (lua_KContext)ctx, k_socket_send);
     } else {
       ctx->idx += nbyte;
     }
   }
 
+  mpf_recycle(ctx);
   return 2;
 }
 
 
 // [-2, +2, e]
 static int
-lcf_socket_send_all(lua_State *L) {
+lcf_socket_send(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
@@ -262,7 +339,7 @@ lcf_socket_send_all(lua_State *L) {
   c->len = len;
   c->idx = 0;
 
-  return k_socket_send_all(L, LUA_OK, (lua_KContext)c);
+  return k_socket_send(L, LUA_OK, (lua_KContext)c);
 }
 
 
@@ -308,8 +385,9 @@ as_lm_socket_functions[] = {
 
 static const struct luaL_Reg
 as_lm_socket_methods[] = {
+  {"send0", lcf_socket_send0},
   {"send", lcf_socket_send},
-  {"send_all", lcf_socket_send_all},
+  {"read0", lcf_socket_read0},
   {"read", lcf_socket_read},
   {"close", lcf_socket_close},
   {"get_res", lcf_socket_get_res},

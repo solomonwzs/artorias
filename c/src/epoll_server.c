@@ -105,25 +105,55 @@ epoll_server(int fd) {
           epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
         }
       } else if (events[i].events & EPOLLIN) {
+
+        epoll_ctl(epfd, EPOLL_CTL_DEL, infd, NULL);
+
+        char buf[1024];
         infd = events[i].data.fd;
-        n = simple_read_from_client(infd);
-        if (n <= 0) {
-          debug_log("close: %d\n", infd);
-          close(infd);
-        } else {
-          event.data.fd = infd;
-          event.events = EPOLLOUT | EPOLLET;
-          epoll_ctl(epfd, EPOLL_CTL_MOD, infd, &event);
+        while (1) {
+          n = read(infd, buf, 1);
+          if (n < 0 && errno == EAGAIN) {
+            send(infd, "+OK\r\n", 5, MSG_NOSIGNAL);
+            event.data.fd = infd;
+            event.events = EPOLLIN | EPOLLET;
+            epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
+            break;
+          } else if (n < 0) {
+            debug_log("close(%d): %d\n", errno, infd);
+            close(infd);
+            break;
+          } else if (n == 0) {
+            debug_log("close: %d\n", infd);
+            close(infd);
+            break;
+          } else {
+            buf[n] = '\0';
+            debug_log("<-(%d): %s\n", n, buf);
+            // send(infd, "+OK\r\n", 5, MSG_NOSIGNAL);
+            event.data.fd = infd;
+            event.events = EPOLLIN | EPOLLET;
+            epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
+          }
         }
+
+        // infd = events[i].data.fd;
+        // n = simple_read_from_client(infd);
+        // if (n <= 0) {
+        //   debug_log("close: %d %d\n", infd, errno);
+        //   close(infd);
+        // } else {
+        //   event.data.fd = infd;
+        //   event.events = EPOLLOUT | EPOLLET;
+        //   epoll_ctl(epfd, EPOLL_CTL_MOD, infd, &event);
+        // }
       } else if (events[i].events & EPOLLOUT) {
         infd = events[i].data.fd;
 
-#define SND_SIZE 100000
+#define SND_SIZE 10
 
         char msg[SND_SIZE];
         memset(msg, 'a', SND_SIZE);
         msg[0] = '+';
-        msg[SND_SIZE - 3] = '-';
         msg[SND_SIZE - 2] = '\r';
         msg[SND_SIZE - 1] = '\n';
 

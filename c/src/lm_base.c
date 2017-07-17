@@ -68,7 +68,18 @@ luaopen_lm_base(lua_State *L) {
   lua_pushinteger(L, EINVAL);
   lua_setfield(L, -2, "EINVAL");
 
+  lua_pushinteger(L, ETIMEDOUT);
+  lua_setfield(L, -2, "ETIMEDOUT");
+
   lua_setfield(L, -2, "E");
+
+  // D
+  lua_newtable(L);
+
+  lua_pushinteger(L, LAS_D_TIMOUT_SECS);
+  lua_setfield(L, -2, "TIMEOUT_SECS");
+
+  lua_setfield(L, -2, "D");
 
   return 1;
 }

@@ -24,7 +24,7 @@ end
 
 
 function _socket:read(n)
-    return self._socket:read(n)
+    return self._socket:read(n, base.D.TIMEOUT_SECS);
 end
 
 
@@ -34,7 +34,7 @@ function _socket:read_all()
     local err = nil
     local n, buf
     repeat
-        n, buf, err = self._socket:read(1024)
+        n, buf, err = self._socket:read0(1024)
         if err == nil then
             s = s .. buf
             nbyte = nbyte + n
@@ -53,13 +53,13 @@ function _socket:read_all()
 end
 
 
-function _socket:send(buf)
+function _socket:send0(buf)
     local err = nil
     local n = 0
     local nbyte = 0
     local typ, res, io
     while err == nil and #buf > 0 do
-        n, err = self._socket:send(buf)
+        n, err = self._socket:send0(buf)
         if err == nil then
             nbyte = nbyte + n
             buf = buf:sub(n + 1)
@@ -80,8 +80,8 @@ function _socket:send(buf)
 end
 
 
-function _socket:send_all(buf)
-    return self._socket:send_all(buf)
+function _socket:send(buf)
+    return self._socket:send(buf)
 end
 
 
