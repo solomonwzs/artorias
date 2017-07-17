@@ -271,12 +271,14 @@ k_socket_send(lua_State *L, int status, lua_KContext c) {
     if (type == LAS_S_RESUME_IO_TIMEOUT) {
       lua_pushinteger(L, ctx->idx);
       lua_pushinteger(L, ETIMEDOUT);
+      mpf_recycle(ctx);
       return 2;
     } else {
       res = (as_thread_res_t *)lua_touserdata(L, -2);
       lua_pop(L, 3);
     }
   } else {
+    mpf_recycle(ctx);
     lua_pushstring(L, "send error");
     lua_error(L);
   }
@@ -293,6 +295,7 @@ k_socket_send(lua_State *L, int status, lua_KContext c) {
     } else if (nbyte == -1 && errno != EAGAIN) {
       lua_pushinteger(L, ctx->idx);
       lua_pushinteger(L, errno);
+      break;
     } else if (nbyte == -1) {
       lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
       lua_pushlightuserdata(L, res);
