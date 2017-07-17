@@ -63,7 +63,6 @@ run: all lm
 	@$(BUILD_PATH)/main "conf/example.lua"
 
 mem_check: all lm
-	LD_PRELOAD="/home/solomon/workspace/go/artorias/c/bin/lm_socket.so" \
 	$(VALGRIND) \
 		--tool=memcheck \
 		--leak-check=yes \

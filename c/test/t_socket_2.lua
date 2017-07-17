@@ -12,19 +12,6 @@ local err = nil
 -- r = "+" .. r .. "\r\n"
 local r = "+OK\r\n"
 
--- while msock:ready_for_read(15) do
---     n, s, err = msock:read_all()
---     if err ~= nil or (err == nil and n == 0) then
---         break
---     end
--- 
---     -- n, err = msock:send0(r)
---     n, err = msock:send(r)
---     if err ~= nil then
---         break
---     end
--- end
-
 while true do
     n, s, err = msock:read(1024)
     if err ~= nil or (err == nil and n == 0) then
