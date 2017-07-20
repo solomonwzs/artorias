@@ -232,52 +232,6 @@ lbind_append_lua_package_field(lua_State *L, const char *field,
 }
 
 
-// [-1, +1, e]
-static int
-lcf_new_fd_lthread(lua_State *L) {
-  int fd = lua_tointeger(L, -1);
-
-  lbind_checkmetatable(L, LRK_FD_THREAD_TABLE,
-                       "fd thread table not exist");
-  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
-                       "thread local var table not exist");
-  lua_newthread(L);
-
-  lua_pushinteger(L, fd);
-  lua_pushvalue(L, -2);
-  lua_settable(L, -5);
-
-  lua_pushvalue(L, -1);
-  lua_newtable(L);
-
-  lua_pushstring(L, "fd");
-  lua_pushinteger(L, fd);
-  lua_settable(L, -3);
-
-  lua_settable(L, -4);
-
-  return 1;
-}
-
-
-// [-0, +0, -]
-lua_State *
-lbind_new_fd_lthread(lua_State *L, int fd) {
-  lua_pushcfunction(L, lcf_new_fd_lthread);
-  lua_pushinteger(L, fd);
-
-  int ret = lua_pcall(L, 1, 1, 0);
-  if (ret == LUA_OK) {
-    lua_State *T = lua_tothread(L, -1);
-    lua_pop(L, 1);
-    return T;
-  } else {
-    lb_pop_error_msg(L);
-    return NULL;
-  }
-}
-
-
 // [-2, +1, e]
 static int
 lcf_ref_tid_lthread(lua_State *L) {
@@ -350,35 +304,6 @@ lbind_unref_tid_lthread(lua_State *L, as_tid_t tid) {
 
 // [-1, +0, e]
 static int
-lcf_unref_fd_lthread(lua_State *L) {
-  int fd = lua_tointeger(L, -1);
-
-  lbind_checkmetatable(L, LRK_FD_THREAD_TABLE,
-                       "fd thread table not exist");
-  lua_pushinteger(L, fd);
-  lua_pushnil(L);
-  lua_settable(L, -3);
-
-  return 0;
-}
-
-
-// [-0, +0, -]
-int
-lbind_unref_fd_lthread(lua_State *L, int fd) {
-  lua_pushcfunction(L, lcf_unref_fd_lthread);
-  lua_pushinteger(L, fd);
-
-  int ret = lua_pcall(L, 1, 0, 0);
-  if (ret != LUA_OK) {
-    lb_pop_error_msg(L);
-  }
-  return ret;
-}
-
-
-// [-1, +0, e]
-static int
 lcf_ref_lcode_chunk(lua_State *L) {
   const char *filename = (const char *)lua_touserdata(L, -1);
 
@@ -401,37 +326,6 @@ lbind_ref_lcode_chunk(lua_State *L, const char *filename) {
   int ret = lua_pcall(L, 1, 0, 0);
   if (ret != LUA_OK) {
     lb_pop_error_msg(L);
-  }
-  return ret;
-}
-
-
-// [-1, +0, e]
-static int
-lcf_ref_fd_lthread(lua_State *T) {
-  int fd = lua_tointeger(T, -1);
-  char k[] = {0, 0, 0, 0, 0};
-  *((int *)k) = fd;
-
-  lbind_checkmetatable(T, LRK_FD_THREAD_TABLE,
-                       "fd thread table not exist");
-  lua_pushstring(T, k);
-  lua_pushthread(T);
-  lua_settable(T, -3);
-
-  return 0;
-}
-
-
-// [-0, +0, -]
-int
-lbind_ref_fd_lthread(lua_State *T, int fd) {
-  lua_pushcfunction(T, lcf_ref_fd_lthread);
-  lua_pushinteger(T, fd);
-
-  int ret = lua_pcall(T, 1, 0, 0);
-  if (ret != LUA_OK) {
-    lb_pop_error_msg(T);
   }
   return ret;
 }

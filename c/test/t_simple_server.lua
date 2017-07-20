@@ -18,7 +18,6 @@ while true do
         break
     end
 
-    -- n, err = msock:send0(r)
     n, err = msock:send(r)
     if err ~= nil then
         break

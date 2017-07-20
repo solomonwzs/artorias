@@ -74,7 +74,7 @@ server_test(as_lua_pconf_t *cnf) {
   }
   // select_server(sock);
   // epoll_server(sock);
-  test_worker_process2(sock, cnf);
+  test_worker_process(sock, cnf);
   close(sock);
 }
 
@@ -150,7 +150,7 @@ luas_test() {
   lbind_ref_lcode_chunk(L, lfilename);
 
   // lua_State *T = lua_newthread(L);
-  lua_State *T = lbind_new_fd_lthread(L, 12);
+  lua_State *T = lbind_ref_tid_lthread(L, 12);
   // lbind_free_fd_lthread(L, 1);
   lua_gc(L, LUA_GCCOLLECT, 0);
   if (T == NULL) {

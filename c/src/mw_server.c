@@ -1,6 +1,5 @@
 #include "server.h"
 #include "mem_pool.h"
-#include "wrap_conn.h"
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include "mw_server.h"
@@ -86,14 +85,8 @@ master_workers_server(as_lua_pconf_t *cnf) {
   ret = lpconf_get_pconf_value(cnf, 1, "worker_type");
   int worker_type = ret.val.i;
   switch (worker_type) {
-    case 1:
-      wp = worker_process1;
-      break;
-    case 2:
-      wp = worker_process2;
-      break;
     default:
-      wp = worker_process0;
+      wp = worker_process;
   }
 
   for (i = 0; i < n; ++i) {

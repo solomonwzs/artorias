@@ -400,12 +400,12 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
 
 
 void
-worker_process2(int channel_fd, as_lua_pconf_t *cnf) {
+worker_process(int channel_fd, as_lua_pconf_t *cnf) {
   process(channel_fd, cnf, 0);
 }
 
 
 void
-test_worker_process2(int fd, as_lua_pconf_t *cnf) {
+test_worker_process(int fd, as_lua_pconf_t *cnf) {
   process(fd, cnf, 1);
 }

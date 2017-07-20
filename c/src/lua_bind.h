@@ -43,19 +43,10 @@ lbind_append_lua_package_field(lua_State *L, const char *field,
                                const char *path);
 
 extern lua_State *
-lbind_new_fd_lthread(lua_State *L, int fd);
-
-extern lua_State *
 lbind_ref_tid_lthread(lua_State *L, as_tid_t tid);
 
 extern int
 lbind_unref_tid_lthread(lua_State *L, as_tid_t tid);
-
-extern int
-lbind_ref_fd_lthread(lua_State *L, int fd);
-
-extern int
-lbind_unref_fd_lthread(lua_State *T, int fd);
 
 extern int
 lbind_ref_lcode_chunk(lua_State *L, const char *filename);
