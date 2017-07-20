@@ -166,7 +166,7 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
       break;
     }
     set_non_block(fd);
-    set_socket_send_buffer_size(fd, 2048);
+    // set_socket_send_buffer_size(fd, 2048);
 
     as_thread_t *th = mpf_alloc(ctx->mem_pool, sizeof(as_thread_t));
     as_tid_t tid = asthread_init(th, ctx->L);

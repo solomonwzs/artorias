@@ -193,7 +193,7 @@ static int
 k_socket_read(lua_State *L, int status, lua_KContext c) {
   as_thread_res_t *res = NULL;
   if (status == LUA_YIELD) {
-    int type = luaL_checkinteger(L, -3);
+    int type = luaL_checkinteger(L, 4);
     if (type == LAS_S_RESUME_IO_TIMEOUT) {
       lua_pushinteger(L, 0);
       lua_pushnil(L);
@@ -365,7 +365,10 @@ lcf_socket_close(lua_State *L) {
   if (sock->res == NULL || sock->type == LM_SOCK_TYPE_SYSTEM) {
     return 0;
   }
-  asthread_res_del_from_th(sock->res, sock->res->th);
+
+  if (sock->res->th != NULL) {
+    asthread_res_del_from_th(sock->res, sock->res->th);
+  }
 
   if (sock->res->freef != NULL) {
     sock->res->freef(sock->res, NULL);

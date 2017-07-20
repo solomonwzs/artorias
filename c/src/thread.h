@@ -96,4 +96,7 @@ asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th);
 extern as_rb_node_t*
 asthread_remove_timeout_threads(as_rb_tree_t *pool);
 
+extern void
+asthread_print_res(as_thread_t *th);
+
 #endif

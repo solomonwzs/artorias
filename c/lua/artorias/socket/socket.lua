@@ -15,6 +15,15 @@ function _socket:get_msock()
 end
 
 
+function _socket:new_sock(host, port)
+    local sock = lm_socket.new(host, port)
+    local res = sock:get_res()
+    local obj = {_socket=sock, _res=res}
+    self.__index = self
+    return setmetatable(obj, self)
+end
+
+
 function _socket:ready_for_read(timeout)
     local typ, res, io = coroutine.yield(base.S.YIELD_FOR_IO, self._res,
         base.S.WAIT_FOR_INPUT, timeout)
@@ -66,6 +75,11 @@ _M.version = socket_base.version
 
 function _M.get_msock()
     return _socket:get_msock()
+end
+
+
+function _M.new_sock(host, port)
+    return _socket:new_sock(host, port)
 end
 
 

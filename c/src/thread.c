@@ -35,6 +35,7 @@ asthread_free(as_thread_t *th, void *f_ptr) {
   as_dlist_node_t *dln = th->res_head;
   while (dln != NULL) {
     as_thread_res_t *res = container_of(dln, as_thread_res_t, node);
+    res->th = NULL;
     dln = dln->next;
 
     if (res->freef != NULL) {
@@ -78,6 +79,8 @@ asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
   res->status = AS_RSTATUS_IDLE;
   res->freef = freef;
   res->fdf = fdf;
+  res->node.prev = NULL;
+  res->node.next = NULL;
 
   return 0;
 }
@@ -157,4 +160,18 @@ asthread_remove_timeout_threads(as_rb_tree_t *pool) {
   }
 
   return ret;
+}
+
+
+void
+asthread_print_res(as_thread_t *th) {
+  debug_log("th: %p\n", th);
+  debug_log("m: %p\n", th->mfd_res);
+  as_dlist_node_t *dn = th->res_head;
+  while (dn != NULL) {
+    as_thread_res_t *res = dl_node_to_res(dn);
+    debug_log("r: %p\n", res);
+    dn = dn->next;
+  }
+  debug_log("\n");
 }
