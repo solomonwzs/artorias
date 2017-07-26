@@ -112,9 +112,9 @@ master_workers_server(as_lua_pconf_t *cnf) {
   if (child) {
     master_process(fd, child_sockets, n);
   } else {
-    for (i = 0; i < m; ++i) {
-      close(child_sockets[i]);
-    }
+    // for (i = 0; i < m; ++i) {
+    //   close(child_sockets[i]);
+    // }
     wp(channel_fd, cnf);
   }
 

@@ -13,7 +13,7 @@
 #define AS_TSTATUS_STOP   0x03
 
 #define AS_RSTATUS_IDLE   0x00
-#define AS_RSTATUS_EPFD   0x01
+#define AS_RSTATUS_EV     0x01
 
 struct as_thread_s;
 struct as_thread_res_s;
@@ -98,5 +98,14 @@ asthread_remove_timeout_threads(as_rb_tree_t *pool);
 
 extern void
 asthread_print_res(as_thread_t *th);
+
+extern int
+asthread_res_ev_init(as_thread_res_t *res, int epfd);
+
+extern int
+asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events);
+
+extern int
+asthread_res_ev_del(as_thread_res_t *res, int epfd);
 
 #endif

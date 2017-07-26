@@ -1,9 +1,9 @@
-#include "mw_worker.h"
 #include <signal.h>
 #include <stdint.h>
 #include <sys/epoll.h>
 #include "lua_bind.h"
 #include "lua_utils.h"
+#include "mw_worker.h"
 #include "rb_tree.h"
 #include "server.h"
 
@@ -55,10 +55,11 @@ remove_th_res_from_epfd(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   while (dn != NULL) {
     as_thread_res_t *res = dl_node_to_res(dn);
 
-    if (res->status == AS_RSTATUS_EPFD) {
-      res->status = AS_RSTATUS_IDLE;
-      epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, res->fdf(res), NULL);
-    }
+    // if (res->status == AS_RSTATUS_EV) {
+    //   res->status = AS_RSTATUS_IDLE;
+    //   epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, res->fdf(res), NULL);
+    // }
+    asthread_res_ev_del(res, ctx->epfd);
 
     dn = dn->next;
   }
@@ -81,16 +82,20 @@ th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   th->pool = &ctx->io_pool;
   asthread_pool_insert(th);
 
-  struct epoll_event event;
-  event.data.ptr = res;
-  event.events = io_type == LAS_S_WAIT_FOR_INPUT ?
+  // struct epoll_event event;
+  // event.data.ptr = res;
+  // event.events = io_type == LAS_S_WAIT_FOR_INPUT ?
+  //     EPOLLIN | EPOLLET :
+  //     EPOLLOUT | EPOLLET;
+  // if (epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, res->fdf(res), &event) == 0) {
+  //   res->status = AS_RSTATUS_EV;
+  // } else {
+  //   debug_perror("epoll_ctr");
+  // }
+  uint32_t events = io_type == LAS_S_WAIT_FOR_INPUT ?
       EPOLLIN | EPOLLET :
       EPOLLOUT | EPOLLET;
-  if (epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, res->fdf(res), &event) == 0) {
-    res->status = AS_RSTATUS_EPFD;
-  } else {
-    debug_perror("epoll_ctr");
-  }
+  asthread_res_ev_add(res, ctx->epfd, events);
 }
 
 
@@ -176,9 +181,10 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     }
 
     as_thread_res_t *res = mpf_alloc(ctx->mem_pool, sizeof_thread_res(int));
+    *(int *)res->d = fd;
     asthread_res_init(res, res_free_f, res_fd_f);
     asthread_res_add_to_th(res, th);
-    *(int *)res->d = fd;
+    asthread_res_ev_init(res, ctx->epfd);
 
     th->mfd_res = res;
 

@@ -101,6 +101,7 @@ lcf_socket_new(lua_State *L) {
   *((int *)sock->res->d) = fd;
   asthread_res_init(sock->res, res_free_f, res_fd_f);
   asthread_res_add_to_th(sock->res, th);
+  asthread_res_ev_init(sock->res, ctx->epfd);
 
   return 1;
 }

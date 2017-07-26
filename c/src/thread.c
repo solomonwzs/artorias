@@ -1,3 +1,4 @@
+#include <sys/epoll.h>
 #include "lua_bind.h"
 #include "thread.h"
 
@@ -174,4 +175,54 @@ asthread_print_res(as_thread_t *th) {
     dn = dn->next;
   }
   debug_log("\n");
+}
+
+
+int
+asthread_res_ev_init(as_thread_res_t *res, int epfd) {
+  struct epoll_event event;
+  event.data.ptr = res;
+  event.events = 0;
+  int ret = epoll_ctl(epfd, EPOLL_CTL_ADD, res->fdf(res), &event);
+
+  if (ret != 0) {
+    debug_perror("ev");
+  }
+  return ret;
+}
+
+
+int
+asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
+  struct epoll_event event;
+  event.data.ptr = res;
+  event.events = events;
+  int ret = epoll_ctl(epfd, EPOLL_CTL_MOD, res->fdf(res), &event);
+
+  if (ret == 0) {
+    res->status = AS_RSTATUS_EV;
+  } else {
+    debug_perror("ev");
+  }
+  return ret;
+}
+
+
+int
+asthread_res_ev_del(as_thread_res_t *res, int epfd) {
+  if (res->status != AS_RSTATUS_EV) {
+    return 0;
+  }
+
+  struct epoll_event event;
+  event.data.ptr = res;
+  event.events = 0;
+  int ret = epoll_ctl(epfd, EPOLL_CTL_MOD, res->fdf(res), &event);
+
+  if (ret == 0) {
+    res->status = AS_RSTATUS_IDLE;
+  } else {
+    debug_perror("ev");
+  }
+  return ret;
 }
