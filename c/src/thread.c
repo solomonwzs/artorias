@@ -10,7 +10,7 @@ static as_tid_t cur_tid = 0;
 
 
 int
-asthread_init(as_thread_t *th, lua_State *L) {
+asthread_th_init(as_thread_t *th, lua_State *L) {
   cur_tid += 1;
   lua_State *T = lbind_ref_tid_lthread(L, cur_tid);
   if (T == NULL) {
@@ -20,9 +20,10 @@ asthread_init(as_thread_t *th, lua_State *L) {
 
   th->tid = cur_tid;
   th->T = T;
-  th->ct = time(NULL);
-  th->ut = th->ct;
+  // th->ct = time(NULL);
+  // th->ut = th->ct;
   th->status = AS_TSTATUS_READY;
+  th->mode = AS_TMODE_SIMPLE;
   th->res_head = NULL;
 
   return cur_tid;
@@ -30,7 +31,7 @@ asthread_init(as_thread_t *th, lua_State *L) {
 
 
 int
-asthread_free(as_thread_t *th, void *f_ptr) {
+asthread_th_free(as_thread_t *th, void *f_ptr) {
   lbind_unref_tid_lthread(th->T, th->tid);
 
   as_dlist_node_t *dln = th->res_head;
@@ -50,11 +51,11 @@ asthread_free(as_thread_t *th, void *f_ptr) {
 
 
 int
-asthread_pool_insert(as_thread_t *th) {
-  as_rb_tree_t *pool = th->pool;
-  if (pool == NULL) {
+asthread_th_add_to_pool(as_thread_t *th, as_rb_tree_t *pool) {
+  if (pool == NULL || th->status == AS_TSTATUS_STOP) {
     return -1;
   }
+  th->pool = pool;
 
   rb_tree_insert(pool, &th->p_idx, node_et_lt);
   rb_tree_insert_case(pool, &th->p_idx);
@@ -63,13 +64,14 @@ asthread_pool_insert(as_thread_t *th) {
 
 
 int
-asthread_pool_delete(as_thread_t *th) {
+asthread_th_del_from_pool(as_thread_t *th) {
   as_rb_tree_t *pool = th->pool;
   if (pool == NULL) {
     return -1;
   }
 
   rb_tree_delete(pool, &th->p_idx);
+  th->pool = NULL;
   return 0;
 }
 
@@ -124,7 +126,8 @@ asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th) {
 
 
 void
-asthread_array_add(as_thread_array_t *array, as_thread_t *th) {
+asthread_th_add_to_array(as_thread_t *th, as_thread_array_t *array) {
+  asthread_th_del_from_pool(th);
   *(array->ths + array->n) = th;
   array->n += 1;
 }
@@ -194,6 +197,10 @@ asthread_res_ev_init(as_thread_res_t *res, int epfd) {
 
 int
 asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
+  if (res->status == AS_RSTATUS_HOLD) {
+    return 0;
+  }
+
   struct epoll_event event;
   event.data.ptr = res;
   event.events = events;
@@ -225,4 +232,25 @@ asthread_res_ev_del(as_thread_res_t *res, int epfd) {
     debug_perror("ev");
   }
   return ret;
+}
+
+
+void
+asthread_remove_res_from_epfd(as_thread_t *th, int epfd) {
+  if (th->mode == AS_TMODE_LOOP_SOCKS) {
+    return;
+  }
+
+  as_dlist_node_t *dn = th->res_head;
+  while (dn != NULL) {
+    as_thread_res_t *res = dl_node_to_res(dn);
+
+    // if (res->status == AS_RSTATUS_EV) {
+    //   res->status = AS_RSTATUS_IDLE;
+    //   epoll_ctl(epfd, EPOLL_CTL_DEL, res->fdf(res), NULL);
+    // }
+    asthread_res_ev_del(res, epfd);
+
+    dn = dn->next;
+  }
 }

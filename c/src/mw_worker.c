@@ -19,14 +19,6 @@
   __ret.val.s;\
 })
 
-#define extract_thread(_th_, _ctx_) do {\
-  if ((_th_)->status == AS_TSTATUS_STOP) {\
-    return;\
-  }\
-  asthread_pool_delete(_th_);\
-  remove_th_res_from_epfd(_th_, _ctx_);\
-} while(0)
-
 
 static volatile int keep_running = 1;
 static void
@@ -50,23 +42,6 @@ res_fd_f(as_thread_res_t *res) {
 
 
 static inline void
-remove_th_res_from_epfd(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
-  as_dlist_node_t *dn = th->res_head;
-  while (dn != NULL) {
-    as_thread_res_t *res = dl_node_to_res(dn);
-
-    // if (res->status == AS_RSTATUS_EV) {
-    //   res->status = AS_RSTATUS_IDLE;
-    //   epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, res->fdf(res), NULL);
-    // }
-    asthread_res_ev_del(res, ctx->epfd);
-
-    dn = dn->next;
-  }
-}
-
-
-static inline void
 th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   lua_State *T = th->T;
 
@@ -76,11 +51,7 @@ th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   lua_pop(T, 4);
 
   secs = secs < 0 ? ctx->conn_timeout : secs;
-  th->et = time(NULL) + secs;
-  th->status = AS_TSTATUS_RUN;
-
-  th->pool = &ctx->io_pool;
-  asthread_pool_insert(th);
+  asthread_th_to_iowait(th, time(NULL) + secs, &ctx->io_pool);
 
   // struct epoll_event event;
   // event.data.ptr = res;
@@ -106,11 +77,7 @@ th_yield_for_sleep(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   int secs = lua_tointeger(T, -1);
   lua_pop(T, 2);
 
-  th->et = time(NULL) + secs;
-  th->status = AS_TSTATUS_SLEEP;
-
-  th->pool = &ctx->sleep_pool;
-  asthread_pool_insert(th);
+  asthread_th_to_sleep(th, time(NULL) + secs, &ctx->sleep_pool);
 }
 
 
@@ -124,7 +91,7 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
   // debug_log("r: %d - %p\n", th->tid, T);
   int n = lua_gettop(T) - nargs;
 
-  if (th->status == AS_TSTATUS_READY) {
+  if (asthread_th_is_ready(th)) {
     lbind_get_lcode_chunk(T, ctx->lfile);
   }
   int ret = alua_resume(T, nargs);
@@ -148,9 +115,7 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
     lb_pop_error_msg(T);
   }
 
-  th->status = AS_TSTATUS_STOP;
-  th->pool = NULL;
-  asthread_array_add(ctx->stop_threads, th);
+  asthread_th_to_stop(th, ctx->stop_threads);
 
   return;
 }
@@ -174,7 +139,7 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     // set_socket_send_buffer_size(fd, 2048);
 
     as_thread_t *th = mpf_alloc(ctx->mem_pool, sizeof(as_thread_t));
-    as_tid_t tid = asthread_init(th, ctx->L);
+    as_tid_t tid = asthread_th_init(th, ctx->L);
     if (tid == -1) {
       mpf_recycle(th);
       continue;
@@ -201,8 +166,8 @@ handle_fd_read(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   if (res->th->status == AS_TSTATUS_STOP) {
     return;
   }
-  asthread_pool_delete(res->th);
-  remove_th_res_from_epfd(res->th, ctx);
+  asthread_th_del_from_pool(res->th);
+  asthread_remove_res_from_epfd(res->th, ctx->epfd);
 
   lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_S_RESUME_IO);
@@ -217,8 +182,8 @@ handle_fd_write(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
   if (res->th->status == AS_TSTATUS_STOP) {
     return;
   }
-  asthread_pool_delete(res->th);
-  remove_th_res_from_epfd(res->th, ctx);
+  asthread_th_del_from_pool(res->th);
+  asthread_remove_res_from_epfd(res->th, ctx->epfd);
 
   lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_S_RESUME_IO);
@@ -238,8 +203,8 @@ handle_fd_error(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
     if (res->th->status == AS_TSTATUS_STOP) {
       return;
     }
-    asthread_pool_delete(res->th);
-    remove_th_res_from_epfd(res->th, ctx);
+    asthread_th_del_from_pool(res->th);
+    asthread_remove_res_from_epfd(res->th, ctx->epfd);
 
     lua_State *T = res->th->T;
     lua_pushinteger(T, LAS_S_RESUME_IO_ERROR);
@@ -255,7 +220,7 @@ process_stop_threads(as_mw_worker_ctx_t *ctx) {
   for (int i = 0; i < ctx->stop_threads->n; ++i) {
     as_thread_t *th = ctx->stop_threads->ths[i];
 
-    asthread_free(th, NULL);
+    asthread_th_free(th, NULL);
     mpf_recycle(th->mfd_res);
     mpf_recycle(th);
   }
@@ -268,7 +233,7 @@ p_io_timeout_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   if (th->status == AS_TSTATUS_STOP) {
     return;
   }
-  remove_th_res_from_epfd(th, ctx);
+  asthread_remove_res_from_epfd(th, ctx->epfd);
 
   lua_State *T = th->T;
   lua_pushinteger(T, LAS_S_RESUME_IO_TIMEOUT);
@@ -334,7 +299,7 @@ static inline void
 r_thread_from_pool(as_rb_node_t *n) {
   as_thread_t *th = rb_node_to_thread(n);
 
-  asthread_free(th, NULL);
+  asthread_th_free(th, NULL);
   mpf_recycle(th->mfd_res);
   mpf_recycle(th);
 }

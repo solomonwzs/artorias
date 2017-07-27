@@ -122,7 +122,7 @@ lcf_socket_tostring(lua_State *L) {
 
 // [-2, +3, e]
 static int
-lcf_socket_read0(lua_State *L) {
+lcf_socket_sread(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
       L, 1, LM_SOCKET);
   int n = luaL_checkinteger(L, 2);
@@ -158,7 +158,7 @@ lcf_socket_read0(lua_State *L) {
 
 // [-2, +2, e]
 static int
-lcf_socket_send0(lua_State *L) {
+lcf_socket_ssend(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
@@ -249,6 +249,11 @@ lcf_socket_read(lua_State *L) {
     return 3;
   }
 
+  if (res->status == AS_RSTATUS_HOLD) {
+    lua_pushstring(L, "ev error");
+    lua_error(L);
+  }
+
   lua_pushinteger(L, LAS_S_YIELD_FOR_IO);
   lua_pushlightuserdata(L, res);
   lua_pushinteger(L, LAS_S_WAIT_FOR_INPUT);
@@ -325,6 +330,11 @@ lcf_socket_send(lua_State *L) {
     return 2;
   }
 
+  if (res->status == AS_RSTATUS_HOLD) {
+    lua_pushstring(L, "ev error");
+    lua_error(L);
+  }
+
   size_t len;
   const char *buf = lua_tolstring(L, 2, &len);
   if (buf == NULL) {
@@ -382,6 +392,12 @@ lcf_socket_close(lua_State *L) {
 }
 
 
+// static int
+// lcf_socket_poll_begin(lua_State *L) {
+//   return 0;
+// }
+
+
 static const struct luaL_Reg
 as_lm_socket_functions[] = {
   {"get_msock", lcf_socket_get_msock},
@@ -392,10 +408,12 @@ as_lm_socket_functions[] = {
 
 static const struct luaL_Reg
 as_lm_socket_methods[] = {
-  {"send0", lcf_socket_send0},
+  {"ssend", lcf_socket_ssend},
+  {"sread", lcf_socket_sread},
+
   {"send", lcf_socket_send},
-  {"read0", lcf_socket_read0},
   {"read", lcf_socket_read},
+
   {"close", lcf_socket_close},
   {"get_res", lcf_socket_get_res},
   {"__tostring", lcf_socket_tostring},

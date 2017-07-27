@@ -43,7 +43,7 @@ function _socket:read_all()
     local err = nil
     local n, buf
     repeat
-        n, buf, err = self._socket:read0(1024)
+        n, buf, err = self._socket:sread(1024)
         if err == nil then
             s = s .. buf
             nbyte = nbyte + n

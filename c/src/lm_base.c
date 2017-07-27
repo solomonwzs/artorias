@@ -1,3 +1,4 @@
+#include <sys/epoll.h>
 #include "lua_utils.h"
 #include "lua_bind.h"
 #include "thread.h"
@@ -80,6 +81,20 @@ luaopen_lm_base(lua_State *L) {
   lua_setfield(L, -2, "TIMEOUT_SECS");
 
   lua_setfield(L, -2, "D");
+
+  // EV
+  lua_newtable(L);
+
+  lua_pushinteger(L, EPOLLIN);
+  lua_setfield(L, -2, "EPOLLIN");
+
+  lua_pushinteger(L, EPOLLOUT);
+  lua_setfield(L, -2, "EPOLLOUT");
+
+  lua_pushinteger(L, EPOLLET);
+  lua_setfield(L, -2, "EPOLLET");
+
+  lua_setfield(L, -2, "EV");
 
   return 1;
 }
