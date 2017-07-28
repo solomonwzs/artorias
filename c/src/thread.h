@@ -75,6 +75,8 @@ typedef struct {
 
 #define asthread_th_is_ready(_th_) ((_th_)->status == AS_TSTATUS_READY)
 
+#define asthread_th_is_stop(_th_) ((_th_)->status == AS_TSTATUS_STOP)
+
 #define asthread_th_to_stop(_th_, _arr_) do {\
   (_th_)->status = AS_TSTATUS_STOP;\
   (_th_)->pool = NULL;\

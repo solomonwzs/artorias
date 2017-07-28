@@ -83,7 +83,7 @@ th_yield_for_sleep(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
 
 static void
 thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
-  if (th->status == AS_TSTATUS_STOP) {
+  if (asthread_th_is_stop(th)) {
     return;
   }
 
@@ -163,7 +163,7 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
 
 static void
 handle_fd_read(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
-  if (res->th->status == AS_TSTATUS_STOP) {
+  if (asthread_th_is_stop(res->th)) {
     return;
   }
   asthread_th_del_from_pool(res->th);
@@ -179,7 +179,7 @@ handle_fd_read(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
 
 static void
 handle_fd_write(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
-  if (res->th->status == AS_TSTATUS_STOP) {
+  if (asthread_th_is_stop(res->th)) {
     return;
   }
   asthread_th_del_from_pool(res->th);
@@ -200,7 +200,7 @@ handle_fd_error(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
     close(fd);
 
   } else {
-    if (res->th->status == AS_TSTATUS_STOP) {
+    if (asthread_th_is_stop(res->th)) {
       return;
     }
     asthread_th_del_from_pool(res->th);
@@ -230,7 +230,7 @@ process_stop_threads(as_mw_worker_ctx_t *ctx) {
 static inline void
 p_io_timeout_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   as_thread_t *th = rb_node_to_thread(n);
-  if (th->status == AS_TSTATUS_STOP) {
+  if (asthread_th_is_stop(th)) {
     return;
   }
   asthread_remove_res_from_epfd(th, ctx->epfd);
@@ -277,7 +277,7 @@ process_io(as_mw_worker_ctx_t *ctx, int single_mode) {
 static inline void
 p_sleep_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   as_thread_t *th = rb_node_to_thread(n);
-  if (th->status == AS_TSTATUS_STOP) {
+  if (asthread_th_is_stop(th)) {
     return;
   }
 

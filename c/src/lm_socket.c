@@ -392,16 +392,77 @@ lcf_socket_close(lua_State *L) {
 }
 
 
-// static int
-// lcf_socket_poll_begin(lua_State *L) {
-//   return 0;
-// }
+// [-?, +1, e]
+static int
+lcf_socket_ev_begin(lua_State *L) {
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
+                      "no worker ctx");
+  as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
+
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
+  lua_pushthread(L);
+  lua_gettable(L, -2);
+
+  lua_pushstring(L, "th");
+  lua_gettable(L, -2);
+  as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
+
+  int n = luaL_checkinteger(L, 1);
+  int m = 0;
+  for (int i = 0; i < n; ++i) {
+    as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
+        L, i + 2, LM_SOCKET);
+    if (sock->res == NULL || sock->res->th != th) {
+      break;
+    }
+
+    m += 1;
+    asthread_res_ev_add(sock->res, ctx->epfd, EPOLLIN|EPOLLOUT|EPOLLET);
+  }
+  th->mode = AS_TMODE_LOOP_SOCKS;
+
+  lua_pushinteger(L, m);
+
+  return 1;
+}
+
+
+// [-0, +0, e]
+static int
+lcf_socket_ev_end(lua_State *L) {
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
+  lua_pushthread(L);
+  lua_gettable(L, -2);
+
+  lua_pushstring(L, "th");
+  lua_gettable(L, -2);
+  as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
+
+  if (th->mode != AS_TMODE_LOOP_SOCKS) {
+    return 0;
+  }
+
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
+                      "no worker ctx");
+  as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
+
+  th->mode = AS_TMODE_SIMPLE;
+  asthread_remove_res_from_epfd(th, ctx->epfd);
+
+  return 0;
+}
 
 
 static const struct luaL_Reg
 as_lm_socket_functions[] = {
   {"get_msock", lcf_socket_get_msock},
   {"new", lcf_socket_new},
+
+  {"ev_begin", lcf_socket_ev_begin},
+  {"ev_end", lcf_socket_ev_end},
+
   {NULL, NULL},
 };
 
