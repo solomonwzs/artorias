@@ -19,6 +19,12 @@
   __ret.val.s;\
 })
 
+#define th_remove_res_from_epfd(_th_, _epfd_) do {\
+  if (asthread_th_is_simple_mode(_th_)) {\
+    asthread_remove_res_from_epfd(_th_, _epfd_);\
+  }\
+} while(0)
+
 
 static volatile int keep_running = 1;
 static void
@@ -167,7 +173,7 @@ handle_fd_read(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
     return;
   }
   asthread_th_del_from_pool(res->th);
-  asthread_remove_res_from_epfd(res->th, ctx->epfd);
+  th_remove_res_from_epfd(res->th, ctx->epfd);
 
   lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_S_RESUME_IO);
@@ -183,7 +189,7 @@ handle_fd_write(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
     return;
   }
   asthread_th_del_from_pool(res->th);
-  asthread_remove_res_from_epfd(res->th, ctx->epfd);
+  th_remove_res_from_epfd(res->th, ctx->epfd);
 
   lua_State *T = res->th->T;
   lua_pushinteger(T, LAS_S_RESUME_IO);
@@ -204,7 +210,7 @@ handle_fd_error(as_mw_worker_ctx_t *ctx, as_thread_res_t *res) {
       return;
     }
     asthread_th_del_from_pool(res->th);
-    asthread_remove_res_from_epfd(res->th, ctx->epfd);
+    th_remove_res_from_epfd(res->th, ctx->epfd);
 
     lua_State *T = res->th->T;
     lua_pushinteger(T, LAS_S_RESUME_IO_ERROR);
@@ -233,7 +239,7 @@ p_io_timeout_thread(as_rb_node_t *n, as_mw_worker_ctx_t *ctx) {
   if (asthread_th_is_stop(th)) {
     return;
   }
-  asthread_remove_res_from_epfd(th, ctx->epfd);
+  th_remove_res_from_epfd(th, ctx->epfd);
 
   lua_State *T = th->T;
   lua_pushinteger(T, LAS_S_RESUME_IO_TIMEOUT);

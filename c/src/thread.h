@@ -14,7 +14,6 @@
 
 #define AS_RSTATUS_IDLE   0x00
 #define AS_RSTATUS_EV     0x01
-#define AS_RSTATUS_HOLD   0x02
 
 #define AS_TMODE_SIMPLE     0x00
 #define AS_TMODE_LOOP_SOCKS 0x01
@@ -94,6 +93,8 @@ typedef struct {
   (_th_)->status = AS_TSTATUS_RUN;\
   asthread_th_add_to_pool(_th_, _pool_);\
 } while(0)
+
+#define asthread_th_is_simple_mode(_th_) ((_th_)->mode == AS_TMODE_SIMPLE)
 
 extern int
 asthread_th_init(as_thread_t *th, lua_State *L);

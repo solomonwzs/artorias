@@ -249,7 +249,7 @@ lcf_socket_read(lua_State *L) {
     return 3;
   }
 
-  if (res->status == AS_RSTATUS_HOLD) {
+  if (res->th->mode != AS_TMODE_SIMPLE) {
     lua_pushstring(L, "ev error");
     lua_error(L);
   }
@@ -330,7 +330,7 @@ lcf_socket_send(lua_State *L) {
     return 2;
   }
 
-  if (res->status == AS_RSTATUS_HOLD) {
+  if (res->th->mode != AS_TMODE_SIMPLE) {
     lua_pushstring(L, "ev error");
     lua_error(L);
   }
@@ -410,15 +410,17 @@ lcf_socket_ev_begin(lua_State *L) {
 
   int n = luaL_checkinteger(L, 1);
   int m = 0;
-  for (int i = 0; i < n; ++i) {
+  for (int i = 1; i < n + 1; ++i) {
     as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
-        L, i + 2, LM_SOCKET);
+        L, i * 2, LM_SOCKET);
+    int ev = luaL_checkinteger(L, i * 2 + 1);
     if (sock->res == NULL || sock->res->th != th) {
       break;
     }
 
+    sock->res->status = AS_RSTATUS_EV;
+    asthread_res_ev_add(sock->res, ctx->epfd, ev);
     m += 1;
-    asthread_res_ev_add(sock->res, ctx->epfd, EPOLLIN|EPOLLOUT|EPOLLET);
   }
   th->mode = AS_TMODE_LOOP_SOCKS;
 
@@ -455,6 +457,13 @@ lcf_socket_ev_end(lua_State *L) {
 }
 
 
+// [-0, +2, e]
+static int
+lcf_socket_ev_wait(lua_State *L) {
+  return 2;
+}
+
+
 static const struct luaL_Reg
 as_lm_socket_functions[] = {
   {"get_msock", lcf_socket_get_msock},
@@ -462,6 +471,7 @@ as_lm_socket_functions[] = {
 
   {"ev_begin", lcf_socket_ev_begin},
   {"ev_end", lcf_socket_ev_end},
+  {"ev_wait", lcf_socket_ev_wait},
 
   {NULL, NULL},
 };

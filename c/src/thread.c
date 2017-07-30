@@ -188,7 +188,9 @@ asthread_res_ev_init(as_thread_res_t *res, int epfd) {
   event.events = 0;
   int ret = epoll_ctl(epfd, EPOLL_CTL_ADD, res->fdf(res), &event);
 
-  if (ret != 0) {
+  if (ret == 0) {
+    res->status = AS_RSTATUS_IDLE;
+  } else {
     debug_perror("ev");
   }
   return ret;
@@ -197,10 +199,6 @@ asthread_res_ev_init(as_thread_res_t *res, int epfd) {
 
 int
 asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
-  if (res->status == AS_RSTATUS_HOLD) {
-    return 0;
-  }
-
   struct epoll_event event;
   event.data.ptr = res;
   event.events = events;
@@ -217,10 +215,6 @@ asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
 
 int
 asthread_res_ev_del(as_thread_res_t *res, int epfd) {
-  if (res->status != AS_RSTATUS_EV) {
-    return 0;
-  }
-
   struct epoll_event event;
   event.data.ptr = res;
   event.events = 0;
@@ -237,10 +231,6 @@ asthread_res_ev_del(as_thread_res_t *res, int epfd) {
 
 void
 asthread_remove_res_from_epfd(as_thread_t *th, int epfd) {
-  if (th->mode == AS_TMODE_LOOP_SOCKS) {
-    return;
-  }
-
   as_dlist_node_t *dn = th->res_head;
   while (dn != NULL) {
     as_thread_res_t *res = dl_node_to_res(dn);
