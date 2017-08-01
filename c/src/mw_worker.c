@@ -59,16 +59,6 @@ th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   secs = secs < 0 ? ctx->conn_timeout : secs;
   asthread_th_to_iowait(th, time(NULL) + secs, &ctx->io_pool);
 
-  // struct epoll_event event;
-  // event.data.ptr = res;
-  // event.events = io_type == LAS_S_WAIT_FOR_INPUT ?
-  //     EPOLLIN | EPOLLET :
-  //     EPOLLOUT | EPOLLET;
-  // if (epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, res->fdf(res), &event) == 0) {
-  //   res->status = AS_RSTATUS_EV;
-  // } else {
-  //   debug_perror("epoll_ctr");
-  // }
   uint32_t events = io_type == LAS_S_WAIT_FOR_INPUT ?
       EPOLLIN | EPOLLET :
       EPOLLOUT | EPOLLET;
@@ -78,6 +68,17 @@ th_yield_for_io(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
 
 static inline void
 th_yield_for_sleep(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
+  lua_State *T = th->T;
+
+  int secs = lua_tointeger(T, -1);
+  lua_pop(T, 2);
+
+  asthread_th_to_sleep(th, time(NULL) + secs, &ctx->sleep_pool);
+}
+
+
+static inline void
+th_yield_for_ev(as_thread_t *th, as_mw_worker_ctx_t *ctx) {
   lua_State *T = th->T;
 
   int secs = lua_tointeger(T, -1);
@@ -114,6 +115,11 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
                lua_tointeger(T, -2) == LAS_S_YIELD_FOR_SLEEP) {
 
       th_yield_for_sleep(th, ctx);
+      return;
+
+    } else if (n_res == 2 && lua_isinteger(T, -2) &&
+               lua_tointeger(T, -2) == LAS_S_YIELD_FOR_EV) {
+
       return;
 
     }

@@ -457,10 +457,43 @@ lcf_socket_ev_end(lua_State *L) {
 }
 
 
-// [-0, +2, e]
+static int
+k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
+  if (status == LUA_YIELD) {
+    int type = luaL_checkinteger(L, 1);
+    if (type == LAS_S_RESUME_IO) {
+
+      // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 2);
+      // int rw = lua_tointeger(L, 3);
+
+    } else if (type == LAS_S_RESUME_IO_ERROR){
+
+      // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 2);
+      // int err = lua_tointeger(L, 3);
+
+    } else if (type == LAS_S_RESUME_IO_TIMEOUT) {
+
+      lua_pushnil(L);
+      lua_pushnil(L);
+
+    }
+  } else {
+    lua_pushstring(L, "ev error");
+    lua_error(L);
+  }
+
+  return 3;
+}
+
+
+// [-0, +3, e]
 static int
 lcf_socket_ev_wait(lua_State *L) {
-  return 2;
+  int timeout = luaL_checkinteger(L, 1);
+
+  lua_pushinteger(L, LAS_S_YIELD_FOR_EV);
+  lua_pushinteger(L, timeout);
+  return lua_yieldk(L, 2, (lua_KContext)NULL, k_socket_ev_wait);
 }
 
 

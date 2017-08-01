@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <string.h>
 #include "lua_bind.h"
 #include "utils.h"
@@ -454,6 +455,46 @@ lbind_set_thread_local_var_ptr(lua_State *T, const char *field, void *value) {
   lua_pushlightuserdata(T, value);
 
   int ret = lua_pcall(T, 2, 0, 0);
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(T);
+  }
+  return ret;
+}
+
+
+// [-1, +1, e]
+static int
+lcf_get_thread_local_vars(lua_State *L) {
+  int n = lua_gettop(L);
+
+  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                       "thread local var table not exist");
+  lua_pushthread(L);
+  lua_gettable(L, -2);
+
+  for (int i = 1; i <= n; ++i) {
+    lua_pushvalue(L, i);
+    lua_gettable(L, n + 2);
+  }
+  return n;
+}
+
+
+// [-n, +n, -]
+int
+lbind_get_thread_local_vars(lua_State *T, int n, ...) {
+  va_list ap;
+  const char *field;
+
+  lua_pushcfunction(T, lcf_get_thread_local_vars);
+  va_start(ap, n);
+  for (int i = 0; i < n; ++i) {
+    field = va_arg(ap, const char *);
+    lua_pushstring(T, field);
+  }
+  va_end(ap);
+
+  int ret = lua_pcall(T, n, n, 0);
   if (ret != LUA_OK) {
     lb_pop_error_msg(T);
   }

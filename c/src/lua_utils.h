@@ -25,10 +25,11 @@
 #define LAS_S_SOCKET_CLOSEED    0x04
 #define LAS_S_YIELD_FOR_IO      0x05
 #define LAS_S_YIELD_FOR_SLEEP   0x06
-#define LAS_S_RESUME_IO         0x07
-#define LAS_S_RESUME_IO_ERROR   0x08
-#define LAS_S_RESUME_IO_TIMEOUT 0x09
-#define LAS_S_RESUME_SLEEP      0x0a
+#define LAS_S_YIELD_FOR_EV      0x07
+#define LAS_S_RESUME_IO         0x08
+#define LAS_S_RESUME_IO_ERROR   0x09
+#define LAS_S_RESUME_IO_TIMEOUT 0x0a
+#define LAS_S_RESUME_SLEEP      0x0b
 
 #ifdef DEBUG
 #   define lb_pop_error_msg(_L_) do {\

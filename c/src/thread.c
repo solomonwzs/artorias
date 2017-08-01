@@ -215,6 +215,10 @@ asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
 
 int
 asthread_res_ev_del(as_thread_res_t *res, int epfd) {
+  if (res->status == AS_RSTATUS_EV) {
+    return 0;
+  }
+
   struct epoll_event event;
   event.data.ptr = res;
   event.events = 0;
@@ -234,13 +238,7 @@ asthread_remove_res_from_epfd(as_thread_t *th, int epfd) {
   as_dlist_node_t *dn = th->res_head;
   while (dn != NULL) {
     as_thread_res_t *res = dl_node_to_res(dn);
-
-    // if (res->status == AS_RSTATUS_EV) {
-    //   res->status = AS_RSTATUS_IDLE;
-    //   epoll_ctl(epfd, EPOLL_CTL_DEL, res->fdf(res), NULL);
-    // }
     asthread_res_ev_del(res, epfd);
-
     dn = dn->next;
   }
 }
