@@ -36,13 +36,7 @@ res_fd_f(as_thread_res_t *res) {
 // [-0, +1, e]
 static int
 lcf_socket_get_msock(lua_State *L) {
-  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
-                       "thread local var table not exist");
-  lua_pushthread(L);
-  lua_gettable(L, -2);
-
-  lua_pushstring(L, "th");
-  lua_gettable(L, -2);
+  lbind_get_thread_local_vars(L, 1, "th");
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
   as_lm_socket_t *sock = (as_lm_socket_t *)lua_newuserdata(
@@ -67,13 +61,7 @@ lcf_socket_new(lua_State *L) {
                       "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
-  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
-                       "thread local var table not exist");
-  lua_pushthread(L);
-  lua_gettable(L, -2);
-
-  lua_pushstring(L, "th");
-  lua_gettable(L, -2);
+  lbind_get_thread_local_vars(L, 1, "th");
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
   as_lm_socket_t *sock = (as_lm_socket_t *)lua_newuserdata(
@@ -399,13 +387,7 @@ lcf_socket_ev_begin(lua_State *L) {
                       "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
-  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
-                       "thread local var table not exist");
-  lua_pushthread(L);
-  lua_gettable(L, -2);
-
-  lua_pushstring(L, "th");
-  lua_gettable(L, -2);
+  lbind_get_thread_local_vars(L, 1, "th");
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
   int n = luaL_checkinteger(L, 1);
@@ -433,16 +415,10 @@ lcf_socket_ev_begin(lua_State *L) {
 // [-0, +0, e]
 static int
 lcf_socket_ev_end(lua_State *L) {
-  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
-                       "thread local var table not exist");
-  lua_pushthread(L);
-  lua_gettable(L, -2);
-
-  lua_pushstring(L, "th");
-  lua_gettable(L, -2);
+  lbind_get_thread_local_vars(L, 1, "th");
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
-  if (th->mode != AS_TMODE_LOOP_SOCKS) {
+  if (th == NULL || th->mode != AS_TMODE_LOOP_SOCKS) {
     return 0;
   }
 

@@ -4,6 +4,12 @@
 #include "lua_utils.h"
 #include "mem_pool.h"
 
+#define LTYPE_INT   0x00
+#define LTYPE_PTR   0x01
+#define LTYPE_STACK 0x02
+
+#define LTTYPE_THREAD_LOCAL_VAR 0x00
+#define LTTYPE_REGISTRY         0x01
 
 // [-0, +1, e]
 #define lbind_checkmetatable(_L_, _tname_, _emsg_) do {\
@@ -42,6 +48,9 @@ extern int
 lbind_append_lua_package_field(lua_State *L, const char *field,
                                const char *path);
 
+extern int
+lbind_set_va_list(lua_State *L, int ttype, int n, ...);
+
 extern lua_State *
 lbind_ref_tid_lthread(lua_State *L, as_tid_t tid);
 
@@ -57,8 +66,8 @@ lbind_unref_lcode_chunk(lua_State *L, const char *filename);
 extern int
 lbind_get_lcode_chunk(lua_State *L, const char *filename);
 
-extern int
-lbind_set_thread_local_var_ptr(lua_State *T, const char *field, void *value);
+#define lbind_set_thread_local_vars(_T_, _n_, ...) \
+    lbind_set_va_list(_T_, LTTYPE_THREAD_LOCAL_VAR, _n_, ## __VA_ARGS__)
 
 extern int
 lbind_get_thread_local_vars(lua_State *T, int n, ...);
@@ -69,11 +78,8 @@ lbind_get_thread_local_vars(lua_State *T, int n, ...);
 #define lbind_append_lua_path(_L_, _p_) \
     lbind_append_lua_package_field(_L_, "path", _p_);
 
-extern int
-lbind_reg_value_int(lua_State *L, const char *field, int value);
-
-extern int
-lbind_reg_value_ptr(lua_State *L, const char *field, void *value);
+#define lbind_reg_values(_T_, _n_, ...) \
+    lbind_set_va_list(_T_, LTTYPE_REGISTRY, _n_, ## __VA_ARGS__)
 
 extern void
 lbind_scan_stack_elem(lua_State *L);

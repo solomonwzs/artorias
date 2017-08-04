@@ -166,7 +166,7 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     th->mfd_res = res;
 
     lua_State *T = th->T;
-    lbind_set_thread_local_var_ptr(T, "th", th);
+    lbind_set_thread_local_vars(T, 1, "th", LTYPE_PTR, th);
 
     thread_resume(th, ctx, 0);
   }
@@ -358,7 +358,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   lbind_init_state(ctx.L);
   lbind_append_lua_cpath(ctx.L, get_cnf_str_val(cnf, 1, "lua_cpath"));
   lbind_append_lua_path(ctx.L, get_cnf_str_val(cnf, 1, "lua_path"));
-  lbind_reg_value_ptr(ctx.L, LRK_WORKER_CTX, &ctx);
+  lbind_reg_values(ctx.L, 1, LRK_WORKER_CTX, LTYPE_PTR, &ctx);
   lbind_ref_lcode_chunk(ctx.L, ctx.lfile);
 
   ctx.stop_threads = mpf_alloc(ctx.mem_pool, sizeof_thread_array(_MAX_EVENTS));

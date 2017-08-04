@@ -385,84 +385,7 @@ lbind_get_lcode_chunk(lua_State *L, const char *filename) {
 }
 
 
-// [-2, +0, e]
-static int
-lcf_reg_value(lua_State *L) {
-  const char *field = (const char *)lua_touserdata(L, 1);
-
-  lua_pushstring(L, field);
-  lua_pushvalue(L, -2);
-  lua_settable(L, LUA_REGISTRYINDEX);
-
-  return 0;
-}
-
-
-// [-0, +0, -]
-int
-lbind_reg_value_int(lua_State *L, const char *field, int value) {
-  lua_pushcfunction(L, lcf_reg_value);
-  lua_pushlightuserdata(L, (void *)field);
-  lua_pushinteger(L, value);
-
-  int ret = lua_pcall(L, 2, 0, 0);
-  if (ret != LUA_OK) {
-    lb_pop_error_msg(L);
-  }
-  return ret;
-}
-
-
-// [-0, +0, -]
-int
-lbind_reg_value_ptr(lua_State *L, const char *field, void *value) {
-  lua_pushcfunction(L, lcf_reg_value);
-  lua_pushlightuserdata(L, (void *)field);
-  lua_pushlightuserdata(L, value);
-
-  int ret = lua_pcall(L, 2, 0, 0);
-  if (ret != LUA_OK) {
-    lb_pop_error_msg(L);
-  }
-  return ret;
-}
-
-
-// [-2, +0, e]
-static int
-lcf_set_thread_local_var_ptr(lua_State *L) {
-  const char *field = (const char *)lua_touserdata(L, 1);
-  void *value = lua_touserdata(L, 2);
-
-  lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
-                       "thread local var table not exist");
-  lua_pushthread(L);
-  lua_gettable(L, -2);
-
-  lua_pushstring(L, field);
-  lua_pushlightuserdata(L, value);
-  lua_settable(L, -3);
-
-  return 0;
-}
-
-
-// [-0, +0, -]
-int
-lbind_set_thread_local_var_ptr(lua_State *T, const char *field, void *value) {
-  lua_pushcfunction(T, lcf_set_thread_local_var_ptr);
-  lua_pushlightuserdata(T, (void *)field);
-  lua_pushlightuserdata(T, value);
-
-  int ret = lua_pcall(T, 2, 0, 0);
-  if (ret != LUA_OK) {
-    lb_pop_error_msg(T);
-  }
-  return ret;
-}
-
-
-// [-1, +1, e]
+// [-n, +n, e]
 static int
 lcf_get_thread_local_vars(lua_State *L) {
   int n = lua_gettop(L);
@@ -472,15 +395,17 @@ lcf_get_thread_local_vars(lua_State *L) {
   lua_pushthread(L);
   lua_gettable(L, -2);
 
+  const char *field;
   for (int i = 1; i <= n; ++i) {
-    lua_pushvalue(L, i);
+    field = (const char *)lua_touserdata(L, 1);
+    lua_pushstring(L, field);
     lua_gettable(L, n + 2);
   }
   return n;
 }
 
 
-// [-n, +n, -]
+// [-0, +n, -]
 int
 lbind_get_thread_local_vars(lua_State *T, int n, ...) {
   va_list ap;
@@ -490,13 +415,85 @@ lbind_get_thread_local_vars(lua_State *T, int n, ...) {
   va_start(ap, n);
   for (int i = 0; i < n; ++i) {
     field = va_arg(ap, const char *);
-    lua_pushstring(T, field);
+    lua_pushlightuserdata(T, (void *)field);
   }
   va_end(ap);
 
   int ret = lua_pcall(T, n, n, 0);
   if (ret != LUA_OK) {
     lb_pop_error_msg(T);
+  }
+  return ret;
+}
+
+
+// [-(2n+1), +0, e]
+int
+lcf_set_va_list(lua_State *L) {
+  int n = lua_gettop(L);
+  int ttype = lua_tointeger(L, 1);
+  int tidx;
+
+  if (ttype == LTTYPE_REGISTRY) {
+    tidx = LUA_REGISTRYINDEX;
+  } else {
+    lbind_checkmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE,
+                         "thread local var table not exist");
+    lua_pushthread(L);
+    lua_gettable(L, -2);
+    tidx = n + 2;
+  }
+
+  const char *field;
+  for (int i = 1; i <= n / 2; ++i) {
+    field = (const char *)lua_touserdata(L, i * 2);
+    lua_pushstring(L, field);
+    lua_pushvalue(L, i * 2 + 1);
+    lua_settable(L, tidx);
+  }
+
+  return 0;
+}
+
+
+// [-0, +0, -]
+int
+lbind_set_va_list(lua_State *L, int ttype, int n, ...) {
+  va_list ap;
+  int sn = lua_gettop(L);
+  const char *field;
+  int type;
+  int ival;
+  void *pval;
+  int idx;
+
+  lua_pushcfunction(L, lcf_set_va_list);
+  lua_pushinteger(L, ttype);
+  va_start(ap, n);
+  for (int i = 0; i < n; ++i) {
+    field = va_arg(ap, const char *);
+    type = va_arg(ap, int);
+
+    lua_pushlightuserdata(L, (void *)field);
+    if (type == LTYPE_INT) {
+      ival = va_arg(ap, int);
+      lua_pushinteger(L, ival);
+    } else if (type == LTYPE_STACK) {
+      idx = va_arg(ap, int);
+      if (idx < 0) {
+        idx = sn + idx + 1;
+      }
+      lua_pushvalue(L, idx);
+    } else {
+      pval = va_arg(ap, void *);
+      lua_pushlightuserdata(L, pval);
+    }
+  }
+  va_end(ap);
+
+  int ret = lua_pcall(L, 2 * n + 1, 0, 0);
+  if (ret != LUA_OK) {
+    lb_pop_error_msg(L);
   }
   return ret;
 }
