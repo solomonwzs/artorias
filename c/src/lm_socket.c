@@ -7,9 +7,9 @@
 #include "mem_pool.h"
 #include "server.h"
 
-#define SOCK_EVENT_IN   0x00
-#define SOCK_EVENT_OUT  0x01
-#define SOCK_EVENT_NONE 0x02
+#define _SOCK_EVENT_IN   0x00
+#define _SOCK_EVENT_OUT  0x01
+#define _SOCK_EVENT_NONE 0x02
 
 typedef struct {
   as_thread_res_t *res;
@@ -36,7 +36,7 @@ res_fd_f(as_thread_res_t *res) {
 // [-0, +1, e]
 static int
 lcf_socket_get_msock(lua_State *L) {
-  lbind_get_thread_local_vars(L, 1, "th");
+  lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
   as_lm_socket_t *sock = (as_lm_socket_t *)lua_newuserdata(
@@ -61,7 +61,7 @@ lcf_socket_new(lua_State *L) {
                       "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
-  lbind_get_thread_local_vars(L, 1, "th");
+  lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
   as_lm_socket_t *sock = (as_lm_socket_t *)lua_newuserdata(
@@ -387,8 +387,11 @@ lcf_socket_ev_begin(lua_State *L) {
                       "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
-  lbind_get_thread_local_vars(L, 1, "th");
+  lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
+
+  lua_newtable(L);
+  lbind_set_thread_local_vars(L, 1, LLK_RES_SOCK_TABLE, LTYPE_STACK, -1);
 
   int n = luaL_checkinteger(L, 1);
   int m = 0;
@@ -399,6 +402,10 @@ lcf_socket_ev_begin(lua_State *L) {
     if (sock->res == NULL || sock->res->th != th) {
       break;
     }
+
+    lua_pushlightuserdata(L, sock->res);
+    lua_pushlightuserdata(L, sock);
+    lua_settable(L, -3);
 
     sock->res->status = AS_RSTATUS_EV;
     asthread_res_ev_add(sock->res, ctx->epfd, ev);
@@ -415,7 +422,7 @@ lcf_socket_ev_begin(lua_State *L) {
 // [-0, +0, e]
 static int
 lcf_socket_ev_end(lua_State *L) {
-  lbind_get_thread_local_vars(L, 1, "th");
+  lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
   if (th == NULL || th->mode != AS_TMODE_LOOP_SOCKS) {
@@ -442,10 +449,24 @@ k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
       // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 2);
       // int rw = lua_tointeger(L, 3);
 
+      lbind_get_thread_local_vars(L, 1, LLK_RES_SOCK_TABLE);
+      lua_pushvalue(L, 2);
+
+      lua_pushvalue(L, 1);
+      lua_gettable(L, -3);
+      lua_pushvalue(L, 3);
+
     } else if (type == LAS_S_RESUME_IO_ERROR){
 
       // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 2);
       // int err = lua_tointeger(L, 3);
+
+      lbind_get_thread_local_vars(L, 1, LLK_RES_SOCK_TABLE);
+      lua_pushvalue(L, 2);
+
+      lua_pushvalue(L, 1);
+      lua_gettable(L, -3);
+      lua_pushnil(L);
 
     } else if (type == LAS_S_RESUME_IO_TIMEOUT) {
 

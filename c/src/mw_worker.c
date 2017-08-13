@@ -166,7 +166,7 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     th->mfd_res = res;
 
     lua_State *T = th->T;
-    lbind_set_thread_local_vars(T, 1, "th", LTYPE_PTR, th);
+    lbind_set_thread_local_vars(T, 1, LLK_THREAD, LTYPE_PTR, th);
 
     thread_resume(th, ctx, 0);
   }
