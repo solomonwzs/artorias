@@ -6,5 +6,5 @@ as_config = {
     ["worker_type"] = 2,
     ["lua_cpath"] = "./bin/?.so",
     ["lua_path"] = "./lua/?.lua",
-    ["worker"] = "./test/t_simple_server.lua",
+    ["worker"] = "./test/t_simple_proxy.lua",
 }

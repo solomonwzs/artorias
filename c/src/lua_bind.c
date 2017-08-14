@@ -78,7 +78,10 @@ lcf_check_metatable_elem(lua_State *L) {
 void
 lbind_check_metatable_elem(lua_State *L, int idx) {
   lua_pushcfunction(L, lcf_check_metatable_elem);
-  lua_pushvalue(L, idx - 1);
+  if (idx < 0) {
+    idx -= 1;
+  }
+  lua_pushvalue(L, idx);
 
   int ret = lua_pcall(L, 1, 0, 0);
   if (ret != LUA_OK) {

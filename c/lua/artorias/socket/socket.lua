@@ -83,4 +83,13 @@ function _M.new_sock(host, port)
 end
 
 
+_M.ev_begin = lm_socket.ev_begin
+_M.ev_wait = lm_socket.ev_wait
+_M.ev_end = lm_socket.ev_end
+
+_M.ev_r = base.EV.EPOLLIN | base.EV.EPOLLET
+_M.ev_w = base.EV.EPOLLOUT | base.EV.EPOLLET
+_M.ev_rw = base.EV.EPOLLOUT | base.EV.EPOLLOUT | base.EV.EPOLLET
+
+
 return _M

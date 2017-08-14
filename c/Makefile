@@ -44,11 +44,11 @@ lm_base:obj
 		$(MAIN_PATH)/lua_bind.o \
 		$(MAIN_PATH)/lua_utils.o \
 		$(MAIN_PATH)/mem_pool.o \
-		$(LUA_ADA_OBJ) \
-		-o $(BUILD_PATH)/$@.so
+		$(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 lm_counter:obj
-	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o $(MAIN_PATH)/mem_pool.o \
+	@$(C) $(LMCFLAGS) $(MAIN_PATH)/$@.o \
+		$(MAIN_PATH)/mem_pool.o \
 		$(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 lm_socket:obj
@@ -59,8 +59,7 @@ lm_socket:obj
 		$(MAIN_PATH)/thread.o \
 		$(MAIN_PATH)/server.o \
 		$(MAIN_PATH)/rb_tree.o \
-		$(LUA_ADA_OBJ) \
-		-o $(BUILD_PATH)/$@.so
+		$(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 pre:
 	@mkdir -p $(BUILD_PATH)

@@ -25,6 +25,7 @@ asthread_th_init(as_thread_t *th, lua_State *L) {
   th->status = AS_TSTATUS_READY;
   th->mode = AS_TMODE_SIMPLE;
   th->res_head = NULL;
+  th->pool = NULL;
 
   return cur_tid;
 }

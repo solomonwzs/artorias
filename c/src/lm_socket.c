@@ -442,6 +442,7 @@ lcf_socket_ev_end(lua_State *L) {
 
 static int
 k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
+  lbind_scan_stack_elem(L);
   if (status == LUA_YIELD) {
     int type = luaL_checkinteger(L, 1);
     if (type == LAS_S_RESUME_IO) {
@@ -486,6 +487,7 @@ k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
 // [-0, +3, e]
 static int
 lcf_socket_ev_wait(lua_State *L) {
+  lbind_scan_stack_elem(L);
   int timeout = luaL_checkinteger(L, 1);
 
   lua_pushinteger(L, LAS_S_YIELD_FOR_EV);
