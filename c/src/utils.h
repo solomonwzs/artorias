@@ -17,12 +17,18 @@
     fprintf(stderr, "\033[0;33m=%d= [%s:%d:%s]\033[0m " _fmt_, getpid(), \
             __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
+#define dslog(_fmt_, ...) \
+    fprintf(stderr, "\033[0;33m=%d=\033[0m " _fmt_, getpid(), \
+            ## __VA_ARGS__)
+
 #define DEBUG
 #ifdef DEBUG
 #   define debug_log dlog
+#   define debug_slog dslog
 #   define debug_perror(_s_) debug_log("%s: %s\n", _s_, strerror(errno))
 #else
 #   define debug_log(_fmt_, ...)
+#   define debug_slog(_fmt_, ...)
 #   define debug_perror(_s_)
 /*
 #   define debug_perror(_s_) perror(_s_)

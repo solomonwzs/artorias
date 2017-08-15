@@ -102,7 +102,7 @@ lcf_socket_tostring(lua_State *L) {
       L, 1, LM_SOCKET);
 
   int fd = sock->res != NULL ? sock->res->fdf(sock->res) : -1;
-  lua_pushfstring(L, "(addr: %p, fd: %d)", sock->res, fd);
+  lua_pushfstring(L, "(s: %p, addr: %p, fd: %d)", sock, sock->res, fd);
 
   return 1;
 }
@@ -404,7 +404,7 @@ lcf_socket_ev_begin(lua_State *L) {
     }
 
     lua_pushlightuserdata(L, sock->res);
-    lua_pushlightuserdata(L, sock);
+    lua_pushvalue(L, i * 2);
     lua_settable(L, -3);
 
     sock->res->status = AS_RSTATUS_EV;
@@ -442,34 +442,33 @@ lcf_socket_ev_end(lua_State *L) {
 
 static int
 k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
-  lbind_scan_stack_elem(L);
   if (status == LUA_YIELD) {
-    int type = luaL_checkinteger(L, 1);
+    int type = luaL_checkinteger(L, 2);
     if (type == LAS_S_RESUME_IO) {
 
-      // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 2);
-      // int rw = lua_tointeger(L, 3);
+      // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 3);
+      // int rw = lua_tointeger(L, 4);
 
       lbind_get_thread_local_vars(L, 1, LLK_RES_SOCK_TABLE);
-      lua_pushvalue(L, 2);
 
-      lua_pushvalue(L, 1);
-      lua_gettable(L, -3);
+      lua_pushvalue(L, 2);
       lua_pushvalue(L, 3);
+      lua_gettable(L, -3);
+      lua_pushvalue(L, 4);
 
     } else if (type == LAS_S_RESUME_IO_ERROR){
 
-      // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 2);
-      // int err = lua_tointeger(L, 3);
+      // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 3);
+      // int err = lua_tointeger(L, 4);
 
       lbind_get_thread_local_vars(L, 1, LLK_RES_SOCK_TABLE);
-      lua_pushvalue(L, 2);
 
-      lua_pushvalue(L, 1);
+      lua_pushvalue(L, 2);
+      lua_pushvalue(L, 3);
       lua_gettable(L, -3);
       lua_pushnil(L);
 
-    } else if (type == LAS_S_RESUME_IO_TIMEOUT) {
+    } else if (type == LAS_S_RESUME_SLEEP) {
 
       lua_pushnil(L);
       lua_pushnil(L);
@@ -487,7 +486,6 @@ k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
 // [-0, +3, e]
 static int
 lcf_socket_ev_wait(lua_State *L) {
-  lbind_scan_stack_elem(L);
   int timeout = luaL_checkinteger(L, 1);
 
   lua_pushinteger(L, LAS_S_YIELD_FOR_EV);

@@ -42,3 +42,5 @@ while true do
         end
     end
 end
+
+sock:close()

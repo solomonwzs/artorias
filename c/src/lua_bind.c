@@ -5,27 +5,26 @@
 
 
 void
-lbind_scan_stack_elem(lua_State *L) {
-  debug_log("stack: %p(%d)\n", L, lua_gettop(L));
+_lbind_scan_stack_elem(lua_State *L) {
   for (int i = 1; i <= lua_gettop(L); ++i) {
     int type = lua_type(L, i);
     if (type == LUA_TSTRING) {
       size_t len;
       const char *str = lua_tolstring(L, i, &len);
       if (len < 16) {
-        debug_log("%d: [%s]\n", i, str);
+        dslog("%d: [%s]\n", i, str);
       } else {
         char buf[17];
         memcpy(buf, str, 16);
         buf[16] = '\0';
-        debug_log("%d: [%s...(%ld)]\n", i, buf, len);
+        dslog("%d: [%s...(%ld)]\n", i, buf, len);
       }
     } else if (type == LUA_TNUMBER) {
-      debug_log("%d: [%f]\n", i, lua_tonumber(L, i));
+      dslog("%d: [%f]\n", i, lua_tonumber(L, i));
     } else if (type == LUA_TLIGHTUSERDATA) {
-      debug_log("%d: [%p]\n", i, lua_touserdata(L, i));
+      dslog("%d: [%p]\n", i, lua_touserdata(L, i));
     } else {
-      debug_log("%d: %s\n", i, lua_typename(L, lua_type(L, i)));
+      dslog("%d: %s\n", i, lua_typename(L, lua_type(L, i)));
     }
   }
 }
@@ -222,7 +221,7 @@ lcf_append_lua_package_field(lua_State *L) {
 
 // [-0, +0, -]
 int
-lbind_append_lua_package_field(lua_State *L, const char *field,
+_lbind_append_lua_package_field(lua_State *L, const char *field,
                                const char *path) {
   lua_pushcfunction(L, lcf_append_lua_package_field);
   lua_pushlightuserdata(L, (void *)field);
@@ -431,7 +430,7 @@ lbind_get_thread_local_vars(lua_State *T, int n, ...) {
 
 
 // [-(2n+1), +0, e]
-int
+static int
 lcf_set_va_list(lua_State *L) {
   int n = lua_gettop(L);
   int ttype = lua_tointeger(L, 1);
@@ -461,7 +460,7 @@ lcf_set_va_list(lua_State *L) {
 
 // [-0, +0, -]
 int
-lbind_set_va_list(lua_State *L, int ttype, int n, ...) {
+_lbind_set_va_list(lua_State *L, int ttype, int n, ...) {
   va_list ap;
   int sn = lua_gettop(L);
   const char *field;

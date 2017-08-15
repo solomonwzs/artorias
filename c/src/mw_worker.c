@@ -120,6 +120,7 @@ thread_resume(as_thread_t *th, as_mw_worker_ctx_t *ctx, int nargs) {
     } else if (n_res == 2 && lua_isinteger(T, -2) &&
                lua_tointeger(T, -2) == LAS_S_YIELD_FOR_EV) {
 
+      th_yield_for_ev(th, ctx);
       return;
 
     }

@@ -45,11 +45,11 @@ extern lua_State *
 lbind_new_state(as_mem_pool_fixed_t *mp);
 
 extern int
-lbind_append_lua_package_field(lua_State *L, const char *field,
-                               const char *path);
+_lbind_append_lua_package_field(lua_State *L, const char *field,
+                                const char *path);
 
 extern int
-lbind_set_va_list(lua_State *L, int ttype, int n, ...);
+_lbind_set_va_list(lua_State *L, int ttype, int n, ...);
 
 extern lua_State *
 lbind_ref_tid_lthread(lua_State *L, as_tid_t tid);
@@ -67,21 +67,26 @@ extern int
 lbind_get_lcode_chunk(lua_State *L, const char *filename);
 
 #define lbind_set_thread_local_vars(_T_, _n_, ...) \
-    lbind_set_va_list(_T_, LTTYPE_THREAD_LOCAL_VAR, _n_, ## __VA_ARGS__)
+    _lbind_set_va_list(_T_, LTTYPE_THREAD_LOCAL_VAR, _n_, ## __VA_ARGS__)
 
 extern int
 lbind_get_thread_local_vars(lua_State *T, int n, ...);
 
 #define lbind_append_lua_cpath(_L_, _p_) \
-    lbind_append_lua_package_field(_L_, "cpath", _p_);
+    _lbind_append_lua_package_field(_L_, "cpath", _p_);
 
 #define lbind_append_lua_path(_L_, _p_) \
-    lbind_append_lua_package_field(_L_, "path", _p_);
+    _lbind_append_lua_package_field(_L_, "path", _p_);
 
 #define lbind_reg_values(_T_, _n_, ...) \
-    lbind_set_va_list(_T_, LTTYPE_REGISTRY, _n_, ## __VA_ARGS__)
+    _lbind_set_va_list(_T_, LTTYPE_REGISTRY, _n_, ## __VA_ARGS__)
 
 extern void
-lbind_scan_stack_elem(lua_State *L);
+_lbind_scan_stack_elem(lua_State *L);
+
+#define lbind_scan_stack_elem(_L_) do {\
+  debug_log("stack: %p(%d)\n", _L_, lua_gettop(_L_));\
+  _lbind_scan_stack_elem(_L_);\
+} while (0)
 
 #endif

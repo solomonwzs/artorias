@@ -31,7 +31,7 @@ MAIN_SRC 	= $(filter-out $(LM_SRC), $(ALL_SRC))
 	@$(C) $(CFLAGS) $< -o $@
 
 all:obj pre
-	@$(C)  $(MAIN_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
+	@$(C) $(MAIN_PATH)/*.o $(LIB) -o $(BUILD_PATH)/main
 	@echo -e "\033[0;32m[OK]\033[0m main ok"
 
 obj:$(ALL_SRC:%.c=%.o)

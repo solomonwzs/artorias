@@ -36,6 +36,9 @@ luaopen_lm_base(lua_State *L) {
   lua_pushinteger(L, LAS_S_RESUME_IO);
   lua_setfield(L, -2, "RESUME_IO");
 
+  lua_pushinteger(L, LAS_S_RESUME_SLEEP);
+  lua_setfield(L, -2, "RESUME_SLEEP");
+
   lua_pushinteger(L, LAS_S_WAIT_FOR_INPUT);
   lua_setfield(L, -2, "WAIT_FOR_INPUT");
 
