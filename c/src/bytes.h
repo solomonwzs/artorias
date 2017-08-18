@@ -30,7 +30,7 @@ extern size_t
 bytes_read_from_fd(as_bytes_t *bs, int fd);
 
 extern size_t
-bytes_copy_to(as_bytes_t *bs, void *ptr);
+bytes_copy_to(as_bytes_t *bs, void *ptr, size_t offset, size_t n);
 
 extern void
 bytes_destroy(as_bytes_t *bs);

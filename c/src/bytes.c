@@ -6,6 +6,8 @@
 
 #define MAX_BLOCK_SIZE 4096
 
+#define to_block(_n_) (container_of(_n_, as_bytes_block_t, node))
+
 static inline void
 bytes_block_init(as_bytes_block_t *b, size_t size) {
   dlist_node_init(&b->node);
@@ -65,7 +67,11 @@ bytes_read_from_fd(as_bytes_t *bs, int fd) {
 
 
 extern size_t
-bytes_copy_to(as_bytes_t *bs, void *ptr) {
+bytes_copy_to(as_bytes_t *bs, void *ptr, size_t offset, size_t n) {
+  as_dlist_node_t *node = bs->dl.head;
+  while (offset != 0) {
+    as_bytes_block_t *block = to_block(node);
+  }
   return 0;
 }
 

@@ -173,7 +173,7 @@ lcf_socket_sread_all(lua_State *L) {
     lua_pushinteger(L, errno);
   } else {
     void *ptr = lua_newuserdata(L, size);
-    bytes_copy_to(&buf, ptr);
+    bytes_copy_to(&buf, ptr, 0, size);
 
     lua_pushinteger(L, size);
     lua_pushlstring(L, ptr, size);
