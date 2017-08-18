@@ -337,7 +337,8 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   ctx.io_pool.root = NULL;
   ctx.sleep_pool.root = NULL;
 
-  size_t fs[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1064};
+  size_t fs[] = {12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768,
+    1064, 2048, 4096};
   ctx.mem_pool = mpf_new(fs, sizeof(fs) / sizeof(fs[0]));
 
   ctx.conn_timeout = get_cnf_int_val(cnf, 1, "conn_timeout");

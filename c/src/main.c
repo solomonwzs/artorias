@@ -23,19 +23,19 @@ bytes_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
   as_mem_pool_fixed_t *p = mpf_new(s, sizeof(s) / sizeof(s[0]));
 
-  as_bytes_t buf;
-  bytes_init(&buf, p);
-  bytes_append(&buf, "1234\0", 4);
-  bytes_append(&buf, "abcde\0", 5);
-  bytes_reset_used(&buf, 3);
-  bytes_append(&buf, "ABCDEFGH\0", 8);
-  bytes_append(&buf, "ABCDEFGH\0", 8);
-  bytes_print(&buf);
-  bytes_reset_used(&buf, 11);
-  bytes_append(&buf, "1234\0", 4);
-  bytes_print(&buf);
+  // as_bytes_t buf;
+  // bytes_init(&buf, p);
+  // bytes_append(&buf, "1234\0", 4);
+  // bytes_append(&buf, "abcde\0", 5);
+  // bytes_reset_used(&buf, 3);
+  // bytes_append(&buf, "ABCDEFGH\0", 8);
+  // bytes_append(&buf, "ABCDEFGH\0", 8);
+  // bytes_print(&buf);
+  // bytes_reset_used(&buf, 11);
+  // bytes_append(&buf, "1234\0", 4);
+  // bytes_print(&buf);
+  // bytes_destroy(&buf);
 
-  bytes_destroy(&buf);
   mpf_destroy(p);
 }
 

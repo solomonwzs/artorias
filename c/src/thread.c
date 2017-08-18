@@ -5,6 +5,9 @@
 #define node_et_lt(a, b) (container_of(a, as_thread_t, p_idx)->et < \
                           container_of(b, as_thread_t, p_idx)->et)
 
+#define remove_res_from_epfd(_n_, _epfd_) \
+    asthread_res_ev_del(dl_node_to_res(_n_), _epfd_)
+
 
 static as_tid_t cur_tid = 0;
 
@@ -20,12 +23,11 @@ asthread_th_init(as_thread_t *th, lua_State *L) {
 
   th->tid = cur_tid;
   th->T = T;
-  // th->ct = time(NULL);
-  // th->ut = th->ct;
   th->status = AS_TSTATUS_READY;
   th->mode = AS_TMODE_SIMPLE;
-  th->res_head = NULL;
   th->pool = NULL;
+
+  dlist_init(&th->resl);
 
   return cur_tid;
 }
@@ -35,7 +37,7 @@ int
 asthread_th_free(as_thread_t *th, void *f_ptr) {
   lbind_unref_tid_lthread(th->T, th->tid);
 
-  as_dlist_node_t *dln = th->res_head;
+  as_dlist_node_t *dln = th->resl.head;
   while (dln != NULL) {
     as_thread_res_t *res = container_of(dln, as_thread_res_t, node);
     res->th = NULL;
@@ -83,8 +85,8 @@ asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
   res->status = AS_RSTATUS_IDLE;
   res->freef = freef;
   res->fdf = fdf;
-  res->node.prev = NULL;
-  res->node.next = NULL;
+
+  dlist_node_init(&res->node);
 
   return 0;
 }
@@ -93,14 +95,7 @@ asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
 int
 asthread_res_add_to_th(as_thread_res_t *res, as_thread_t *th) {
   res->th = th;
-
-  res->node.prev = NULL;
-  res->node.next = th->res_head;
-
-  if (th->res_head != NULL) {
-    th->res_head->prev = &res->node;
-  }
-  th->res_head = &res->node;
+  dlist_add_to_head(&th->resl, &res->node);
 
   return 0;
 }
@@ -108,19 +103,7 @@ asthread_res_add_to_th(as_thread_res_t *res, as_thread_t *th) {
 
 int
 asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th) {
-  if (res->node.prev == NULL) {
-    th->res_head = res->node.next;
-  }
-
-  as_dlist_node_t *prev = res->node.prev;
-  as_dlist_node_t *next = res->node.next;
-
-  if (prev != NULL) {
-    prev->next = next;
-  }
-  if (next != NULL) {
-    next->prev = prev;
-  }
+  dlist_del(&th->resl, &res->node);
 
   return 0;
 }
@@ -172,7 +155,7 @@ void
 asthread_print_res(as_thread_t *th) {
   debug_log("th: %p\n", th);
   debug_log("m: %p\n", th->mfd_res);
-  as_dlist_node_t *dn = th->res_head;
+  as_dlist_node_t *dn = th->resl.head;
   while (dn != NULL) {
     as_thread_res_t *res = dl_node_to_res(dn);
     debug_log("r: %p\n", res);
@@ -236,10 +219,5 @@ asthread_res_ev_del(as_thread_res_t *res, int epfd) {
 
 void
 asthread_remove_res_from_epfd(as_thread_t *th, int epfd) {
-  as_dlist_node_t *dn = th->res_head;
-  while (dn != NULL) {
-    as_thread_res_t *res = dl_node_to_res(dn);
-    asthread_res_ev_del(res, epfd);
-    dn = dn->next;
-  }
+  dlist_pos_travel(th->resl.head, remove_res_from_epfd, epfd);
 }

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <time.h>
+#include "dlist.h"
 #include "lua_adapter.h"
 #include "rb_tree.h"
 #include "utils.h"
@@ -24,11 +25,6 @@ struct as_thread_res_s;
 typedef int (*as_thread_res_free_f)(struct as_thread_res_s *res, void *f_ptr);
 typedef int (*as_thread_res_fd_f)(struct as_thread_res_s *res);
 
-typedef struct as_dlist_node_s {
-  struct as_dlist_node_s  *next;
-  struct as_dlist_node_s  *prev;
-} as_dlist_node_t;
-
 typedef struct as_thread_res_s {
   as_thread_res_free_f  freef;
   as_thread_res_fd_f    fdf;
@@ -41,15 +37,13 @@ typedef struct as_thread_res_s {
 typedef struct as_thread_s {
   as_tid_t          tid;
   lua_State         *T;
-  // time_t            ct;
-  // time_t            ut;
   time_t            et;
   as_rb_node_t      p_idx;
   as_rb_tree_t      *pool;
   uint8_t           status;
   uint8_t           mode;
   as_thread_res_t   *mfd_res;
-  as_dlist_node_t   *res_head;
+  as_dlist_t        resl;
 } as_thread_t;
 
 typedef struct {

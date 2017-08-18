@@ -44,10 +44,12 @@ lm_socket.ev_begin(2,
     target, lm_base.EV.EPOLLIN | lm_base.EV.EPOLLET
     )
 
+local nn = 0
 while true do
     typ, sock, rw = lm_socket.ev_wait(60)
     if typ == lm_base.S.RESUME_IO then
         if sock == proxy then
+            -- n, str, err = proxy:sread_all()
             n, str, err = read_all(proxy)
             if err ~= nil then
                 break
@@ -57,6 +59,7 @@ while true do
             n, err = target:ssend(to_target)
             to_target = ""
         else
+            -- n, str, err = target:sread_all()
             n, str, err = read_all(target)
             if err ~= nil then
                 break

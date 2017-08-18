@@ -56,9 +56,11 @@ lm_socket:obj
 		$(MAIN_PATH)/lua_bind.o \
 		$(MAIN_PATH)/lua_utils.o \
 		$(MAIN_PATH)/mem_pool.o \
+		$(MAIN_PATH)/dlist.o \
 		$(MAIN_PATH)/thread.o \
 		$(MAIN_PATH)/server.o \
 		$(MAIN_PATH)/rb_tree.o \
+		$(MAIN_PATH)/bytes.o \
 		$(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 pre:
