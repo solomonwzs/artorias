@@ -566,9 +566,15 @@ as_lm_socket_methods[] = {
 };
 
 
+void
+inc_lm_socket_metatable(lua_State *L) {
+  aluaL_newmetatable_with_methods(L, LM_SOCKET, as_lm_socket_methods);
+}
+
+
 int
 luaopen_lm_socket(lua_State *L) {
-  aluaL_newmetatable_with_methods(L, LM_SOCKET, as_lm_socket_methods);
+  inc_lm_socket_metatable(L);
   aluaL_newlib(L, "lm_socket", as_lm_socket_functions);
 
   return 1;

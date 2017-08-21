@@ -7,6 +7,7 @@
 #define LM_COUNTER  "as_lm_000"
 #define LM_TSOCKET  "as_lm_001"
 #define LM_SOCKET   "as_lm_002"
+#define LM_BYTES    "as_lm_003"
 
 #define LRK_WORKER_CTX              "as_lrk_000"
 #define LRK_FD_THREAD_TABLE         "as_lrk_001"

@@ -5,6 +5,10 @@
 void
 aluaL_newmetatable_with_methods(lua_State *L, const char *name,
                                 const luaL_Reg I[]) {
+  if (luaL_getmetatable(L, name) == 1) {
+    return;
+  }
+
   luaL_newmetatable(L, name);
   int i = 0;
   while (I[i].name != NULL && I[i].func != NULL) {

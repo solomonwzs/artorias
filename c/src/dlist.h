@@ -35,8 +35,9 @@ dlist_del(as_dlist_t *dlist, as_dlist_node_t *node);
 #define dlist_pos_travel(_dln_, _func_, ...) do {\
   as_dlist_node_t *__n = (_dln_);\
   while (__n != NULL) {\
+    as_dlist_node_t *__next = __n->next;\
     _func_(__n, ## __VA_ARGS__);\
-    __n = __n->next;\
+    __n = __next;\
   }\
 } while (0)
 
