@@ -4,10 +4,11 @@
 #include "lua_adapter.h"
 #include "utils.h"
 
-#define LM_COUNTER  "as_lm_000"
-#define LM_TSOCKET  "as_lm_001"
-#define LM_SOCKET   "as_lm_002"
-#define LM_BYTES    "as_lm_003"
+#define LM_COUNTER    "as_lm_000"
+#define LM_TSOCKET    "as_lm_001"
+#define LM_SOCKET     "as_lm_002"
+#define LM_BYTES      "as_lm_003"
+#define LM_BYTES_REF  "as_lm_004"
 
 #define LRK_WORKER_CTX              "as_lrk_000"
 #define LRK_FD_THREAD_TABLE         "as_lrk_001"
@@ -16,6 +17,7 @@
 #define LRK_TID_THREAD_TABLE        "as_lrk_004"
 #define LRK_SERVER_EPFD             "as_lrk_005"
 #define LRK_MEM_POOL                "as_lrk_006"
+#define LRK_BYTES_REF_TABLE         "as_lrk_007"
 
 #define LLK_RES_SOCK_TABLE  "as_llk_000"
 #define LLK_THREAD          "as_llk_001"

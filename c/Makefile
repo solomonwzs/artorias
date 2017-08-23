@@ -61,6 +61,7 @@ lm_socket:obj
 		$(MAIN_PATH)/server.o \
 		$(MAIN_PATH)/rb_tree.o \
 		$(MAIN_PATH)/bytes.o \
+		$(MAIN_PATH)/lm_bytes.o \
 		$(LUA_ADA_OBJ) -o $(BUILD_PATH)/$@.so
 
 pre:

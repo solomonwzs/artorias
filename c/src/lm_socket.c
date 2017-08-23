@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include "bytes.h"
 #include "lm_socket.h"
+#include "lm_bytes.h"
 #include "lua_utils.h"
 #include "lua_bind.h"
 #include "mem_pool.h"
@@ -96,7 +97,7 @@ lcf_socket_new(lua_State *L) {
 }
 
 
-// [-0, +1, e]
+// [-1, +1, e]
 static int
 lcf_socket_tostring(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
@@ -158,29 +159,22 @@ lcf_socket_sread_all(lua_State *L) {
     return 3;
   }
 
-  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
-                      "no worker ctx");
-  as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
+  lua_pushcfunction(L, lcf_bytes_read_from_fd);
+  lua_pushinteger(L, res->fdf(res));
+  lua_call(L, 1, 1);
 
-  int fd = res->fdf(res);
-  as_bytes_t buf;
-  bytes_init(&buf, ctx->mem_pool);
-  size_t size = bytes_read_from_fd(&buf, fd);
+  as_lm_bytes_ref_t *br = (as_lm_bytes_ref_t *)lua_touserdata(L, -1);
 
-  if (size == -1) {
+  if (br == NULL) {
     lua_pushinteger(L, 0);
     lua_pushnil(L);
     lua_pushinteger(L, errno);
   } else {
-    void *ptr = lua_newuserdata(L, size);
-    bytes_copy_to(&buf, ptr, 0, size);
-
-    lua_pushinteger(L, size);
-    lua_pushlstring(L, ptr, size);
+    lua_pushinteger(L, br->len);
+    lua_pushvalue(L, -2);
     lua_pushnil(L);
   }
 
-  bytes_destroy(&buf);
   return 3;
 }
 
@@ -562,6 +556,7 @@ as_lm_socket_methods[] = {
   {"get_res", lcf_socket_get_res},
   {"__tostring", lcf_socket_tostring},
   {"__gc", lcf_socket_close},
+
   {NULL, NULL},
 };
 

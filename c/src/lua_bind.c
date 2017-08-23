@@ -121,6 +121,18 @@ lbind_dofile(lua_State *L, const char *filename) {
 }
 
 
+// [-0, +1, e]
+static inline void
+newL_weak_metatable(lua_State *L, const char *name, const char *mode) {
+  luaL_newmetatable(L, name);
+  lua_pushvalue(L, -1);
+  lua_pushstring(L, "__mode");
+  lua_pushstring(L, mode);
+  lua_settable(L, -3);
+  lua_setmetatable(L, -2);
+}
+
+
 // [-0, +0, e]
 static int
 lcf_init_state(lua_State *L) {
@@ -130,12 +142,8 @@ lcf_init_state(lua_State *L) {
   luaL_newmetatable(L, LRK_LCODE_CHUNK_TABLE);
   luaL_newmetatable(L, LRK_TID_THREAD_TABLE);
 
-  luaL_newmetatable(L, LRK_THREAD_LOCAL_VAR_TABLE);
-  lua_pushvalue(L, -1);
-  lua_pushstring(L, "__mode");
-  lua_pushstring(L, "k");
-  lua_settable(L, -3);
-  lua_setmetatable(L, -2);
+  newL_weak_metatable(L, LRK_THREAD_LOCAL_VAR_TABLE, "k");
+  newL_weak_metatable(L, LRK_BYTES_REF_TABLE, "k");
 
   return 0;
 }
