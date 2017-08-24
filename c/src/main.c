@@ -21,7 +21,7 @@
 void
 bytes_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
-  as_mem_pool_fixed_t *p = mpf_new(s, sizeof(s) / sizeof(s[0]));
+  as_mem_pool_fixed_t *p = memp_new(s, sizeof(s) / sizeof(s[0]));
 
   // as_bytes_t buf;
   // bytes_init(&buf, p);
@@ -36,7 +36,7 @@ bytes_test() {
   // bytes_print(&buf);
   // bytes_destroy(&buf);
 
-  mpf_destroy(p);
+  memp_destroy(p);
 }
 
 
@@ -110,19 +110,19 @@ mem_pool_test() {
   debug_log("%zu\n", sizeof(as_mem_data_fixed_t));
 
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
-  as_mem_pool_fixed_t *p = mpf_new(s, sizeof(s) / sizeof(s[0]));
+  as_mem_pool_fixed_t *p = memp_new(s, sizeof(s) / sizeof(s[0]));
 
-  void *a = mpf_alloc(p, 18);
-  debug_log("%zu\n", mpf_data_size(a));
+  void *a = memp_alloc(p, 18);
+  debug_log("%zu\n", memp_data_size(a));
   debug_log("%p\n", a);
   debug_log("%d\n", p->used);
   debug_log("%d\n", p->empty);
-  void *b = mpf_alloc(p, 18);
+  void *b = memp_alloc(p, 18);
   debug_log("%p\n", b);
-  mpf_recycle(b);
-  mpf_recycle(a);
+  memp_recycle(b);
+  memp_recycle(a);
 
-  mpf_destroy(p);
+  memp_destroy(p);
 }
 
 
@@ -140,7 +140,7 @@ lua_pconf_test() {
 void
 luas_test() {
   size_t fixed_size[] = DEFAULT_FIXED_SIZE;
-  as_mem_pool_fixed_t *mem_pool = mpf_new(
+  as_mem_pool_fixed_t *mem_pool = memp_new(
       fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
   lua_State *L = lbind_new_state(mem_pool);
   lbind_init_state(L);
@@ -177,7 +177,7 @@ luas_test() {
   debug_log("%lld\n", lua_tointeger(T, -1));
 
   lua_close(L);
-  mpf_destroy(mem_pool);
+  memp_destroy(mem_pool);
 }
 
 

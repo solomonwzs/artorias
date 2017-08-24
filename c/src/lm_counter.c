@@ -9,7 +9,7 @@ counter_create(int start, as_mem_pool_fixed_t *mp) {
   if (mp == NULL) {
     return NULL;
   }
-  as_lm_counter_t *c = mpf_alloc(mp, sizeof(as_lm_counter_t));
+  as_lm_counter_t *c = memp_alloc(mp, sizeof(as_lm_counter_t));
   if (c == NULL) {
     return NULL;
   }
@@ -22,7 +22,7 @@ counter_create(int start, as_mem_pool_fixed_t *mp) {
 static void
 counter_destroy(as_lm_counter_t *c) {
   if (c != NULL) {
-    mpf_recycle(c);
+    memp_recycle(c);
   }
 }
 

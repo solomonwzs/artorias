@@ -74,7 +74,7 @@ lcf_socket_new(lua_State *L) {
   luaL_getmetatable(L, LM_SOCKET);
   lua_setmetatable(L, -2);
 
-  sock->res = (as_thread_res_t *)mpf_alloc(
+  sock->res = (as_thread_res_t *)memp_alloc(
       ctx->mem_pool, sizeof_thread_res(int));
   if (sock->res == NULL) {
     lua_pushstring(L, "alloc error");
@@ -83,7 +83,7 @@ lcf_socket_new(lua_State *L) {
 
   int fd = make_client_socket(host, port);
   if (fd < 0) {
-    mpf_recycle(sock->res);
+    memp_recycle(sock->res);
     lua_pushstring(L, "connect error");
     lua_error(L);
   }
@@ -300,14 +300,14 @@ k_socket_send(lua_State *L, int status, lua_KContext c) {
     if (type == LAS_S_RESUME_IO_TIMEOUT) {
       lua_pushinteger(L, ctx->idx);
       lua_pushinteger(L, ETIMEDOUT);
-      mpf_recycle(ctx);
+      memp_recycle(ctx);
       return 2;
     } else {
       res = (as_thread_res_t *)lua_touserdata(L, -2);
       lua_pop(L, 3);
     }
   } else {
-    mpf_recycle(ctx);
+    memp_recycle(ctx);
     lua_pushstring(L, "send error");
     lua_error(L);
   }
@@ -336,7 +336,7 @@ k_socket_send(lua_State *L, int status, lua_KContext c) {
     }
   }
 
-  mpf_recycle(ctx);
+  memp_recycle(ctx);
   return 2;
 }
 
@@ -370,7 +370,7 @@ lcf_socket_send(lua_State *L) {
                       "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
-  _send_ctx_t *c = mpf_alloc(ctx->mem_pool, sizeof(_send_ctx_t));
+  _send_ctx_t *c = memp_alloc(ctx->mem_pool, sizeof(_send_ctx_t));
   c->res = res;
   c->buf = buf;
   c->len = len;
@@ -408,7 +408,7 @@ lcf_socket_close(lua_State *L) {
     sock->res->freef(sock->res, NULL);
   }
 
-  mpf_recycle(sock->res);
+  memp_recycle(sock->res);
   sock->res = NULL;
 
   return 0;

@@ -33,17 +33,17 @@ bytes_read_from_fd(as_bytes_t *bs, int fd) {
   size_t n = 0;
 
   do {
-    as_bytes_block_t *block = mpf_alloc(bs->mp, sizeof_bytes_block(rsize));
+    as_bytes_block_t *block = memp_alloc(bs->mp, sizeof_bytes_block(rsize));
     bytes_block_init(block, rsize);
     void *ptr = block->d;
 
     nbyte = read(fd, ptr, rsize);
     if (nbyte < 0) {
       if (errno == EAGAIN) {
-        mpf_recycle(block);
+        memp_recycle(block);
         break;
       } else {
-        mpf_recycle(block);
+        memp_recycle(block);
         return -1;
       }
     } else {
@@ -115,6 +115,6 @@ bytes_destroy(as_bytes_t *bs) {
   bs->used = 0;
   bs->cnt = 0;
 
-  dlist_pos_travel(bs->dl.head, mpf_recycle);
+  dlist_pos_travel(bs->dl.head, memp_recycle);
   dlist_init(&bs->dl);
 }

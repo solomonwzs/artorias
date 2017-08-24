@@ -9,7 +9,7 @@
 
 
 as_mem_pool_fixed_t *
-mpf_new(size_t fsize[], unsigned n) {
+memp_new(size_t fsize[], unsigned n) {
   if (n < 1) {
     return NULL;
   }
@@ -55,7 +55,7 @@ mpf_new(size_t fsize[], unsigned n) {
 #define field_size_eq(f, idx, s) ((f)[idx].size == (s))
 #define field_size_lt(f, idx, s) ((f)[idx].size < (s))
 void *
-mpf_alloc(as_mem_pool_fixed_t *p, size_t size) {
+memp_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
   }
@@ -91,13 +91,13 @@ mpf_alloc(as_mem_pool_fixed_t *p, size_t size) {
 
 
 void *
-mpf_realloc(void *dd, size_t size) {
+memp_realloc(void *dd, size_t size) {
   if (dd == NULL) {
     return NULL;
   }
 
   if (size == 0) {
-    mpf_recycle(dd);
+    memp_recycle(dd);
     return NULL;
   }
 
@@ -107,10 +107,10 @@ mpf_realloc(void *dd, size_t size) {
 
   if (f->size == -1) {
     if (size <= p->f[p->n - 1].size) {
-      void *ndd = mpf_alloc(p, size);
+      void *ndd = memp_alloc(p, size);
       if (ndd != NULL) {
         memcpy(ndd, dd, size);
-        mpf_recycle(dd);
+        memp_recycle(dd);
         return ndd;
       }
     } else {
@@ -121,10 +121,10 @@ mpf_realloc(void *dd, size_t size) {
     }
   } else {
     if (size > f->size) {
-      void *ndd = mpf_alloc(p, size);
+      void *ndd = memp_alloc(p, size);
       if (ndd != NULL) {
         memcpy(ndd, dd, f->size);
-        mpf_recycle(dd);
+        memp_recycle(dd);
         return ndd;
       }
     } else {
@@ -136,7 +136,7 @@ mpf_realloc(void *dd, size_t size) {
 
 
 void
-mpf_recycle(void *dd) {
+memp_recycle(void *dd) {
   if (dd == NULL) {
     return;
   }
@@ -157,7 +157,7 @@ mpf_recycle(void *dd) {
 
 
 void
-mpf_destroy(as_mem_pool_fixed_t *p) {
+memp_destroy(as_mem_pool_fixed_t *p) {
   if (p == NULL) {
     return;
   }

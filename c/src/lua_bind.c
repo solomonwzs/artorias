@@ -165,12 +165,12 @@ lbind_init_state(lua_State *L) {
 static void *
 lalloc(void *ud, void *ptr, size_t osize, size_t nsize) {
   if (nsize == 0) {
-    mpf_recycle(ptr);
+    memp_recycle(ptr);
     return NULL;
   } else {
     as_mem_pool_fixed_t *mp = (as_mem_pool_fixed_t *)ud;
     if (ptr != NULL) {
-      return mpf_realloc(ptr, nsize);
+      return memp_realloc(ptr, nsize);
     } else {
       size_t size;
       if (osize == LUA_TTABLE) {
@@ -178,7 +178,7 @@ lalloc(void *ud, void *ptr, size_t osize, size_t nsize) {
       } else {
         size = nsize;
       }
-      return mpf_alloc(mp, size);
+      return memp_alloc(mp, size);
     }
   }
   return NULL;

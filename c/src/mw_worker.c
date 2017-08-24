@@ -151,14 +151,14 @@ handle_accept(as_mw_worker_ctx_t *ctx, int single_mode) {
     set_non_block(fd);
     // set_socket_send_buffer_size(fd, 2048);
 
-    as_thread_t *th = mpf_alloc(ctx->mem_pool, sizeof(as_thread_t));
+    as_thread_t *th = memp_alloc(ctx->mem_pool, sizeof(as_thread_t));
     as_tid_t tid = asthread_th_init(th, ctx->L);
     if (tid == -1) {
-      mpf_recycle(th);
+      memp_recycle(th);
       continue;
     }
 
-    as_thread_res_t *res = mpf_alloc(ctx->mem_pool, sizeof_thread_res(int));
+    as_thread_res_t *res = memp_alloc(ctx->mem_pool, sizeof_thread_res(int));
     *(int *)res->d = fd;
     asthread_res_init(res, res_free_f, res_fd_f);
     asthread_res_add_to_th(res, th);
@@ -234,8 +234,8 @@ process_stop_threads(as_mw_worker_ctx_t *ctx) {
     as_thread_t *th = ctx->stop_threads->ths[i];
 
     asthread_th_free(th, NULL);
-    mpf_recycle(th->mfd_res);
-    mpf_recycle(th);
+    memp_recycle(th->mfd_res);
+    memp_recycle(th);
   }
 }
 
@@ -313,8 +313,8 @@ r_thread_from_pool(as_rb_node_t *n) {
   as_thread_t *th = rb_node_to_thread(n);
 
   asthread_th_free(th, NULL);
-  mpf_recycle(th->mfd_res);
-  mpf_recycle(th);
+  memp_recycle(th->mfd_res);
+  memp_recycle(th);
 }
 
 
@@ -339,12 +339,12 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
 
   size_t fs[] = {12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768,
     1064, 2048, 4096};
-  ctx.mem_pool = mpf_new(fs, sizeof(fs) / sizeof(fs[0]));
+  ctx.mem_pool = memp_new(fs, sizeof(fs) / sizeof(fs[0]));
 
   ctx.conn_timeout = get_cnf_int_val(cnf, 1, "conn_timeout");
   ctx.lfile = get_cnf_str_val(cnf, 1, "worker");
 
-  ctx.cfd_res = mpf_alloc(ctx.mem_pool, sizeof_thread_res(int));
+  ctx.cfd_res = memp_alloc(ctx.mem_pool, sizeof_thread_res(int));
   ctx.cfd_res->freef = NULL;
   ctx.cfd_res->th = NULL;
   *((int *)ctx.cfd_res->d) = cfd;
@@ -363,7 +363,7 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   lbind_reg_values(ctx.L, 1, LRK_WORKER_CTX, LTYPE_PTR, &ctx);
   lbind_ref_lcode_chunk(ctx.L, ctx.lfile);
 
-  ctx.stop_threads = mpf_alloc(ctx.mem_pool, sizeof_thread_array(_MAX_EVENTS));
+  ctx.stop_threads = memp_alloc(ctx.mem_pool, sizeof_thread_array(_MAX_EVENTS));
   while (keep_running) {
     ctx.stop_threads->n = 0;
 
@@ -377,10 +377,10 @@ process(int cfd, as_lua_pconf_t *cnf, int single_mode) {
   process_stop_threads(&ctx);
   recycle_threads_from_pool(&ctx);
 
-  mpf_recycle(ctx.stop_threads);
-  mpf_recycle(ctx.cfd_res);
+  memp_recycle(ctx.stop_threads);
+  memp_recycle(ctx.cfd_res);
   lua_close(ctx.L);
-  mpf_destroy(ctx.mem_pool);
+  memp_destroy(ctx.mem_pool);
 }
 
 

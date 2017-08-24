@@ -31,22 +31,22 @@ typedef struct as_mem_pool_fixed_s {
 #define DEFAULT_FIXED_SIZE \
 {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512}
 
-#define mpf_data_size(_d_) \
+#define memp_data_size(_d_) \
     ((container_of((_d_), as_mem_data_fixed_t, d))->p.field->size)
 
 extern as_mem_pool_fixed_t *
-mpf_new(size_t fsize[], unsigned n);
+memp_new(size_t fsize[], unsigned n);
 
 extern void
-mpf_destroy(as_mem_pool_fixed_t *p);
+memp_destroy(as_mem_pool_fixed_t *p);
 
 extern void *
-mpf_alloc(as_mem_pool_fixed_t *p, size_t size);
+memp_alloc(as_mem_pool_fixed_t *p, size_t size);
 
 extern void *
-mpf_realloc(void *dd, size_t size);
+memp_realloc(void *dd, size_t size);
 
 extern void
-mpf_recycle(void *dd);
+memp_recycle(void *dd);
 
 #endif
