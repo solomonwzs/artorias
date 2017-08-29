@@ -53,9 +53,9 @@
 })
 
 #define binary_search(_arr_, _len_, _key_, _eq_, _lt_) ({\
-  typeof(_len_) __left = 0;\
-  typeof(_len_) __right = (_len_) - 1;\
-  typeof(_len_) __mid;\
+  int __left = 0;\
+  int __right = (_len_) - 1;\
+  int __mid;\
   while (__left < __right) {\
     __mid = (__left + __right) / 2;\
     if (_eq_((_arr_), __mid, (_key_))) {\
