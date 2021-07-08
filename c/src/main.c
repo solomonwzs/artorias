@@ -1,25 +1,24 @@
-#include "server.h"
-#include "rb_tree.h"
-#include "mem_buddy.h"
-#include "mem_slot.h"
-#include "channel.h"
-#include "mem_pool.h"
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include "bytes.h"
-#include "select_server.h"
-#include "mw_server.h"
-#include "mw_worker.h"
-#include "lua_utils.h"
+#include "channel.h"
+#include "epoll_server.h"
 #include "lua_bind.h"
 #include "lua_pconf.h"
-#include "epoll_server.h"
-#include <unistd.h>
-#include <sys/socket.h>
+#include "lua_utils.h"
+#include "mem_buddy.h"
+#include "mem_pool.h"
+#include "mem_slot.h"
+#include "mw_server.h"
+#include "mw_worker.h"
+#include "rb_tree.h"
+#include "select_server.h"
+#include "server.h"
 
 #define DEFAULT_CONF_FILE "conf/example.lua"
 
-
-void
-bytes_test() {
+void bytes_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
   as_mem_pool_fixed_t *p = memp_new(s, sizeof(s) / sizeof(s[0]));
 
@@ -39,15 +38,11 @@ bytes_test() {
   memp_destroy(p);
 }
 
-
-void
-mw_server_test(as_lua_pconf_t *cnf) {
+void mw_server_test(as_lua_pconf_t *cnf) {
   master_workers_server(cnf);
 }
 
-
-void
-client_test() {
+void client_test() {
   char bytes[1024];
   int sock = make_client_socket("127.0.0.1", 6379);
   int n = write(sock, "*2\r\n$3\r\nGET\r\n$1\r\na\r\n", 20);
@@ -58,9 +53,7 @@ client_test() {
   close(sock);
 }
 
-
-void
-server_test(as_lua_pconf_t *cnf) {
+void server_test(as_lua_pconf_t *cnf) {
   as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 1, "tcp_port");
   int sock;
   sock = make_server_socket(ret.val.i);
@@ -78,9 +71,7 @@ server_test(as_lua_pconf_t *cnf) {
   close(sock);
 }
 
-
-void
-mem_buddy_test() {
+void mem_buddy_test() {
   as_mem_buddy_t *b = buddy_new(4);
   unsigned x = buddy_alloc(b, 4);
   buddy_alloc(b, 8);
@@ -90,9 +81,7 @@ mem_buddy_test() {
   buddy_destroy(b);
 }
 
-
-void
-mem_slot_test() {
+void mem_slot_test() {
   as_mem_slot_t *s = slot_new(4);
   slot_alloc(s, 4);
   int a = slot_alloc(s, 5);
@@ -104,9 +93,7 @@ mem_slot_test() {
   slot_destroy(s);
 }
 
-
-void
-mem_pool_test() {
+void mem_pool_test() {
   debug_log("%zu\n", sizeof(as_mem_data_fixed_t));
 
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256};
@@ -125,9 +112,7 @@ mem_pool_test() {
   memp_destroy(p);
 }
 
-
-void
-lua_pconf_test() {
+void lua_pconf_test() {
   as_lua_pconf_t *cnf = lpconf_new("conf/example.lua");
   as_cnf_return_t ret = lpconf_get_pconf_value(cnf, 2, "server_no", "2");
   debug_log("%d %d\n", ret.type, ret.val.i);
@@ -136,12 +121,10 @@ lua_pconf_test() {
   lpconf_destroy(cnf);
 }
 
-
-void
-luas_test() {
+void luas_test() {
   size_t fixed_size[] = DEFAULT_FIXED_SIZE;
-  as_mem_pool_fixed_t *mem_pool = memp_new(
-      fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
+  as_mem_pool_fixed_t *mem_pool =
+      memp_new(fixed_size, sizeof(fixed_size) / sizeof(fixed_size[0]));
   lua_State *L = lbind_new_state(mem_pool);
   lbind_init_state(L);
   lbind_append_lua_cpath(L, "./bin/?.so");
@@ -180,9 +163,7 @@ luas_test() {
   memp_destroy(mem_pool);
 }
 
-
-int
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   as_lua_pconf_t *cnf = NULL;
   if (argc >= 2) {
     cnf = lpconf_new(argv[1]);

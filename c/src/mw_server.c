@@ -1,13 +1,13 @@
-#include "server.h"
-#include "mem_pool.h"
+#include "mw_server.h"
+
 #include <sys/epoll.h>
 #include <sys/socket.h>
-#include "mw_server.h"
+
+#include "mem_pool.h"
 #include "mw_worker.h"
+#include "server.h"
 
-
-static void
-master_process(int socket, int *child_sockets, int n) {
+static void master_process(int socket, int *child_sockets, int n) {
   int epfd = epoll_create(1);
   struct epoll_event listen_event;
 
@@ -24,8 +24,7 @@ master_process(int socket, int *child_sockets, int n) {
   while (1) {
     active_cnt = epoll_wait(epfd, events, 100, -1);
     for (i = 0; i < active_cnt; ++i) {
-      if (events[i].events & EPOLLERR ||
-          events[i].events & EPOLLHUP ||
+      if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP ||
           !(events[i].events & EPOLLIN)) {
         debug_perror("epoll_wait");
         close(events[i].data.fd);
@@ -49,9 +48,7 @@ master_process(int socket, int *child_sockets, int n) {
   }
 }
 
-
-void
-master_workers_server(as_lua_pconf_t *cnf) {
+void master_workers_server(as_lua_pconf_t *cnf) {
   int child;
   int sockets[2];
   int *child_sockets;

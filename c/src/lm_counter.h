@@ -6,8 +6,8 @@ typedef struct {
 } as_lm_counter_t;
 
 typedef struct {
-  as_lm_counter_t  *c;
-  char          *name;
+  as_lm_counter_t *c;
+  char *name;
 } as_lm_counter_ud_t;
 
 #endif

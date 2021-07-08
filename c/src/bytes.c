@@ -1,23 +1,22 @@
-#include <unistd.h>
+#include "bytes.h"
+
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
+
 #include "utils.h"
-#include "bytes.h"
 
 #define MAX_BLOCK_SIZE 1024
 
 #define to_block(_n_) (container_of(_n_, as_bytes_block_t, node))
 
-static inline void
-bytes_block_init(as_bytes_block_t *b, size_t size) {
+static inline void bytes_block_init(as_bytes_block_t *b, size_t size) {
   dlist_node_init(&b->node);
   b->size = size;
   b->used = 0;
 }
 
-
-void
-bytes_init(as_bytes_t *bs, as_mem_pool_fixed_t *mp) {
+void bytes_init(as_bytes_t *bs, as_mem_pool_fixed_t *mp) {
   bs->size = 0;
   bs->used = 0;
   bs->cnt = 0;
@@ -25,9 +24,7 @@ bytes_init(as_bytes_t *bs, as_mem_pool_fixed_t *mp) {
   dlist_init(&bs->dl);
 }
 
-
-size_t
-bytes_read_from_fd(as_bytes_t *bs, int fd) {
+size_t bytes_read_from_fd(as_bytes_t *bs, int fd) {
   size_t nbyte;
   size_t rsize = 64;
   size_t n = 0;
@@ -65,9 +62,8 @@ bytes_read_from_fd(as_bytes_t *bs, int fd) {
   return n;
 }
 
-
-static inline int
-bytes_offset(as_bytes_t *bs, size_t offset, int *out_n, size_t *out_m) {
+static inline int bytes_offset(as_bytes_t *bs, size_t offset, int *out_n,
+                               size_t *out_m) {
   if (offset >= bs->used) {
     return 1;
   }
@@ -92,9 +88,7 @@ bytes_offset(as_bytes_t *bs, size_t offset, int *out_n, size_t *out_m) {
   return 1;
 }
 
-
-size_t
-bytes_copy_to(as_bytes_t *bs, void *ptr, size_t offset, size_t n) {
+size_t bytes_copy_to(as_bytes_t *bs, void *ptr, size_t offset, size_t n) {
   as_dlist_node_t *node = bs->dl.head;
   while (offset != 0) {
     as_bytes_block_t *block = to_block(node);
@@ -102,15 +96,11 @@ bytes_copy_to(as_bytes_t *bs, void *ptr, size_t offset, size_t n) {
   return 0;
 }
 
-
-size_t
-bytes_length(as_bytes_t *bs) {
+size_t bytes_length(as_bytes_t *bs) {
   return bs->used;
 }
 
-
-void
-bytes_destroy(as_bytes_t *bs) {
+void bytes_destroy(as_bytes_t *bs) {
   bs->size = 0;
   bs->used = 0;
   bs->cnt = 0;

@@ -1,23 +1,21 @@
-#include "server.h"
+#include "epoll_server.h"
+
+#include <signal.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+
 #include "bytes.h"
 #include "lua_bind.h"
 #include "lua_output.h"
 #include "lua_utils.h"
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include "epoll_server.h"
-#include <signal.h>
-
+#include "server.h"
 
 static volatile int keep_running = 1;
-static void
-init_handler(int dummy) {
+static void init_handler(int dummy) {
   keep_running = 0;
 }
 
-
-void
-epoll_server(int fd) {
+void epoll_server(int fd) {
   signal(SIGINT, init_handler);
 
   int epfd = epoll_create(1);
@@ -62,7 +60,6 @@ epoll_server(int fd) {
           epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
         }
       } else if (events[i].events & EPOLLIN) {
-
         epoll_ctl(epfd, EPOLL_CTL_DEL, infd, NULL);
 
         char buf[1024];
@@ -123,7 +120,7 @@ epoll_server(int fd) {
           event.events = EPOLLIN | EPOLLET;
           epoll_ctl(epfd, EPOLL_CTL_MOD, infd, &event);
         }
-      } else{
+      } else {
         debug_log("%d\n", events[i].events);
       }
     }

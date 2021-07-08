@@ -1,25 +1,22 @@
-#include <stdio.h>
-#include "mem_pool.h"
 #include "rb_tree.h"
+
+#include <stdio.h>
+
+#include "mem_pool.h"
 #include "utils.h"
 
 #define to_node(_p_) (container_of(_p_, node, r))
 #define node_lt(_a_, _b_) \
-    (container_of(_a_, node, r)->i < container_of(_b_, node, r)->i)
-#define node_i_lt(_i_, _a_) \
-    ((_i_) < container_of(_a_, node, r)->i)
-#define node_i_eq(_i_, _a_) \
-    ((_i_) == container_of(_a_, node, r)->i)
-
+  (container_of(_a_, node, r)->i < container_of(_b_, node, r)->i)
+#define node_i_lt(_i_, _a_) ((_i_) < container_of(_a_, node, r)->i)
+#define node_i_eq(_i_, _a_) ((_i_) == container_of(_a_, node, r)->i)
 
 typedef struct {
-  as_rb_node_t  r;
-  int           i;
+  as_rb_node_t r;
+  int i;
 } node;
 
-
-static void
-rb_tree_print(node *n) {
+static void rb_tree_print(node *n) {
   printf("{");
   if (n != NULL) {
     if (n->r.left != NULL) {
@@ -31,8 +28,7 @@ rb_tree_print(node *n) {
     } else {
       printf(" %d ", n->i);
     }
-    printf("\033[0;37m%lx %lx \033[0m",
-           (unsigned long)(&n->r) & 0xfff,
+    printf("\033[0;37m%lx %lx \033[0m", (unsigned long)(&n->r) & 0xfff,
            (unsigned long)(n->r.parent) & 0xfff);
 
     if (n->r.right != NULL) {
@@ -43,10 +39,9 @@ rb_tree_print(node *n) {
 }
 
 #define print_node(_x_, _i_, _j_) \
-    printf("(%d, %d, %d)", to_node(_x_)->i, (_i_), (_j_))
+  printf("(%d, %d, %d)", to_node(_x_)->i, (_i_), (_j_))
 
-void
-rb_tree_test() {
+void rb_tree_test() {
   size_t s[] = {8, 12, 16, 24, 32, 48, 64, 128, 256, 384, 512, 768, 1024};
   as_mem_pool_fixed_t *pool = memp_new(s, sizeof(s) / sizeof(s[0]));
 

@@ -2,21 +2,20 @@
 // #include <jemalloc/jemalloc.h>
 #include <stdio.h>
 #include <string.h>
-#include "utils.h"
+
 #include "mem_buddy.h"
+#include "utils.h"
 
-#define PARENT(_x_) (((_x_) + 1) / 2 - 1)
-#define LEFT_CHILD(_x_) ((_x_) * 2 + 1)
-#define RIGHT_CHILD(_x_) ((_x_) * 2 + 2)
+#define PARENT(_x_)      (((_x_) + 1) / 2 - 1)
+#define LEFT_CHILD(_x_)  ((_x_)*2 + 1)
+#define RIGHT_CHILD(_x_) ((_x_)*2 + 2)
 
-#define MAX(_x_, _y_) ((_x_) > (_y_) ? (_x_) : (_y_))
-#define IS_POWER_OF_2(_x_) (!((_x_)&((_x_)-1)))
-#define NODE_SIZE(_x_) ((_x_) == 0 ? 0 : 1 << ((_x_) - 1))
-#define BUDDY_SIZE(_x_) (1 << ((_x_)->logn))
+#define MAX(_x_, _y_)      ((_x_) > (_y_) ? (_x_) : (_y_))
+#define IS_POWER_OF_2(_x_) (!((_x_) & ((_x_)-1)))
+#define NODE_SIZE(_x_)     ((_x_) == 0 ? 0 : 1 << ((_x_)-1))
+#define BUDDY_SIZE(_x_)    (1 << ((_x_)->logn))
 
-
-static inline unsigned
-fix_size(unsigned size) {
+static inline unsigned fix_size(unsigned size) {
   size |= size >> 1;
   size |= size >> 2;
   size |= size >> 4;
@@ -25,9 +24,7 @@ fix_size(unsigned size) {
   return size + 1;
 }
 
-
-as_mem_buddy_t *
-buddy_new(uint8_t logn) {
+as_mem_buddy_t *buddy_new(uint8_t logn) {
   as_mem_buddy_t *b;
   unsigned node_logn;
   unsigned i;
@@ -49,9 +46,7 @@ buddy_new(uint8_t logn) {
   return b;
 }
 
-
-int
-buddy_alloc(as_mem_buddy_t *b, unsigned size) {
+int buddy_alloc(as_mem_buddy_t *b, unsigned size) {
   if (b == NULL) {
     return -1;
   }
@@ -77,15 +72,13 @@ buddy_alloc(as_mem_buddy_t *b, unsigned size) {
   unsigned offset = (index + 1) * node_size - BUDDY_SIZE(b);
   while (index) {
     index = PARENT(index);
-    b->longest[index] = MAX(b->longest[LEFT_CHILD(index)],
-                            b->longest[RIGHT_CHILD(index)]);
+    b->longest[index] =
+        MAX(b->longest[LEFT_CHILD(index)], b->longest[RIGHT_CHILD(index)]);
   }
   return offset;
 }
 
-
-void
-buddy_free(as_mem_buddy_t *b, unsigned offset) {
+void buddy_free(as_mem_buddy_t *b, unsigned offset) {
   if (b == NULL || offset >= BUDDY_SIZE(b)) {
     return;
   }
@@ -116,8 +109,7 @@ buddy_free(as_mem_buddy_t *b, unsigned offset) {
   }
 }
 
-void
-buddy_print(as_mem_buddy_t *b) {
+void buddy_print(as_mem_buddy_t *b) {
   if (b == NULL || BUDDY_SIZE(b) > 64) {
     return;
   }
@@ -138,7 +130,7 @@ buddy_print(as_mem_buddy_t *b) {
     if (b->longest[i] == 0) {
       if (i >= BUDDY_SIZE(b) - 1) {
         m[i - BUDDY_SIZE(b) + 1] = '*';
-      } else if (b->longest[LEFT_CHILD(i)] && b->longest[RIGHT_CHILD(i)]){
+      } else if (b->longest[LEFT_CHILD(i)] && b->longest[RIGHT_CHILD(i)]) {
         offset = (i + 1) * node_size - BUDDY_SIZE(b);
         for (j = offset; j < offset + node_size; ++j) {
           m[j] = '*';
@@ -150,8 +142,6 @@ buddy_print(as_mem_buddy_t *b) {
   puts(m);
 }
 
-
-void
-buddy_destroy(as_mem_buddy_t *b) {
+void buddy_destroy(as_mem_buddy_t *b) {
   as_free(b);
 }

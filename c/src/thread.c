@@ -1,19 +1,19 @@
-#include <sys/epoll.h>
-#include "lua_bind.h"
 #include "thread.h"
 
-#define node_et_lt(a, b) (container_of(a, as_thread_t, p_idx)->et < \
-                          container_of(b, as_thread_t, p_idx)->et)
+#include <sys/epoll.h>
+
+#include "lua_bind.h"
+
+#define node_et_lt(a, b)                     \
+  (container_of(a, as_thread_t, p_idx)->et < \
+   container_of(b, as_thread_t, p_idx)->et)
 
 #define remove_res_from_epfd(_n_, _epfd_) \
-    asthread_res_ev_del(dl_node_to_res(_n_), _epfd_)
-
+  asthread_res_ev_del(dl_node_to_res(_n_), _epfd_)
 
 static as_tid_t cur_tid = 0;
 
-
-int
-asthread_th_init(as_thread_t *th, lua_State *L) {
+int asthread_th_init(as_thread_t *th, lua_State *L) {
   cur_tid += 1;
   lua_State *T = lbind_ref_tid_lthread(L, cur_tid);
   if (T == NULL) {
@@ -32,9 +32,7 @@ asthread_th_init(as_thread_t *th, lua_State *L) {
   return cur_tid;
 }
 
-
-int
-asthread_th_free(as_thread_t *th, void *f_ptr) {
+int asthread_th_free(as_thread_t *th, void *f_ptr) {
   lbind_unref_tid_lthread(th->T, th->tid);
 
   as_dlist_node_t *dln = th->resl.head;
@@ -52,9 +50,7 @@ asthread_th_free(as_thread_t *th, void *f_ptr) {
   return 0;
 }
 
-
-int
-asthread_th_add_to_pool(as_thread_t *th, as_rb_tree_t *pool) {
+int asthread_th_add_to_pool(as_thread_t *th, as_rb_tree_t *pool) {
   if (pool == NULL || th->status == AS_TSTATUS_STOP) {
     return -1;
   }
@@ -65,9 +61,7 @@ asthread_th_add_to_pool(as_thread_t *th, as_rb_tree_t *pool) {
   return 0;
 }
 
-
-int
-asthread_th_del_from_pool(as_thread_t *th) {
+int asthread_th_del_from_pool(as_thread_t *th) {
   as_rb_tree_t *pool = th->pool;
   if (pool == NULL) {
     return -1;
@@ -78,10 +72,8 @@ asthread_th_del_from_pool(as_thread_t *th) {
   return 0;
 }
 
-
-int
-asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
-                  as_thread_res_fd_f fdf) {
+int asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
+                      as_thread_res_fd_f fdf) {
   res->status = AS_RSTATUS_IDLE;
   res->freef = freef;
   res->fdf = fdf;
@@ -91,34 +83,26 @@ asthread_res_init(as_thread_res_t *res, as_thread_res_free_f freef,
   return 0;
 }
 
-
-int
-asthread_res_add_to_th(as_thread_res_t *res, as_thread_t *th) {
+int asthread_res_add_to_th(as_thread_res_t *res, as_thread_t *th) {
   res->th = th;
   dlist_add_to_head(&th->resl, &res->node);
 
   return 0;
 }
 
-
-int
-asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th) {
+int asthread_res_del_from_th(as_thread_res_t *res, as_thread_t *th) {
   dlist_del(&th->resl, &res->node);
 
   return 0;
 }
 
-
-void
-asthread_th_add_to_array(as_thread_t *th, as_thread_array_t *array) {
+void asthread_th_add_to_array(as_thread_t *th, as_thread_array_t *array) {
   asthread_th_del_from_pool(th);
   *(array->ths + array->n) = th;
   array->n += 1;
 }
 
-
-as_rb_node_t *
-asthread_remove_timeout_threads(as_rb_tree_t *pool) {
+as_rb_node_t *asthread_remove_timeout_threads(as_rb_tree_t *pool) {
   if (pool->root == NULL) {
     return NULL;
   }
@@ -150,9 +134,7 @@ asthread_remove_timeout_threads(as_rb_tree_t *pool) {
   return ret;
 }
 
-
-void
-asthread_print_res(as_thread_t *th) {
+void asthread_print_res(as_thread_t *th) {
   debug_log("th: %p\n", th);
   debug_log("m: %p\n", th->mfd_res);
   as_dlist_node_t *dn = th->resl.head;
@@ -164,9 +146,7 @@ asthread_print_res(as_thread_t *th) {
   debug_log("\n");
 }
 
-
-int
-asthread_res_ev_init(as_thread_res_t *res, int epfd) {
+int asthread_res_ev_init(as_thread_res_t *res, int epfd) {
   struct epoll_event event;
   event.data.ptr = res;
   event.events = 0;
@@ -180,9 +160,7 @@ asthread_res_ev_init(as_thread_res_t *res, int epfd) {
   return ret;
 }
 
-
-int
-asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
+int asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
   struct epoll_event event;
   event.data.ptr = res;
   event.events = events;
@@ -196,9 +174,7 @@ asthread_res_ev_add(as_thread_res_t *res, int epfd, uint32_t events) {
   return ret;
 }
 
-
-int
-asthread_res_ev_del(as_thread_res_t *res, int epfd) {
+int asthread_res_ev_del(as_thread_res_t *res, int epfd) {
   if (res->status == AS_RSTATUS_EV) {
     return 0;
   }
@@ -216,8 +192,6 @@ asthread_res_ev_del(as_thread_res_t *res, int epfd) {
   return ret;
 }
 
-
-void
-asthread_remove_res_from_epfd(as_thread_t *th, int epfd) {
+void asthread_remove_res_from_epfd(as_thread_t *th, int epfd) {
   dlist_pos_travel(th->resl.head, remove_res_from_epfd, epfd);
 }

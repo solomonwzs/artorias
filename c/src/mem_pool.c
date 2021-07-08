@@ -1,23 +1,19 @@
 #include "mem_pool.h"
 
 #define malloc_data_fixed(_x_) \
-    (as_mem_data_fixed_t *)as_malloc(\
-      offsetof(as_mem_data_fixed_t, d) + (_x_))
-#define realloc_data_fixed(_ptr_, _x_) \
-    (as_mem_data_fixed_t *)as_realloc(\
-      _ptr_, offsetof(as_mem_data_fixed_t, d) + (_x_))
+  (as_mem_data_fixed_t *)as_malloc(offsetof(as_mem_data_fixed_t, d) + (_x_))
+#define realloc_data_fixed(_ptr_, _x_)     \
+  (as_mem_data_fixed_t *)as_realloc(_ptr_, \
+                                    offsetof(as_mem_data_fixed_t, d) + (_x_))
 
-
-as_mem_pool_fixed_t *
-memp_new(size_t fsize[], unsigned n) {
+as_mem_pool_fixed_t *memp_new(size_t fsize[], unsigned n) {
   if (n < 1) {
     return NULL;
   }
 
   as_mem_pool_fixed_t *p;
-  p = (as_mem_pool_fixed_t *)as_malloc(
-      sizeof(as_mem_pool_fixed_t) +
-      sizeof(as_mem_pool_fixed_field_t) * n);
+  p = (as_mem_pool_fixed_t *)as_malloc(sizeof(as_mem_pool_fixed_t) +
+                                       sizeof(as_mem_pool_fixed_field_t) * n);
   if (p == NULL) {
     return NULL;
   }
@@ -51,11 +47,9 @@ memp_new(size_t fsize[], unsigned n) {
   return p;
 }
 
-
 #define field_size_eq(f, idx, s) ((f)[idx].size == (s))
 #define field_size_lt(f, idx, s) ((f)[idx].size < (s))
-void *
-memp_alloc(as_mem_pool_fixed_t *p, size_t size) {
+void *memp_alloc(as_mem_pool_fixed_t *p, size_t size) {
   if (p == NULL || size == 0) {
     return NULL;
   }
@@ -89,9 +83,7 @@ memp_alloc(as_mem_pool_fixed_t *p, size_t size) {
   return (void *)d->d;
 }
 
-
-void *
-memp_realloc(void *dd, size_t size) {
+void *memp_realloc(void *dd, size_t size) {
   if (dd == NULL) {
     return NULL;
   }
@@ -134,9 +126,7 @@ memp_realloc(void *dd, size_t size) {
   return NULL;
 }
 
-
-void
-memp_recycle(void *dd) {
+void memp_recycle(void *dd) {
   if (dd == NULL) {
     return;
   }
@@ -155,9 +145,7 @@ memp_recycle(void *dd) {
   pool->used -= f->size;
 }
 
-
-void
-memp_destroy(as_mem_pool_fixed_t *p) {
+void memp_destroy(as_mem_pool_fixed_t *p) {
   if (p == NULL) {
     return;
   }

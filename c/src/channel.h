@@ -8,7 +8,6 @@ typedef struct {
   int fd;
 } as_channel_t;
 
-extern void
-t();
+extern void t();
 
 #endif

@@ -1,12 +1,12 @@
-#include <unistd.h>
-#include <sys/socket.h>
-#include "server.h"
 #include "channel.h"
+
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include "server.h"
 #include "utils.h"
 
-
-void
-t() {
+void t() {
   int child;
   int sockets[2];
   char buf[1024];

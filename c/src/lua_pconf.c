@@ -1,13 +1,13 @@
-#include <stdarg.h>
 #include "lua_pconf.h"
+
+#include <stdarg.h>
+
 #include "lua_bind.h"
 #include "lua_utils.h"
 #include "utils.h"
 
-
 // [-n, +1, e]
-static int
-lcf_get_value(lua_State *L) {
+static int lcf_get_value(lua_State *L) {
   int n = lua_gettop(L);
   int i;
   lua_getglobal(L, "as_config");
@@ -22,9 +22,7 @@ lcf_get_value(lua_State *L) {
   return 1;
 }
 
-
-as_lua_pconf_t *
-lpconf_new(const char *filename) {
+as_lua_pconf_t *lpconf_new(const char *filename) {
   as_lua_pconf_t *cnf = as_malloc(sizeof(as_lua_pconf_t));
   if (cnf == NULL) {
     return NULL;
@@ -41,9 +39,7 @@ lpconf_new(const char *filename) {
   return cnf;
 }
 
-
-as_cnf_return_t
-lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...) {
+as_cnf_return_t lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...) {
   va_list ap;
   char *field;
 
@@ -83,9 +79,7 @@ lpconf_get_pconf_value(as_lua_pconf_t *cnf, int n, ...) {
   return ret;
 }
 
-
-void
-lpconf_destroy(as_lua_pconf_t *cnf) {
+void lpconf_destroy(as_lua_pconf_t *cnf) {
   if (cnf == NULL) {
     return;
   }

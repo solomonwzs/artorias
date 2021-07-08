@@ -1,13 +1,13 @@
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include "utils.h"
 #include "server.h"
 
-#define MAXLEN  256
+#include <arpa/inet.h>
+#include <fcntl.h>
 
+#include "utils.h"
 
-static inline int
-simple_bind_name_to_socket(int sock, uint16_t port) {
+#define MAXLEN 256
+
+static inline int simple_bind_name_to_socket(int sock, uint16_t port) {
   struct sockaddr_in addr;
   bzero(&addr, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -16,9 +16,8 @@ simple_bind_name_to_socket(int sock, uint16_t port) {
   return bind(sock, (struct sockaddr *)&addr, sizeof(addr));
 }
 
-
-static inline int
-simple_connect_socket(int sock, const char *hostname, uint16_t port) {
+static inline int simple_connect_socket(int sock, const char *hostname,
+                                        uint16_t port) {
   struct sockaddr_in addr;
   bzero(&addr, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -29,24 +28,20 @@ simple_connect_socket(int sock, const char *hostname, uint16_t port) {
   return connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 }
 
-
-int
-set_non_block(int fd) {
+int set_non_block(int fd) {
   int flags;
   if ((flags = fcntl(fd, F_GETFL, 0)) == -1) {
     debug_perror("non-block");
     return -1;
   }
-  if (fcntl(fd, F_SETFL, flags|O_NONBLOCK) == -1){
+  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
     debug_perror("non-block");
     return -1;
   }
   return 0;
 }
 
-
-int
-make_server_socket(uint16_t port) {
+int make_server_socket(uint16_t port) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     debug_perror("socket");
@@ -54,7 +49,7 @@ make_server_socket(uint16_t port) {
   }
 
   int optval = 1;
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval,
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval,
              sizeof(int));
 
   if (simple_bind_name_to_socket(sock, port) < 0) {
@@ -66,9 +61,7 @@ make_server_socket(uint16_t port) {
   return sock;
 }
 
-
-int
-make_client_socket(const char *hostname, uint16_t port) {
+int make_client_socket(const char *hostname, uint16_t port) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     debug_perror("socket");
@@ -90,9 +83,7 @@ make_client_socket(const char *hostname, uint16_t port) {
   return sock;
 }
 
-
-int
-simple_read_from_client(int fd) {
+int simple_read_from_client(int fd) {
   char buffer[MAXLEN + 1];
   int nbyte;
 
@@ -118,9 +109,7 @@ simple_read_from_client(int fd) {
   // return read(fd, buffer, MAXLEN);
 }
 
-
-int
-simple_write_to_client(int fd, const char *buf, size_t len) {
+int simple_write_to_client(int fd, const char *buf, size_t len) {
   int i = 0;
   while (i < len) {
     int n = send(fd, buf + i, len - i, MSG_NOSIGNAL);
@@ -140,9 +129,7 @@ simple_write_to_client(int fd, const char *buf, size_t len) {
   return len;
 }
 
-
-int
-new_accept_fd(int fd) {
+int new_accept_fd(int fd) {
   int infd;
   struct sockaddr_in in_addr;
   unsigned int size;
@@ -157,9 +144,7 @@ new_accept_fd(int fd) {
   return infd;
 }
 
-
-int
-send_fd_by_socket(int socket, int fd) {
+int send_fd_by_socket(int socket, int fd) {
   struct iovec io;
   struct msghdr msg = {0};
   char buf[CMSG_SPACE(sizeof(fd))];
@@ -187,8 +172,7 @@ send_fd_by_socket(int socket, int fd) {
   return 0;
 }
 
-int
-recv_fd_from_socket(int socket) {
+int recv_fd_from_socket(int socket) {
   struct msghdr msg = {0};
   char mbuf[256];
   char cbuf[256];
@@ -216,12 +200,10 @@ recv_fd_from_socket(int socket) {
   return fd;
 }
 
-
-int
-set_socket_send_buffer_size(int fd, int snd_size) {
+int set_socket_send_buffer_size(int fd, int snd_size) {
   int sendbuff = snd_size;
-  if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sendbuff,
-                 sizeof(sendbuff)) == -1) {
+  if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sendbuff, sizeof(sendbuff)) ==
+      -1) {
     debug_perror("setsockopt");
     return -1;
   }

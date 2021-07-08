@@ -1,10 +1,12 @@
+#include "lm_socket.h"
+
 #include <sys/epoll.h>
 #include <sys/socket.h>
+
 #include "bytes.h"
-#include "lm_socket.h"
 #include "lm_bytes.h"
-#include "lua_utils.h"
 #include "lua_bind.h"
+#include "lua_utils.h"
 #include "mem_pool.h"
 #include "mw_worker.h"
 #include "server.h"
@@ -15,34 +17,28 @@
 
 typedef struct {
   as_thread_res_t *res;
-  const char      *buf;
-  size_t          len;
-  size_t          idx;
+  const char *buf;
+  size_t len;
+  size_t idx;
 } _send_ctx_t;
 
-
-static int
-res_free_f(as_thread_res_t *res, void *f_ptr) {
+static int res_free_f(as_thread_res_t *res, void *f_ptr) {
   int *fd = (int *)res->d;
   close(*fd);
   return 0;
 }
 
-
-static int
-res_fd_f(as_thread_res_t *res) {
+static int res_fd_f(as_thread_res_t *res) {
   return *(int *)res->d;
 }
 
-
 // [-0, +1, e]
-static int
-lcf_socket_get_msock(lua_State *L) {
+static int lcf_socket_get_msock(lua_State *L) {
   lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
-  as_lm_socket_t *sock = (as_lm_socket_t *)lua_newuserdata(
-      L, sizeof(as_lm_socket_t));
+  as_lm_socket_t *sock =
+      (as_lm_socket_t *)lua_newuserdata(L, sizeof(as_lm_socket_t));
   sock->res = th->mfd_res;
   sock->type = LM_SOCK_TYPE_SYSTEM;
 
@@ -52,30 +48,27 @@ lcf_socket_get_msock(lua_State *L) {
   return 1;
 }
 
-
 // [-2, +1, e]
-static int
-lcf_socket_new(lua_State *L) {
+static int lcf_socket_new(lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   int port = luaL_checkinteger(L, 2);
 
-  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
-                      "no worker ctx");
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA, "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
   lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
-  as_lm_socket_t *sock = (as_lm_socket_t *)lua_newuserdata(
-      L, sizeof(as_lm_socket_t));
+  as_lm_socket_t *sock =
+      (as_lm_socket_t *)lua_newuserdata(L, sizeof(as_lm_socket_t));
   sock->res = NULL;
   sock->type = LM_SOCK_TYPE_CUSTOM;
 
   luaL_getmetatable(L, LM_SOCKET);
   lua_setmetatable(L, -2);
 
-  sock->res = (as_thread_res_t *)memp_alloc(
-      ctx->mem_pool, sizeof_thread_res(int));
+  sock->res =
+      (as_thread_res_t *)memp_alloc(ctx->mem_pool, sizeof_thread_res(int));
   if (sock->res == NULL) {
     lua_pushstring(L, "alloc error");
     lua_error(L);
@@ -96,12 +89,9 @@ lcf_socket_new(lua_State *L) {
   return 1;
 }
 
-
 // [-1, +1, e]
-static int
-lcf_socket_tostring(lua_State *L) {
-  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
-      L, 1, LM_SOCKET);
+static int lcf_socket_tostring(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   int fd = sock->res != NULL ? sock->res->fdf(sock->res) : -1;
   lua_pushfstring(L, "(s: %p, addr: %p, fd: %d)", sock, sock->res, fd);
@@ -109,12 +99,9 @@ lcf_socket_tostring(lua_State *L) {
   return 1;
 }
 
-
 // [-2, +3, e]
-static int
-lcf_socket_sread(lua_State *L) {
-  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
-      L, 1, LM_SOCKET);
+static int lcf_socket_sread(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
   int n = luaL_checkinteger(L, 2);
   if (n <= 0) {
     n = 1024;
@@ -145,12 +132,9 @@ lcf_socket_sread(lua_State *L) {
   return 3;
 }
 
-
 // [-1, +3, e]
-static int
-lcf_socket_sread_all(lua_State *L) {
-  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
-      L, 1, LM_SOCKET);
+static int lcf_socket_sread_all(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
   as_thread_res_t *res = sock->res;
   if (res == NULL) {
     lua_pushinteger(L, 0);
@@ -178,10 +162,8 @@ lcf_socket_sread_all(lua_State *L) {
   return 3;
 }
 
-
 // [-2, +2, e]
-static int
-lcf_socket_ssend(lua_State *L) {
+static int lcf_socket_ssend(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
@@ -212,9 +194,7 @@ lcf_socket_ssend(lua_State *L) {
   return 2;
 }
 
-
-static int
-k_socket_read(lua_State *L, int status, lua_KContext c) {
+static int k_socket_read(lua_State *L, int status, lua_KContext c) {
   as_thread_res_t *res = NULL;
   if (status == LUA_YIELD) {
     int type = luaL_checkinteger(L, 4);
@@ -253,12 +233,9 @@ k_socket_read(lua_State *L, int status, lua_KContext c) {
   return 3;
 }
 
-
 // [-3, +3, e]
-static int
-lcf_socket_read(lua_State *L) {
-  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
-      L, 1, LM_SOCKET);
+static int lcf_socket_read(lua_State *L) {
+  as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
   int timeout = luaL_checkinteger(L, 3);
   if (timeout < 0) {
     timeout = LAS_D_TIMOUT_SECS;
@@ -284,9 +261,7 @@ lcf_socket_read(lua_State *L) {
   return lua_yieldk(L, 4, (lua_KContext)NULL, k_socket_read);
 }
 
-
-static int
-k_socket_send(lua_State *L, int status, lua_KContext c) {
+static int k_socket_send(lua_State *L, int status, lua_KContext c) {
   as_thread_res_t *res = NULL;
   _send_ctx_t *ctx = (_send_ctx_t *)c;
 
@@ -340,10 +315,8 @@ k_socket_send(lua_State *L, int status, lua_KContext c) {
   return 2;
 }
 
-
 // [-2, +2, e]
-static int
-lcf_socket_send(lua_State *L) {
+static int lcf_socket_send(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   as_thread_res_t *res = sock->res;
@@ -366,8 +339,7 @@ lcf_socket_send(lua_State *L) {
     return 2;
   }
 
-  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
-                      "no worker ctx");
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA, "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
   _send_ctx_t *c = memp_alloc(ctx->mem_pool, sizeof(_send_ctx_t));
@@ -379,10 +351,8 @@ lcf_socket_send(lua_State *L) {
   return k_socket_send(L, LUA_OK, (lua_KContext)c);
 }
 
-
 // [-1, +1, e]
-static int
-lcf_socket_get_res(lua_State *L) {
+static int lcf_socket_get_res(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   lua_pushlightuserdata(L, sock->res);
@@ -390,10 +360,8 @@ lcf_socket_get_res(lua_State *L) {
   return 1;
 }
 
-
 // [-1, +0, e]
-static int
-lcf_socket_close(lua_State *L) {
+static int lcf_socket_close(lua_State *L) {
   as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(L, 1, LM_SOCKET);
 
   if (sock->res == NULL || sock->type == LM_SOCK_TYPE_SYSTEM) {
@@ -414,12 +382,9 @@ lcf_socket_close(lua_State *L) {
   return 0;
 }
 
-
 // [-?, +1, e]
-static int
-lcf_socket_ev_begin(lua_State *L) {
-  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
-                      "no worker ctx");
+static int lcf_socket_ev_begin(lua_State *L) {
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA, "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
   lbind_get_thread_local_vars(L, 1, LLK_THREAD);
@@ -431,8 +396,8 @@ lcf_socket_ev_begin(lua_State *L) {
   int n = luaL_checkinteger(L, 1);
   int m = 0;
   for (int i = 1; i < n + 1; ++i) {
-    as_lm_socket_t *sock = (as_lm_socket_t *)luaL_checkudata(
-        L, i * 2, LM_SOCKET);
+    as_lm_socket_t *sock =
+        (as_lm_socket_t *)luaL_checkudata(L, i * 2, LM_SOCKET);
     int ev = luaL_checkinteger(L, i * 2 + 1);
     if (sock->res == NULL || sock->res->th != th) {
       break;
@@ -453,10 +418,8 @@ lcf_socket_ev_begin(lua_State *L) {
   return 1;
 }
 
-
 // [-0, +0, e]
-static int
-lcf_socket_ev_end(lua_State *L) {
+static int lcf_socket_ev_end(lua_State *L) {
   lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
@@ -464,8 +427,7 @@ lcf_socket_ev_end(lua_State *L) {
     return 0;
   }
 
-  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA,
-                      "no worker ctx");
+  lbind_checkregvalue(L, LRK_WORKER_CTX, LUA_TLIGHTUSERDATA, "no worker ctx");
   as_mw_worker_ctx_t *ctx = (as_mw_worker_ctx_t *)lua_touserdata(L, -1);
 
   th->mode = AS_TMODE_SIMPLE;
@@ -474,13 +436,10 @@ lcf_socket_ev_end(lua_State *L) {
   return 0;
 }
 
-
-static int
-k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
+static int k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
   if (status == LUA_YIELD) {
     int type = luaL_checkinteger(L, 2);
     if (type == LAS_S_RESUME_IO) {
-
       // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 3);
       // int rw = lua_tointeger(L, 4);
 
@@ -491,8 +450,7 @@ k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
       lua_gettable(L, -3);
       lua_pushvalue(L, 4);
 
-    } else if (type == LAS_S_RESUME_IO_ERROR){
-
+    } else if (type == LAS_S_RESUME_IO_ERROR) {
       // as_thread_res_t *res = (as_thread_res_t *)lua_touserdata(L, 3);
       // int err = lua_tointeger(L, 4);
 
@@ -504,10 +462,8 @@ k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
       lua_pushnil(L);
 
     } else if (type == LAS_S_RESUME_SLEEP) {
-
       lua_pushnil(L);
       lua_pushnil(L);
-
     }
   } else {
     lua_pushstring(L, "ev error");
@@ -517,10 +473,8 @@ k_socket_ev_wait(lua_State *L, int status, lua_KContext c) {
   return 3;
 }
 
-
 // [-0, +3, e]
-static int
-lcf_socket_ev_wait(lua_State *L) {
+static int lcf_socket_ev_wait(lua_State *L) {
   int timeout = luaL_checkinteger(L, 1);
 
   lua_pushinteger(L, LAS_S_YIELD_FOR_EV);
@@ -528,47 +482,39 @@ lcf_socket_ev_wait(lua_State *L) {
   return lua_yieldk(L, 2, (lua_KContext)NULL, k_socket_ev_wait);
 }
 
+static const struct luaL_Reg as_lm_socket_functions[] = {
+    {"get_msock", lcf_socket_get_msock},
+    {"new", lcf_socket_new},
 
-static const struct luaL_Reg
-as_lm_socket_functions[] = {
-  {"get_msock", lcf_socket_get_msock},
-  {"new", lcf_socket_new},
+    {"ev_begin", lcf_socket_ev_begin},
+    {"ev_end", lcf_socket_ev_end},
+    {"ev_wait", lcf_socket_ev_wait},
 
-  {"ev_begin", lcf_socket_ev_begin},
-  {"ev_end", lcf_socket_ev_end},
-  {"ev_wait", lcf_socket_ev_wait},
-
-  {NULL, NULL},
+    {NULL, NULL},
 };
 
+static const struct luaL_Reg as_lm_socket_methods[] = {
+    {"ssend", lcf_socket_ssend},
+    {"sread", lcf_socket_sread},
 
-static const struct luaL_Reg
-as_lm_socket_methods[] = {
-  {"ssend", lcf_socket_ssend},
-  {"sread", lcf_socket_sread},
+    {"sread_all", lcf_socket_sread_all},
 
-  {"sread_all", lcf_socket_sread_all},
+    {"send", lcf_socket_send},
+    {"read", lcf_socket_read},
 
-  {"send", lcf_socket_send},
-  {"read", lcf_socket_read},
+    {"close", lcf_socket_close},
+    {"get_res", lcf_socket_get_res},
+    {"__tostring", lcf_socket_tostring},
+    {"__gc", lcf_socket_close},
 
-  {"close", lcf_socket_close},
-  {"get_res", lcf_socket_get_res},
-  {"__tostring", lcf_socket_tostring},
-  {"__gc", lcf_socket_close},
-
-  {NULL, NULL},
+    {NULL, NULL},
 };
 
-
-void
-inc_lm_socket_metatable(lua_State *L) {
+void inc_lm_socket_metatable(lua_State *L) {
   aluaL_newmetatable_with_methods(L, LM_SOCKET, as_lm_socket_methods);
 }
 
-
-int
-luaopen_lm_socket(lua_State *L) {
+int luaopen_lm_socket(lua_State *L) {
   inc_lm_socket_metatable(L);
   aluaL_newlib(L, "lm_socket", as_lm_socket_functions);
 

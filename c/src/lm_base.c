@@ -1,12 +1,11 @@
 #include <sys/epoll.h>
-#include "lua_utils.h"
+
 #include "lua_bind.h"
+#include "lua_utils.h"
 #include "thread.h"
 
-
 // [0, +1, e]
-static int
-lcf_get_tid(lua_State *L) {
+static int lcf_get_tid(lua_State *L) {
   lbind_get_thread_local_vars(L, 1, LLK_THREAD);
   as_thread_t *th = (as_thread_t *)lua_touserdata(L, -1);
 
@@ -15,16 +14,12 @@ lcf_get_tid(lua_State *L) {
   return 1;
 }
 
-
-static const struct luaL_Reg
-as_lm_base_functions[] = {
-  {"get_tid", lcf_get_tid},
-  {NULL, NULL},
+static const struct luaL_Reg as_lm_base_functions[] = {
+    {"get_tid", lcf_get_tid},
+    {NULL, NULL},
 };
 
-
-int
-luaopen_lm_base(lua_State *L) {
+int luaopen_lm_base(lua_State *L) {
   aluaL_newlib(L, "lm_base", as_lm_base_functions);
 
   // S

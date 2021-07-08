@@ -1,11 +1,8 @@
 #include "dlist.h"
 
-#define dlist_is_empty(_dl_) \
-    ((_dl_)->head == NULL)
+#define dlist_is_empty(_dl_) ((_dl_)->head == NULL)
 
-
-void
-dlist_add_to_head(as_dlist_t *dlist, as_dlist_node_t *node) {
+void dlist_add_to_head(as_dlist_t *dlist, as_dlist_node_t *node) {
   node->prev = NULL;
   node->next = dlist->head;
 
@@ -17,9 +14,7 @@ dlist_add_to_head(as_dlist_t *dlist, as_dlist_node_t *node) {
   dlist->head = node;
 }
 
-
-void
-dlist_add_to_tail(as_dlist_t *dlist, as_dlist_node_t *node) {
+void dlist_add_to_tail(as_dlist_t *dlist, as_dlist_node_t *node) {
   node->next = NULL;
   node->prev = dlist->tail;
 
@@ -31,9 +26,7 @@ dlist_add_to_tail(as_dlist_t *dlist, as_dlist_node_t *node) {
   dlist->tail = node;
 }
 
-
-void
-dlist_del(as_dlist_t *dlist, as_dlist_node_t *node) {
+void dlist_del(as_dlist_t *dlist, as_dlist_node_t *node) {
   if (dlist->head == node) {
     dlist->head = node->next;
   }

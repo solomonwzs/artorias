@@ -1,11 +1,11 @@
 #include "select_server.h"
+
 #include <sys/select.h>
+
 #include "server.h"
 #include "utils.h"
 
-
-void
-select_server(int fd) {
+void select_server(int fd) {
   int i;
   fd_set active_fd_set, read_fd_set;
 
@@ -28,8 +28,7 @@ select_server(int fd) {
           }
           set_non_block(infd);
           FD_SET(infd, &active_fd_set);
-        }
-        else {
+        } else {
           int n = simple_read_from_client(i);
           if (n <= 0) {
             close(i);

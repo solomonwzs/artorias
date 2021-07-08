@@ -1,11 +1,11 @@
-#include <unistd.h>
-#include <sys/socket.h>
-#include "lua_utils.h"
 #include "lua_output.h"
 
+#include <sys/socket.h>
+#include <unistd.h>
 
-static int
-lcf_write_redis_ok(lua_State *L) {
+#include "lua_utils.h"
+
+static int lcf_write_redis_ok(lua_State *L) {
   int fd = lua_tointeger(L, -1);
 
   lua_getglobal(L, "redis_ok");
@@ -25,9 +25,7 @@ lcf_write_redis_ok(lua_State *L) {
   return 1;
 }
 
-
-int
-loutput_redis_ok(lua_State *L, int fd) {
+int loutput_redis_ok(lua_State *L, int fd) {
   lua_pushcfunction(L, lcf_write_redis_ok);
   lua_pushnumber(L, fd);
   int ret = lua_pcall(L, 1, 1, 0);

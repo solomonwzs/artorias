@@ -3,7 +3,6 @@
 
 #include <lua.h>
 
-extern int
-loutput_redis_ok(lua_State *L, int fd);
+extern int loutput_redis_ok(lua_State *L, int fd);
 
 #endif

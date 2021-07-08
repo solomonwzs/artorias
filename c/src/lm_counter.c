@@ -1,11 +1,10 @@
 #include "lm_counter.h"
-#include "mem_pool.h"
+
 #include "lua_utils.h"
+#include "mem_pool.h"
 #include "utils.h"
 
-
-static as_lm_counter_t *
-counter_create(int start, as_mem_pool_fixed_t *mp) {
+static as_lm_counter_t *counter_create(int start, as_mem_pool_fixed_t *mp) {
   if (mp == NULL) {
     return NULL;
   }
@@ -18,32 +17,24 @@ counter_create(int start, as_mem_pool_fixed_t *mp) {
   return c;
 }
 
-
-static void
-counter_destroy(as_lm_counter_t *c) {
+static void counter_destroy(as_lm_counter_t *c) {
   if (c != NULL) {
     memp_recycle(c);
   }
 }
 
-
-static void
-counter_add(as_lm_counter_t *c, int amount) {
+static void counter_add(as_lm_counter_t *c, int amount) {
   if (c != NULL) {
     c->val += amount;
   }
 }
 
-
-static int
-counter_getval(as_lm_counter_t *c) {
+static int counter_getval(as_lm_counter_t *c) {
   return c != NULL ? c->val : 0;
 }
 
-
 // [-2, +1, e]
-static int
-lcf_counter_new(lua_State *L) {
+static int lcf_counter_new(lua_State *L) {
   as_lm_counter_ud_t *cu;
   const char *name;
   int start;
@@ -72,12 +63,10 @@ lcf_counter_new(lua_State *L) {
   return 1;
 }
 
-
 // [-0, +0, e]
-static int
-lcf_counter_add(lua_State *L) {
-  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
-      L, 1, LM_COUNTER);
+static int lcf_counter_add(lua_State *L) {
+  as_lm_counter_ud_t *cu =
+      (as_lm_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
   int amount = luaL_checkinteger(L, 2);
 
   counter_add(cu->c, amount);
@@ -85,36 +74,30 @@ lcf_counter_add(lua_State *L) {
   return 0;
 }
 
-
 // [-0, +1, e]
-static int
-lcf_counter_getval(lua_State *L) {
-  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
-      L, 1, LM_COUNTER);
+static int lcf_counter_getval(lua_State *L) {
+  as_lm_counter_ud_t *cu =
+      (as_lm_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
 
   lua_pushinteger(L, counter_getval(cu->c));
 
   return 1;
 }
 
-
 // [-0, +1, e]
-static int
-lcf_counter_getname(lua_State *L) {
-  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
-      L, 1, LM_COUNTER);
+static int lcf_counter_getname(lua_State *L) {
+  as_lm_counter_ud_t *cu =
+      (as_lm_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
 
   lua_pushstring(L, cu->name);
 
   return 1;
 }
 
-
 // [-0, +0, e]
-static int
-lcf_counter_destroy(lua_State *L) {
-  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
-      L, 1, LM_COUNTER);
+static int lcf_counter_destroy(lua_State *L) {
+  as_lm_counter_ud_t *cu =
+      (as_lm_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
 
   counter_destroy(cu->c);
   cu->c = NULL;
@@ -126,37 +109,29 @@ lcf_counter_destroy(lua_State *L) {
   return 0;
 }
 
-
 // [-0, +1, e]
-static int
-lcf_counter_tostring(lua_State *L) {
-  as_lm_counter_ud_t *cu = (as_lm_counter_ud_t *)luaL_checkudata(
-      L, 1, LM_COUNTER);
+static int lcf_counter_tostring(lua_State *L) {
+  as_lm_counter_ud_t *cu =
+      (as_lm_counter_ud_t *)luaL_checkudata(L, 1, LM_COUNTER);
   lua_pushfstring(L, "%s(%d)", cu->name, counter_getval(cu->c));
   return 1;
 }
 
-
-static const struct luaL_Reg
-as_lm_counter_methods[] = {
-  {"add", lcf_counter_add},
-  {"getval", lcf_counter_getval},
-  {"getname", lcf_counter_getname},
-  {"__gc", lcf_counter_destroy},
-  {"__tostring", lcf_counter_tostring},
-  {NULL, NULL},
+static const struct luaL_Reg as_lm_counter_methods[] = {
+    {"add", lcf_counter_add},
+    {"getval", lcf_counter_getval},
+    {"getname", lcf_counter_getname},
+    {"__gc", lcf_counter_destroy},
+    {"__tostring", lcf_counter_tostring},
+    {NULL, NULL},
 };
 
-
-static const struct luaL_Reg
-as_lm_counter_functions[] = {
-  {"new", lcf_counter_new},
-  {NULL, NULL},
+static const struct luaL_Reg as_lm_counter_functions[] = {
+    {"new", lcf_counter_new},
+    {NULL, NULL},
 };
 
-
-int
-luaopen_lm_counter(lua_State *L) {
+int luaopen_lm_counter(lua_State *L) {
   aluaL_newmetatable_with_methods(L, LM_COUNTER, as_lm_counter_methods);
   aluaL_newlib(L, "lm_counter", as_lm_counter_functions);
 
