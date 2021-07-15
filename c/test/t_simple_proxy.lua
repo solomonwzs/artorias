@@ -16,60 +16,54 @@ local sock = nil
 local rw = 0
 
 function read_all(so)
-    local nbyte = 0
-    local s = ""
-    local err = nil
-    local n, buf
-    repeat
-        n, buf, err = so:sread(1024)
-        if err == nil then
-            s = s .. buf
-            nbyte = nbyte + n
-        end
-    until err ~= nil or n == 0
-
-    if (err == lm_base.E.EAGAIN or err == nil) and nbyte ~= 0 then
-        err = nil
-    elseif err == nil and nbyte == 0 then
-        err = "conn close"
-    else
-        err = "errno: " .. err
+  local nbyte = 0
+  local s = ""
+  local err = nil
+  local n, buf
+  repeat
+    n, buf, err = so:sread(1024)
+    if err == nil then
+      s = s .. buf
+      nbyte = nbyte + n
     end
+  until err ~= nil or n == 0
 
-    return nbyte, s, err
+  if (err == lm_base.E.EAGAIN or err == nil) and nbyte ~= 0 then
+    err = nil
+  elseif err == nil and nbyte == 0 then
+    err = "conn close"
+  else
+    err = "errno: " .. err
+  end
+
+  return nbyte, s, err
 end
 
-lm_socket.ev_begin(2,
-    proxy, lm_base.EV.EPOLLIN | lm_base.EV.EPOLLET,
-    target, lm_base.EV.EPOLLIN | lm_base.EV.EPOLLET
-    )
+lm_socket.ev_begin(2, proxy, lm_base.EV.EPOLLIN | lm_base.EV.EPOLLET, target,
+                   lm_base.EV.EPOLLIN | lm_base.EV.EPOLLET)
 
 local nn = 0
 while true do
-    typ, sock, rw = lm_socket.ev_wait(60)
-    if typ == lm_base.S.RESUME_IO then
-        if sock == proxy then
-            -- n, str, err = proxy:sread_all()
-            n, str, err = read_all(proxy)
-            if err ~= nil then
-                break
-            end
-            to_target = to_target .. str
+  typ, sock, rw = lm_socket.ev_wait(60)
+  if typ == lm_base.S.RESUME_IO then
+    if sock == proxy then
+      -- n, str, err = proxy:sread_all()
+      n, str, err = read_all(proxy)
+      if err ~= nil then break end
+      to_target = to_target .. str
 
-            n, err = target:ssend(to_target)
-            to_target = ""
-        else
-            -- n, str, err = target:sread_all()
-            n, str, err = read_all(target)
-            if err ~= nil then
-                break
-            end
-            to_proxy = to_proxy .. str
+      n, err = target:ssend(to_target)
+      to_target = ""
+    else
+      -- n, str, err = target:sread_all()
+      n, str, err = read_all(target)
+      if err ~= nil then break end
+      to_proxy = to_proxy .. str
 
-            n, err = proxy:ssend(to_proxy)
-            to_proxy = ""
-        end
+      n, err = proxy:ssend(to_proxy)
+      to_proxy = ""
     end
+  end
 end
 
 lm_socket.ev_end()

@@ -19,28 +19,20 @@ n, err = sock:send(cmd_get)
 n, s, err = sock:read(1024)
 
 while true do
-    n, s, err = msock:read(1024)
-    if err ~= nil or (err == nil and n == 0) then
-        break
-    end
-    if (s == "*1\r\n$7\r\nCOMMAND\r\n") then
-        msock:send(r)
-    else
-        n, err = sock:send(s)
-        if err ~= nil then
-            break
-        end
+  n, s, err = msock:read(1024)
+  if err ~= nil or (err == nil and n == 0) then break end
+  if (s == "*1\r\n$7\r\nCOMMAND\r\n") then
+    msock:send(r)
+  else
+    n, err = sock:send(s)
+    if err ~= nil then break end
 
-        n, s, err = sock:read(1024)
-        if err ~= nil then
-            break
-        end
+    n, s, err = sock:read(1024)
+    if err ~= nil then break end
 
-        n, err = msock:send(s)
-        if err ~= nil then
-            break
-        end
-    end
+    n, err = msock:send(s)
+    if err ~= nil then break end
+  end
 end
 
 sock:close()
